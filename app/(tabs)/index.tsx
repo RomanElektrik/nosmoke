@@ -15,7 +15,7 @@ import {
 import { StreakRing } from '../../components/StreakRing';
 import { Icon } from '../../components/Icon';
 import { MoneyJar } from '../../components/MoneyJar';
-import { programToday, currentLevel, cravingsSurvived, checkInStreak, programPhase } from '../../lib/program';
+import { programToday, currentLevel, nextLevel, levelProgress, cravingsSurvived, checkInStreak, programPhase, LEVELS } from '../../lib/program';
 import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped';
 import { getTrack } from '../../lib/tracks';
 import { update } from '../../lib/storage';
@@ -116,6 +116,12 @@ export default function Home() {
               </Text>
             </View>
           )}
+        </View>
+
+        {/* Streak + Level row */}
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 2 }}>
+          <StreakBadge streak={checkStreak} lang={lang} />
+          <LevelBadge secs={secs} lang={lang} onPress={() => router.push('/program')} />
         </View>
 
         {/* chip stats */}
@@ -750,6 +756,80 @@ function QuickLink({ icon, label, onPress }: { icon: any; label: string; onPress
       style={{ flex: 1, padding: 14, borderRadius: radius.md, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, alignItems: 'center', gap: 6 }}>
       {icon}
       <Text style={{ color: t.text, fontWeight: '600', fontSize: 12 }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+// ─── Streak badge ────────────────────────────────────────────────────────────
+function streakColor(streak: number): string {
+  if (streak >= 14) return '#FF2D55'; // red-gold — longest
+  if (streak >= 7)  return '#FF6B00'; // vivid orange
+  if (streak >= 3)  return '#FF9500'; // orange
+  return '#9AA3AF';                   // grey — not yet warmed up
+}
+
+function StreakBadge({ streak, lang }: { streak: number; lang: 'ru' | 'en' }) {
+  const t = useTheme();
+  const color = streakColor(streak);
+  const showKeepIt = streak >= 3;
+  return (
+    <View style={{
+      flex: 1, padding: 12, borderRadius: radius.md,
+      backgroundColor: color + '18', borderWidth: 1, borderColor: color + '35',
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+    }}>
+      <Icon.fire size={22} color={color} />
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+          <Text style={{ color, fontSize: 22, fontWeight: '800', fontVariant: ['tabular-nums'] as any }}>
+            {streak}
+          </Text>
+          <Text style={{ color: t.textDim, fontSize: 12 }}>
+            {lang === 'ru' ? 'дн.' : 'd.'}
+          </Text>
+        </View>
+        <Text style={{ color: t.textDim, fontSize: 11, marginTop: 1 }} numberOfLines={1}>
+          {showKeepIt
+            ? (lang === 'ru' ? 'не теряй серию' : 'keep the streak')
+            : (lang === 'ru' ? 'серия чек-инов' : 'check-in streak')}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Level badge ──────────────────────────────────────────────────────────────
+function LevelBadge({ secs, lang, onPress }: { secs: number; lang: 'ru' | 'en'; onPress: () => void }) {
+  const t = useTheme();
+  const lvl = currentLevel(secs);
+  const nxt = nextLevel(secs);
+  const prog = levelProgress(secs);
+  const LvlIcon = Icon[lvl.icon];
+  return (
+    <Pressable onPress={onPress} style={{ flex: 1 }}>
+      <View style={{
+        padding: 12, borderRadius: radius.md,
+        backgroundColor: lvl.color + '18', borderWidth: 1, borderColor: lvl.color + '35',
+        gap: 6,
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <LvlIcon size={18} color={lvl.color} />
+          <Text style={{ color: lvl.color, fontSize: 13, fontWeight: '700', flex: 1 }} numberOfLines={1}>
+            {lang === 'ru' ? lvl.titleRu : lvl.titleEn}
+          </Text>
+          <Text style={{ color: t.textDim, fontSize: 11 }}>
+            {lvl.index}/{LEVELS.length - 1}
+          </Text>
+        </View>
+        <View style={{ height: 4, borderRadius: 4, backgroundColor: t.border, overflow: 'hidden' }}>
+          <View style={{ width: `${Math.min(100, prog * 100)}%`, height: '100%', backgroundColor: lvl.color }} />
+        </View>
+        {nxt && (
+          <Text style={{ color: t.textDim, fontSize: 10 }} numberOfLines={1}>
+            {lang === 'ru' ? `→ ${nxt.titleRu}` : `→ ${nxt.titleEn}`}
+          </Text>
+        )}
+      </View>
     </Pressable>
   );
 }
