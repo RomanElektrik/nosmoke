@@ -4,9 +4,21 @@
 // • Bupropion SR — FDA Zyban label.
 // • Varenicline — FDA Chantix label.
 
-import type { AppState } from './storage';
+import type { AppState, StepLevel } from './storage';
 
 export type Medication = 'cytisine' | 'bupropion' | 'varenicline';
+
+// Какой препарат соответствует ступени программы.
+// L1 — без препарата; L2 — цитизин; L3 — бупропион; L4/L5 — варениклин.
+export function expectedMedForStep(stepId?: StepLevel): Medication | null {
+  switch (stepId) {
+    case 'L2_nrt_light': return 'cytisine';
+    case 'L3_nrt_combo': return 'bupropion';
+    case 'L4_pharma':
+    case 'L5_intensive': return 'varenicline';
+    default: return null;
+  }
+}
 
 // ─── Safety information per medication ──────────────────────────────────────
 // Sources: Sopharma Tabex SmPC; FDA Zyban label; FDA Chantix label;
