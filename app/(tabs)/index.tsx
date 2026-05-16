@@ -94,7 +94,7 @@ export default function Home() {
         </Text>
 
         {/* Breathing drop */}
-        <BreathingDrop count={days} lang={lang} />
+        <BreathingDrop secs={secs} lang={lang} />
 
         {/* Live timer */}
         <Text style={{
@@ -228,9 +228,36 @@ function greeting(lang: 'ru' | 'en'): string {
 
 // ─── Breathing drop ───────────────────────────────────────────────────────────
 // Layered radial glows + a central circle with a slow breathing pulse.
-function BreathingDrop({ count, lang }: { count: number; lang: 'ru' | 'en' }) {
+// Russian plural: pick form by number.
+function plural(n: number, forms: [string, string, string]): string {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return forms[0];
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return forms[1];
+  return forms[2];
+}
+
+// Headline number for the orb — always meaningful, never a bare "0".
+function dropHeadline(secs: number, lang: 'ru' | 'en'): { big: string; unit: string } {
+  const days = Math.floor(secs / 86400);
+  const hours = Math.floor(secs / 3600);
+  const mins = Math.floor(secs / 60);
+  if (days >= 1) {
+    return { big: String(days), unit: lang === 'ru' ? plural(days, ['день', 'дня', 'дней']) + ' чисто' : (days === 1 ? 'day clean' : 'days clean') };
+  }
+  if (hours >= 1) {
+    return { big: String(hours), unit: lang === 'ru' ? plural(hours, ['час', 'часа', 'часов']) + ' чисто' : (hours === 1 ? 'hour clean' : 'hours clean') };
+  }
+  if (mins >= 1) {
+    return { big: String(mins), unit: lang === 'ru' ? plural(mins, ['минута', 'минуты', 'минут']) + ' чисто' : (mins === 1 ? 'minute clean' : 'minutes clean') };
+  }
+  return { big: lang === 'ru' ? 'Старт' : 'Start', unit: lang === 'ru' ? 'путь начался' : 'the journey begins' };
+}
+
+function BreathingDrop({ secs, lang }: { secs: number; lang: 'ru' | 'en' }) {
   const t = useTheme();
   const scale = useSharedValue(1);
+  const { big, unit } = dropHeadline(secs, lang);
+  const isText = big === 'Старт' || big === 'Start';
 
   useEffect(() => {
     scale.value = withRepeat(
@@ -268,16 +295,20 @@ function BreathingDrop({ count, lang }: { count: number; lang: 'ru' | 'en' }) {
           }}
         />
       </Animated.View>
-      {/* centre number */}
+      {/* centre headline */}
       <View style={{ position: 'absolute', alignItems: 'center' }}>
-        <Text style={{ color: '#fff', fontSize: 80, fontWeight: '200', letterSpacing: -3, lineHeight: 84 }}>
-          {count}
+        <Text style={{
+          color: '#fff', fontWeight: isText ? '700' : '200',
+          fontSize: isText ? 38 : 76, letterSpacing: isText ? -1 : -3,
+          lineHeight: isText ? 44 : 80,
+        }}>
+          {big}
         </Text>
         <Text style={{
-          color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 3,
-          textTransform: 'uppercase', opacity: 0.9, marginTop: 2,
+          color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 2,
+          textTransform: 'uppercase', opacity: 0.9, marginTop: 4,
         }}>
-          {lang === 'ru' ? 'дней чисто' : 'days clean'}
+          {unit}
         </Text>
       </View>
     </View>
