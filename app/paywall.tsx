@@ -28,7 +28,7 @@ export default function Paywall() {
 
   useEffect(() => { getPackages().then(setPackages); }, []);
   // Close automatically once the user becomes premium.
-  useEffect(() => { if (premium) router.back(); }, [premium]);
+  useEffect(() => { if (premium) (router.canGoBack() ? router.back() : router.replace('/(tabs)')); }, [premium]);
 
   const features = ru ? PREMIUM_FEATURES_RU : PREMIUM_FEATURES_EN;
 
@@ -63,7 +63,7 @@ export default function Paywall() {
       <LinearGradient colors={[t.accentSoft, 'transparent']}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 320 }} />
       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: spacing.md }}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} hitSlop={12}>
           <Text style={{ color: t.textDim, fontSize: 16 }}>{ru ? 'Закрыть' : 'Close'}</Text>
         </Pressable>
       </View>

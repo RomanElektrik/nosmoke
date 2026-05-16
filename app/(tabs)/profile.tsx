@@ -8,6 +8,7 @@ import { reset, update, useAppState } from '../../lib/storage';
 import { GlassCard } from '../../components/GlassCard';
 import { getStep } from '../../lib/stepped';
 import { Icon } from '../../components/Icon';
+import { SwipeToHome } from '../../components/SwipeToHome';
 import { scheduleDailyCheckIn } from '../../lib/notifications';
 import { secondsClean } from '../../lib/health';
 import { moneySaved, cigsAvoided, formatMoney } from '../../lib/money';
@@ -24,6 +25,7 @@ export default function Profile() {
   const secs = secondsClean(p.quitDate);
 
   return (
+    <SwipeToHome>
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView contentContainerStyle={{ padding: spacing.md, gap: 12, paddingBottom: 80 }}>
         <Text style={{ color: t.text, fontSize: 34, fontWeight: '700', letterSpacing: -0.8, marginVertical: 8 }}>
@@ -98,6 +100,7 @@ export default function Profile() {
         </Pressable>
       </ScrollView>
     </SafeAreaView>
+    </SwipeToHome>
   );
 }
 

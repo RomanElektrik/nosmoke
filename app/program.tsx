@@ -98,13 +98,13 @@ export default function ProgramScreen() {
           </Text>
         </View>
 
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: 8 }}>
           {getTrack(stepId).days.map((d) => {
             const past = today.day > d.day;
             const isToday = today.day === d.day;
             const future = today.day < d.day;
             const peak = d.day === 3;
-            const baseColor = peak ? '#FF453A' : (isToday ? '#0A84FF' : (past ? '#30D158' : t.textDim));
+            const accentColor = peak ? '#FF453A' : (isToday ? '#0A84FF' : (past ? '#30D158' : t.textDim));
             return (
               <Pressable key={d.day} disabled={future} onPress={() => {
                 if (d.practice) {
@@ -117,52 +117,71 @@ export default function ProgramScreen() {
                 <View style={{
                   flexDirection: 'row', gap: 12, alignItems: 'flex-start',
                   padding: 14, borderRadius: radius.lg,
-                  backgroundColor: isToday ? '#0A84FF14' : t.bgElev,
-                  borderWidth: 1, borderColor: isToday ? '#0A84FF40' : t.border,
-                  opacity: future ? 0.55 : 1,
+                  backgroundColor: isToday ? accentColor + '12' : (past ? t.bgElev : t.bgElev),
+                  borderWidth: isToday ? 1.5 : 1,
+                  borderColor: isToday ? accentColor + '60' : (past ? '#30D15830' : t.border),
+                  opacity: future ? 0.45 : 1,
                 }}>
+                  {/* Day badge */}
                   <View style={{
                     width: 44, height: 44, borderRadius: 14,
-                    backgroundColor: (typeof baseColor === 'string' ? baseColor : '#9AA3AF') + '24',
+                    backgroundColor: accentColor + (isToday ? '28' : '20'),
                     alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
                   }}>
-                    <Text style={{ color: baseColor, fontSize: 16, fontWeight: '800' }}>{d.day}</Text>
+                    {past ? (
+                      <Icon.check size={20} color={accentColor} />
+                    ) : (
+                      <Text style={{ color: accentColor, fontSize: 17, fontWeight: '900', letterSpacing: -0.5 }}>{d.day}</Text>
+                    )}
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, flexWrap: 'wrap' }}>
-                      <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', flexShrink: 1 }} numberOfLines={3}>
-                        {lang === 'ru' ? d.focusRu : d.focusEn}
-                      </Text>
+
+                  <View style={{ flex: 1, gap: 4 }}>
+                    {/* Labels row */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      {isToday && (
+                        <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: accentColor + '28' }}>
+                          <Text style={{ color: accentColor, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }}>
+                            {lang === 'ru' ? 'СЕГОДНЯ' : 'TODAY'}
+                          </Text>
+                        </View>
+                      )}
                       {peak && (
-                        <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: '#FF453A24' }}>
-                          <Text style={{ color: '#FF453A', fontSize: 10, fontWeight: '800' }}>{lang === 'ru' ? 'ПИК' : 'PEAK'}</Text>
+                        <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: '#FF453A24' }}>
+                          <Text style={{ color: '#FF453A', fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }}>{lang === 'ru' ? 'ПИК' : 'PEAK'}</Text>
                         </View>
                       )}
                     </View>
-                    <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
-                      {lang === 'ru' ? d.scienceRu : d.scienceEn}
+
+                    <Text style={{ color: future ? t.textDim : t.text, fontSize: 15, fontWeight: '700', lineHeight: 20 }} numberOfLines={3}>
+                      {lang === 'ru' ? d.focusRu : d.focusEn}
                     </Text>
-                    {(d.medRu || d.medEn) && (
-                      <View style={{ marginTop: 8, padding: 8, borderRadius: 10, backgroundColor: '#34C75914', borderWidth: 1, borderColor: '#34C75940', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+
+                    {!future && (
+                      <Text style={{ color: t.textDim, fontSize: 12, lineHeight: 17 }}>
+                        {lang === 'ru' ? d.scienceRu : d.scienceEn}
+                      </Text>
+                    )}
+
+                    {(d.medRu || d.medEn) && !future && (
+                      <View style={{ marginTop: 4, padding: 8, borderRadius: 10, backgroundColor: '#34C75914', borderWidth: 1, borderColor: '#34C75940', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
                         <Icon.shield size={14} color="#34C759" />
                         <Text style={{ color: t.text, fontSize: 12, flex: 1, lineHeight: 17 }}>
                           {lang === 'ru' ? d.medRu : d.medEn}
                         </Text>
                       </View>
                     )}
-                    {!future && (
-                      <View style={{ marginTop: 8, padding: 8, borderRadius: 10, backgroundColor: t.bg, borderWidth: 1, borderColor: t.border, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Icon.toolbox size={14} color={t.accent} />
-                        <Text style={{ color: t.text, fontSize: 13, flex: 1 }} numberOfLines={2}>
+
+                    {isToday && (
+                      <View style={{ marginTop: 4, padding: 8, borderRadius: 10, backgroundColor: accentColor + '10', borderWidth: 1, borderColor: accentColor + '30', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Icon.toolbox size={14} color={accentColor} />
+                        <Text style={{ color: t.text, fontSize: 13, flex: 1, fontWeight: '500' }} numberOfLines={2}>
                           {lang === 'ru' ? d.taskRu : d.taskEn}
                         </Text>
-                        {d.practice && <Text style={{ color: t.accent, fontSize: 13, fontWeight: '700' }}>→</Text>}
+                        {d.practice && <Text style={{ color: accentColor, fontSize: 13, fontWeight: '700' }}>→</Text>}
                       </View>
                     )}
                   </View>
-                  {past && <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#30D158', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon.check size={14} color="#fff" />
-                  </View>}
                 </View>
               </Pressable>
             );

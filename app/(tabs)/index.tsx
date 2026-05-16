@@ -19,7 +19,7 @@ import { programToday, currentLevel, cravingsSurvived, checkInStreak, programPha
 import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped';
 import { getTrack } from '../../lib/tracks';
 import { update } from '../../lib/storage';
-import { todayDoses, isDoseTaken, doseKey, medCourseDay } from '../../lib/medication';
+import { todayDoses, isDoseTaken, doseKey, medCourseDay, expectedMedForStep, MED_SAFETY } from '../../lib/medication';
 
 export default function Home() {
   const t = useTheme();
@@ -376,6 +376,28 @@ function PlanCard() {
           {!!focus && (
             <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>{focus}</Text>
           )}
+
+          {/* Medication activation CTA — when step expects a med but none activated */}
+          {!med && (() => {
+            const expectedMed = expectedMedForStep(stepId);
+            if (!expectedMed) return null;
+            const medName = lang === 'ru' ? MED_SAFETY[expectedMed].nameRu : MED_SAFETY[expectedMed].nameEn;
+            return (
+              <Pressable onPress={() => router.push({ pathname: '/med-gate', params: { med: expectedMed } } as any)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.border }}>
+                <Icon.shield size={18} color={step.color} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: step.color, fontSize: 13, fontWeight: '700' }}>
+                    {lang === 'ru' ? `Начать приём: ${medName}` : `Start taking: ${medName}`}
+                  </Text>
+                  <Text style={{ color: t.textDim, fontSize: 11 }}>
+                    {lang === 'ru' ? 'Препарат по плану — активируй расписание' : 'Medication is part of your plan — activate schedule'}
+                  </Text>
+                </View>
+                <Text style={{ color: step.color, fontSize: 16, fontWeight: '700' }}>→</Text>
+              </Pressable>
+            );
+          })()}
 
           {/* Medication dose — inline, not a separate card */}
           {medInfo && medInfo.schedule.length > 0 && (

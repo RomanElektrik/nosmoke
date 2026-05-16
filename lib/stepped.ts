@@ -91,19 +91,23 @@ export function pharmaBlocked(p?: Profile | null): boolean {
   return !!p?.healthFlags?.includes('pregnant');
 }
 
-// Wisconsin-style initial recommendation (Baker NTR 2011, simplified).
+// Initial recommendation right after onboarding.
+// SAFETY: the app must NEVER auto-assign a prescription-only medication
+// (bupropion / varenicline = L3-L5) from a few quiz answers. The starting
+// recommendation is capped at L2 (cytisine — OTC in RU, gentlest option).
+// Escalation to Rx steps happens only later, deliberately, through the
+// transition wizard with the prescription gate.
 export function recommendStep(p: Profile): StepLevel {
-  // Safety: during pregnancy / breastfeeding behavioural support is first-line.
+  // During pregnancy / breastfeeding behavioural support is first-line.
   if (pharmaBlocked(p)) return 'L1_behavioral';
 
   const fager = p.fagerstromScore ?? 0;
   const failedColdTurkey = (p.pastAttempts ?? []).filter(a => a.method === 'cold_turkey').length;
-  const failedNrt = (p.pastAttempts ?? []).filter(a => a.method === 'nrt').length;
 
-  // Escalate by past failures.
-  let base: number = fager <= 2 ? 1 : fager <= 4 ? 2 : fager <= 6 ? 3 : 4;
+  // Low dependence → behavioural. Moderate+ → cytisine (still OTC). Never higher.
+  let base: number = fager <= 3 ? 1 : 2;
   if (failedColdTurkey >= 1 && base === 1) base = 2;
-  if (failedNrt >= 2 && base < 4) base = 4;
+  base = Math.min(base, 2); // hard cap — no Rx auto-recommendation
 
   return STEPS[Math.max(0, Math.min(STEPS.length - 1, base - 1))].id;
 }

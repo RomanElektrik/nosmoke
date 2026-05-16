@@ -25,7 +25,7 @@ export default function MedGate() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
         <View style={{ padding: spacing.lg }}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
+          <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} hitSlop={12}>
             <Text style={{ color: t.accent, fontSize: 17 }}>← {lang === 'ru' ? 'Назад' : 'Back'}</Text>
           </Pressable>
         </View>
@@ -55,13 +55,13 @@ export default function MedGate() {
       const { scheduleMedicationDoses } = await import('../lib/notifications');
       await scheduleMedicationDoses(lang, med, startMs);
     } catch {}
-    router.back();
+    (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
   }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: spacing.md }}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} hitSlop={12}>
           <Text style={{ color: t.accent, fontSize: 17 }}>← {lang === 'ru' ? 'Назад' : 'Back'}</Text>
         </Pressable>
       </View>

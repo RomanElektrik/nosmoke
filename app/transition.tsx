@@ -74,7 +74,7 @@ export default function Transition() {
         </Text>
         <View style={{ gap: 10, marginTop: 8 }}>
           {opts.map((o) => (
-            <Pressable key={o.v} unstable_pressDelay={0} onPress={async () => {
+            <Pressable key={o.v} onPress={async () => {
               Haptics.selectionAsync();
               await update((s) => ({ ...s, profile: s.profile ? { ...s.profile, wantsToQuit: o.v as any } : s.profile }));
               if (o.v === 'paused') setPhase('paused');
@@ -157,14 +157,16 @@ export default function Transition() {
           {causes.map((c) => {
             const sel = reflect.includes(c.v);
             return (
-              <Pressable key={c.v} onPress={() => toggle(c.v)} unstable_pressDelay={0} android_ripple={{ color: t.accentSoft }}
-                style={({ pressed }) => ({
+              <Pressable
+                key={c.v}
+                onPress={() => toggle(c.v)}
+                style={{
                   padding: 14, borderRadius: radius.md,
-                  backgroundColor: sel ? t.accentSoft : (pressed ? t.border : t.bgElev),
+                  backgroundColor: sel ? t.accentSoft : t.bgElev,
                   borderWidth: 1, borderColor: sel ? t.accent : t.border,
                   flexDirection: 'row', alignItems: 'center', gap: 10,
-                })}>
-                <View pointerEvents="none" style={{
+                }}>
+                <View style={{
                   width: 22, height: 22, borderRadius: 6,
                   borderWidth: 2, borderColor: sel ? t.accent : t.border,
                   backgroundColor: sel ? t.accent : 'transparent',
@@ -172,7 +174,7 @@ export default function Transition() {
                 }}>
                   {sel && <Icon.check size={13} color="#fff" />}
                 </View>
-                <Text pointerEvents="none" style={{ color: t.text, fontSize: 14, flex: 1 }}>{lang === 'ru' ? c.ru : c.en}</Text>
+                <Text style={{ color: t.text, fontSize: 14, flex: 1 }}>{lang === 'ru' ? c.ru : c.en}</Text>
               </Pressable>
             );
           })}
@@ -200,7 +202,7 @@ export default function Transition() {
             const isPicked = pickedMethod === id;
             const isRecommended = recommended === id;
             return (
-              <Pressable key={id} unstable_pressDelay={0} onPress={() => { Haptics.selectionAsync(); setPickedMethod(id); }}>
+              <Pressable key={id} onPress={() => { Haptics.selectionAsync(); setPickedMethod(id); }}>
                 <View style={{
                   padding: 14, borderRadius: radius.lg,
                   backgroundColor: isPicked ? s.color + '14' : t.bgElev,

@@ -62,6 +62,7 @@ export default function Craving() {
             { icon: Icon.pulse,   color: '#FF9F0A', label: tr('practice.halt.title'), onPress: () => router.push('/practice/halt_check') },
             { icon: Icon.drop,    color: '#5AC8FA', label: tr('tech.replace.t'),      onPress: () => router.push('/practice/replace') },
             { icon: Icon.chat,    color: '#30D158', label: tr('sos.opt_coach'),       onPress: () => router.replace('/(tabs)/coach') },
+            { icon: Icon.spark,   color: '#BF5AF2', label: (state.profile?.language ?? 'ru') === 'ru' ? 'Отвлечься в игре' : 'Play a distraction game', onPress: () => router.push('/game') },
             ...(state.profile?.faithEnabled ? [{
               icon: Icon.cross, color: '#FF9500', label: tr('sos.opt_pray'),
               onPress: () => router.replace('/faith'),

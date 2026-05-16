@@ -11,6 +11,7 @@ import { useTranslation, currentLang } from '../../lib/i18n';
 import { useAppState } from '../../lib/storage';
 import { Icon, type IconKey } from '../../components/Icon';
 import type { CoachMode } from '../../lib/ai';
+import { SwipeToHome } from '../../components/SwipeToHome';
 
 const MODES: { v: CoachMode; icon: IconKey; color: string; titleRu: string; titleEn: string; subRu: string; subEn: string }[] = [
   { v: 'support',      icon: 'wave2',  color: '#0A84FF', titleRu: 'Поддержи сейчас',  titleEn: 'Support now',     subRu: 'когда тянет',  subEn: 'when craving hits' },
@@ -31,6 +32,7 @@ export default function Coach() {
   }
 
   return (
+    <SwipeToHome>
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView contentContainerStyle={{ padding: spacing.md, gap: 14 }}>
         <Text style={{ color: t.text, fontSize: 34, fontWeight: '700', letterSpacing: -0.8, marginVertical: 8 }}>
@@ -79,5 +81,6 @@ export default function Coach() {
         </Text>
       </ScrollView>
     </SafeAreaView>
+    </SwipeToHome>
   );
 }
