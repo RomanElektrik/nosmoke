@@ -116,11 +116,8 @@ export default function Home() {
             label={lang === 'ru' ? 'жизни' : 'life'} mono />
         </View>
 
-        {/* Today focus — single prioritised action + crisis-day support */}
+        {/* Single prioritised action */}
         <TodayFocus secs={secs} />
-
-        {/* Vaping / IQOS — type-specific guidance */}
-        <VapeNote />
 
         {/* Pending start banner */}
         {p.pendingMethod && p.pendingQuitDate && p.pendingQuitDate > Date.now() && (() => {
@@ -187,99 +184,10 @@ export default function Home() {
           </Pressable>
         )}
 
-        {/* Program (8-week course) — primary card */}
-        {phase !== 'graduated' && programDay.data && (
-          <Pressable onPress={() => router.push('/program')}>
-            <View style={{
-              padding: 14, borderRadius: radius.lg,
-              backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={{
-                  width: 40, height: 40, borderRadius: 12,
-                  backgroundColor: lvl.color + '24',
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {(() => { const I = Icon[lvl.icon]; return <I size={22} color={lvl.color} />; })()}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: t.textDim, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    {lang === 'ru' ? 'Программа' : 'Program'} · {lang === 'ru' ? lvl.titleRu : lvl.titleEn}
-                  </Text>
-                  <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', marginTop: 2 }} numberOfLines={1}>
-                    {lang === 'ru' ? `День ${programDay.day} из ${programDay.total}` : `Day ${programDay.day} of ${programDay.total}`}
-                  </Text>
-                  <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
-                    {lang === 'ru' ? programDay.data.focusRu : programDay.data.focusEn}
-                  </Text>
-                </View>
-                <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
-              </View>
-              <View style={{ height: 4, backgroundColor: t.border, borderRadius: 4, marginTop: 10, overflow: 'hidden' }}>
-                <View style={{ width: `${(programDay.day / programDay.total) * 100}%`, height: '100%', backgroundColor: lvl.color }} />
-              </View>
-            </View>
-          </Pressable>
-        )}
-
-        {survived > 0 && (
-          <View style={{
-            padding: 12, borderRadius: radius.md,
-            backgroundColor: '#30D15814', borderWidth: 1, borderColor: '#30D15830',
-            flexDirection: 'row', alignItems: 'center', gap: 10,
-          }}>
-            <Icon.feather size={20} color="#30D158" />
-            <Text style={{ color: t.text, fontSize: 13, flex: 1 }}>
-              {lang === 'ru'
-                ? `Ты прошёл ${survived} ${survived % 10 === 1 && survived !== 11 ? 'волну' : 'волн'} тяги. Это твоя сила.`
-                : `You've surfed ${survived} craving wave${survived === 1 ? '' : 's'}. That's your strength.`}
-            </Text>
-          </View>
-        )}
-
-        <MethodCard onPress={() => router.push('/method')} />
-
-        {/* Daily check-in CTA */}
-        {(() => {
-          const today = new Date().toISOString().slice(0, 10);
-          const done = state.checkIns.find((c) => c.date === today);
-          return (
-            <Pressable onPress={() => router.push('/checkin')}>
-              <View style={{
-                padding: 14, borderRadius: radius.lg,
-                backgroundColor: done ? t.bgElev : (t.accent + '14'),
-                borderWidth: 1, borderColor: done ? t.border : (t.accent + '40'),
-                flexDirection: 'row', alignItems: 'center', gap: 12,
-              }}>
-                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: (done ? t.textDim : t.accent) + '24', alignItems: 'center', justifyContent: 'center' }}>
-                  {done ? <Icon.check size={22} color={t.textDim} /> : <Icon.pulse size={22} color={t.accent} />}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>
-                    {lang === 'ru' ? 'Чек-ин дня' : 'Daily check-in'}
-                  </Text>
-                  <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
-                    {done
-                      ? (lang === 'ru'
-                        ? `${done.smoked ? 'Сегодня: курил' : 'Сегодня: не курил'}${checkStreak > 1 ? ` · серия ${checkStreak}` : ''}`
-                        : `${done.smoked ? 'Today: smoked' : 'Today: no'}${checkStreak > 1 ? ` · streak ${checkStreak}` : ''}`)
-                      : (lang === 'ru'
-                        ? `Один тап. Ответь честно.${checkStreak > 0 ? ` Серия: ${checkStreak}` : ''}`
-                        : `One tap. Be honest.${checkStreak > 0 ? ` Streak: ${checkStreak}` : ''}`)}
-                  </Text>
-                </View>
-                <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
-              </View>
-            </Pressable>
-          );
-        })()}
-
-        {/* Medication diary — full schedule with per-dose checkboxes */}
-        <MedicationDiary />
+        {/* Merged plan card: method + program + medication + escalation */}
+        {phase !== 'graduated' && <PlanCard />}
 
         <MoneyJar profile={p} onPress={() => router.push('/goal')} />
-
-        <DailyTaskCard quitDate={p.quitDate} lang={lang} onGo={(href) => router.push(href as any)} />
 
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <QuickLink icon={<Icon.pulse size={20} color={t.text} />} label={tr('tabs.health')} onPress={() => router.push('/(tabs)/health')} />
@@ -313,8 +221,6 @@ function TodayFocus({ secs }: { secs: number }) {
   const [state] = useAppState();
   if (!state.profile) return null;
 
-  const days = Math.floor(secs / 86400);
-  const inCrisis = days >= 0 && days <= 6;
   const today = new Date().toISOString().slice(0, 10);
   const checkDone = !!state.checkIns.find((c) => c.date === today);
 
@@ -348,47 +254,27 @@ function TodayFocus({ secs }: { secs: number }) {
     };
   }
 
-  const crisisMsg = lang === 'ru'
-    ? (days <= 1 ? 'Первые часы — самые шумные. Это нормально и это пройдёт.'
-      : days <= 3 ? `День ${days + 1}. Это пик: тяга сильнее всего на 2–4 день. Дальше станет легче — держись.`
-      : `День ${days + 1}. Самое тяжёлое уже позади или рядом. Каждый прожитый день ослабляет тягу.`)
-    : (days <= 1 ? 'The first hours are the loudest. This is normal and it passes.'
-      : days <= 3 ? `Day ${days + 1}. This is the peak — craving is strongest on days 2–4. It eases after — hold on.`
-      : `Day ${days + 1}. The hardest part is near or behind you. Every day weakens the craving.`);
-
   const I = action.icon;
   return (
-    <View style={{ gap: 10 }}>
-      {inCrisis && (
-        <View style={{
-          padding: 12, borderRadius: radius.md,
-          backgroundColor: '#FF9F0A14', borderWidth: 1, borderColor: '#FF9F0A40',
-          flexDirection: 'row', alignItems: 'center', gap: 10,
-        }}>
-          <Icon.heart size={18} color="#FF9F0A" />
-          <Text style={{ color: t.text, fontSize: 13, flex: 1, lineHeight: 18 }}>{crisisMsg}</Text>
+    <Pressable onPress={() => { Haptics.selectionAsync(); router.push(action.href as any); }}>
+      <View style={{
+        padding: 16, borderRadius: radius.lg,
+        backgroundColor: action.color + '14', borderWidth: 1, borderColor: action.color + '50',
+        flexDirection: 'row', alignItems: 'center', gap: 14,
+      }}>
+        <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: action.color + '28', alignItems: 'center', justifyContent: 'center' }}>
+          <I size={28} color={action.color} />
         </View>
-      )}
-      <Pressable onPress={() => { Haptics.selectionAsync(); router.push(action.href as any); }}>
-        <View style={{
-          padding: 16, borderRadius: radius.lg,
-          backgroundColor: action.color + '14', borderWidth: 1, borderColor: action.color + '50',
-          flexDirection: 'row', alignItems: 'center', gap: 14,
-        }}>
-          <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: action.color + '28', alignItems: 'center', justifyContent: 'center' }}>
-            <I size={28} color={action.color} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: action.color, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-              {lang === 'ru' ? 'Сделай сейчас' : 'Do this now'}
-            </Text>
-            <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', marginTop: 2 }}>{action.label}</Text>
-            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>{action.sub}</Text>
-          </View>
-          <Text style={{ color: action.color, fontSize: 20 }}>›</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: action.color, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+            {lang === 'ru' ? 'Сделай сейчас' : 'Do this now'}
+          </Text>
+          <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', marginTop: 2 }}>{action.label}</Text>
+          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>{action.sub}</Text>
         </View>
-      </Pressable>
-    </View>
+        <Text style={{ color: action.color, fontSize: 20 }}>›</Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -430,6 +316,89 @@ function VapeNote() {
         </Text>
       </View>
       <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>{tips[idx]}</Text>
+    </View>
+  );
+}
+
+// ONE merged card: method (step) + program day + today focus + medication dose
+// + escalation hint. Replaces the old separate Method / Program / Med cards
+// that felt like conflicting plans.
+function PlanCard() {
+  const t = useTheme();
+  const router = useRouter();
+  const lang = currentLang();
+  const [state] = useAppState();
+  const stepId = state.profile?.currentStep;
+  if (!stepId) return null;
+  const step = getStep(stepId);
+  const prog = programToday(state);
+  const sug = escalationSuggestion(state);
+  const med = state.profile?.medication;
+  const medInfo = med ? todayDoses(state, lang) : null;
+  const focus = prog.data ? (lang === 'ru' ? prog.data.focusRu : prog.data.focusEn) : '';
+  const pct = prog.total > 0 ? prog.day / prog.total : 0;
+
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginLeft: 4 }}>
+        {lang === 'ru' ? 'Твой план' : 'Your plan'}
+      </Text>
+      <Pressable onPress={() => router.push('/program')}>
+        <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, gap: 12 }}>
+          {/* Method + program day */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: step.color + '24', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: step.color, fontWeight: '800', fontSize: 17 }}>{step.index}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }} numberOfLines={1}>
+                {lang === 'ru' ? step.titleRu : step.titleEn}
+              </Text>
+              <Text style={{ color: t.textDim, fontSize: 13, marginTop: 1 }}>
+                {prog.data
+                  ? (lang === 'ru' ? `День ${prog.day} из ${prog.total}` : `Day ${prog.day} of ${prog.total}`)
+                  : (lang === 'ru' ? `Ступень ${step.index} из 5` : `Step ${step.index} of 5`)}
+              </Text>
+            </View>
+            <Text style={{ color: t.textDim, fontSize: 20 }}>›</Text>
+          </View>
+
+          {prog.data && (
+            <View style={{ height: 5, backgroundColor: t.border, borderRadius: 5, overflow: 'hidden' }}>
+              <View style={{ width: `${Math.min(100, pct * 100)}%`, height: '100%', backgroundColor: step.color }} />
+            </View>
+          )}
+          {!!focus && (
+            <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>{focus}</Text>
+          )}
+
+          {/* Medication dose — inline, not a separate card */}
+          {medInfo && medInfo.schedule.length > 0 && (
+            <Pressable onPress={() => router.push('/meds')}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.border }}>
+              <Icon.shield size={18} color={step.color} />
+              <Text style={{ color: t.text, fontSize: 13, flex: 1 }}>
+                {lang === 'ru' ? 'Приём препарата сегодня' : 'Medication doses today'}
+              </Text>
+              <Text style={{ color: step.color, fontSize: 14, fontWeight: '800' }}>
+                {medInfo.takenCount}/{medInfo.schedule.length}
+              </Text>
+            </Pressable>
+          )}
+
+          {/* Escalation hint — folded in, not a scary separate card */}
+          {sug.yes && (
+            <Pressable onPress={() => router.push('/transition')}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.border }}>
+              <Icon.bolt size={16} color={t.warn} />
+              <Text style={{ color: t.warn, fontSize: 13, fontWeight: '600', flex: 1 }}>
+                {lang === 'ru' ? 'Метод держит слабовато — обсудим?' : 'Method feels too light — discuss?'}
+              </Text>
+              <Text style={{ color: t.warn, fontSize: 14 }}>→</Text>
+            </Pressable>
+          )}
+        </View>
+      </Pressable>
     </View>
   );
 }

@@ -69,22 +69,6 @@ export default function Profile() {
           </View>
         </GlassCard>
 
-        <Pressable onPress={() => router.push('/appearance' as any)}>
-          <GlassCard>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View>
-                <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>
-                  {lang === 'ru' ? 'Оформление' : 'Appearance'}
-                </Text>
-                <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
-                  {lang === 'ru' ? '5 стилей: цвет и форма' : '5 styles: colour and form'}
-                </Text>
-              </View>
-              <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
-            </View>
-          </GlassCard>
-        </Pressable>
-
         <GlassCard>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>{tr('profile.faith')}</Text>
