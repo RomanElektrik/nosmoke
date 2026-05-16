@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming,
+  runOnJS, useSharedValue, useAnimatedStyle, withTiming, Easing,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
@@ -19,19 +19,19 @@ type Dir = 'left' | 'right' | 'up' | 'down';
 
 function emptyGrid(): Grid { return Array(16).fill(0); }
 
-function spawn(g: Grid): Grid {
+// Adds a 2/4 to a random empty cell, returns the new grid + the index used.
+function spawn(g: Grid): { grid: Grid; index: number } {
   const empty: number[] = [];
   g.forEach((v, i) => { if (v === 0) empty.push(i); });
-  if (empty.length === 0) return g;
+  if (empty.length === 0) return { grid: g, index: -1 };
   const idx = empty[Math.floor(Math.random() * empty.length)];
   const next = g.slice();
   next[idx] = Math.random() < 0.9 ? 2 : 4;
-  return next;
+  return { grid: next, index: idx };
 }
 
-function newGame(): Grid { return spawn(spawn(emptyGrid())); }
+function newGame(): Grid { return spawn(spawn(emptyGrid()).grid).grid; }
 
-// Slide+merge a single row to the LEFT. Returns the new row and points gained.
 function slideRow(row: number[]): { row: number[]; gained: number } {
   const nums = row.filter((v) => v !== 0);
   const out: number[] = [];
@@ -97,47 +97,50 @@ export default function Game() {
   const ru = currentLang() === 'ru';
 
   const [grid, setGrid] = useState<Grid>(() => newGame());
+  // popKeys[i] increments when cell i gets the freshly spawned tile — only that
+  // one tile animates in, so the board does not jump around on every move.
+  const [popKeys, setPopKeys] = useState<number[]>(() => Array(16).fill(0));
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(0);
   const [over, setOver] = useState(false);
   const won = useRef(false);
+  const gridRef = useRef(grid);
+  gridRef.current = grid;
 
   const doMove = useCallback((dir: Dir) => {
-    setGrid((g) => {
-      const res = move(g, dir);
-      if (!res.moved) return g;
-      if (res.gained > 0) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      else Haptics.selectionAsync();
-      setScore((s) => {
-        const ns = s + res.gained;
-        setBest((b) => Math.max(b, ns));
-        return ns;
-      });
-      const withSpawn = spawn(res.grid);
-      if (!won.current && withSpawn.includes(2048)) {
-        won.current = true;
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-      if (!hasMoves(withSpawn)) setOver(true);
-      return withSpawn;
-    });
+    const res = move(gridRef.current, dir);
+    if (!res.moved) return;
+    if (res.gained > 0) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    else Haptics.selectionAsync();
+    if (res.gained > 0) setScore((s) => { const ns = s + res.gained; setBest((b) => Math.max(b, ns)); return ns; });
+    const sp = spawn(res.grid);
+    if (sp.index >= 0) {
+      setPopKeys((pk) => { const n = pk.slice(); n[sp.index] += 1; return n; });
+    }
+    if (!won.current && sp.grid.includes(2048)) {
+      won.current = true;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    setGrid(sp.grid);
+    if (!hasMoves(sp.grid)) setOver(true);
   }, []);
 
   function restart() {
     Haptics.selectionAsync();
     setGrid(newGame());
+    setPopKeys(Array(16).fill(0));
     setScore(0);
     setOver(false);
     won.current = false;
   }
 
   const pan = Gesture.Pan()
-    .minDistance(24)
+    .minDistance(20)
     .onEnd((e) => {
       'worklet';
       const dx = e.translationX;
       const dy = e.translationY;
-      if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+      if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
       const dir: Dir = Math.abs(dx) > Math.abs(dy)
         ? (dx > 0 ? 'right' : 'left')
         : (dy > 0 ? 'down' : 'up');
@@ -175,7 +178,9 @@ export default function Game() {
             borderWidth: 1, borderColor: t.border, padding: 8,
             flexDirection: 'row', flexWrap: 'wrap',
           }}>
-            {grid.map((v, i) => <Tile key={i} value={v} emptyColor={t.border + '60'} />)}
+            {grid.map((v, i) => (
+              <Tile key={i} value={v} popKey={popKeys[i]} emptyColor={t.border + '60'} />
+            ))}
           </View>
         </GestureDetector>
 
@@ -216,28 +221,20 @@ export default function Game() {
   );
 }
 
-// Animated tile: pops in when it appears, gives a quick squash on merge/change.
-function Tile({ value, emptyColor }: { value: number; emptyColor: string }) {
+// Only the freshly spawned tile animates — a gentle fade-scale, no bounce.
+function Tile({ value, popKey, emptyColor }: { value: number; popKey: number; emptyColor: string }) {
   const tile = TILE[value] ?? { bg: '#FFB23D', fg: '#FFFFFF' };
   const scale = useSharedValue(1);
-  const prev = useRef(value);
+  const firstPop = useRef(popKey);
 
   useEffect(() => {
-    if (value > 0) {
-      if (prev.current === 0) {
-        scale.value = 0.2;
-        scale.value = withSpring(1, { damping: 11, stiffness: 220 });
-      } else if (value !== prev.current) {
-        scale.value = withSequence(
-          withTiming(1.16, { duration: 90 }),
-          withTiming(1, { duration: 130 }),
-        );
-      }
-    }
-    prev.current = value;
-  }, [value]);
+    if (popKey === firstPop.current) return; // ignore the initial render
+    firstPop.current = popKey;
+    scale.value = 0.5;
+    scale.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) });
+  }, [popKey]);
 
-  const aStyle = useAnimatedStyle(() => ({ transform: [{ scale: value > 0 ? scale.value : 1 }] }));
+  const aStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
     <View style={{ width: '25%', height: '25%', padding: 4 }}>
