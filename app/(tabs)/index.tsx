@@ -342,8 +342,8 @@ function KnowledgeSection() {
               borderRadius: radius.lg, overflow: 'hidden',
             }}>
             {img
-              ? <Image source={img} style={{ width: '100%', aspectRatio: 1.75 }} resizeMode="cover" />
-              : <View style={{ width: '100%', aspectRatio: 1.75, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
+              ? <Image source={img} style={{ width: '100%', aspectRatio: 16 / 9 }} resizeMode="contain" />
+              : <View style={{ width: '100%', aspectRatio: 16 / 9, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
                   <I size={44} color={a.color} />
                 </View>}
             <View style={{ padding: 14 }}>
