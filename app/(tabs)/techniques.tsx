@@ -137,56 +137,42 @@ function TechCard({ te, lang, tr, onOpen, onGo }: {
     : te.practice ? 'Do it' : 'Read';
 
   return (
-    <Pressable onPress={onOpen}>
-      <View style={{
+    <Pressable onPress={() => (te.practice ? onGo() : onOpen())}
+      style={({ pressed }) => ({
         borderRadius: radius.lg, borderWidth: 1, borderColor: t.border,
-        backgroundColor: t.bgElev, overflow: 'hidden',
+        backgroundColor: t.bgElev, padding: 14,
+        flexDirection: 'row', alignItems: 'center', gap: 14,
+        opacity: pressed ? 0.85 : 1,
+      })}>
+      {/* Icon tile */}
+      <View style={{
+        width: 50, height: 50, borderRadius: 15, flexShrink: 0,
+        backgroundColor: te.color + '1E', alignItems: 'center', justifyContent: 'center',
       }}>
-        {/* Top accent strip */}
-        <View style={{ height: 3, backgroundColor: te.color + '60' }} />
-        <View style={{ padding: 16, gap: 12 }}>
-          {/* Icon + title row */}
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
-            <LinearGradient
-              colors={[te.color + '38', te.color + '0A']}
-              style={{ width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <IconComp size={26} color={te.color} />
-            </LinearGradient>
-            <View style={{ flex: 1, paddingTop: 2 }}>
-              <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 }} numberOfLines={1}>
-                {tr(te.titleKey)}
-              </Text>
-              <Text style={{ color: t.textDim, fontSize: 13, marginTop: 3, lineHeight: 18 }} numberOfLines={2}>
-                {tr(te.summaryKey)}
-              </Text>
-            </View>
-          </View>
+        <IconComp size={25} color={te.color} />
+      </View>
 
-          {/* Footer: evidence tag + CTA */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: te.color + '20' }}>
-              <Text style={{ color: te.color, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 }}>
-                {evidenceLabel}
-              </Text>
-            </View>
-            {!!te.durationMin && (
-              <Text style={{ color: t.textDim, fontSize: 12 }}>
-                {te.durationMin} {lang === 'ru' ? 'мин' : 'min'}
-              </Text>
-            )}
-            <View style={{ flex: 1 }} />
-            <Pressable onPress={(e) => { e.stopPropagation(); te.practice ? onGo() : onOpen(); }}
-              style={{
-                paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-                backgroundColor: te.practice ? te.color : t.border,
-              }}>
-              <Text style={{ color: te.practice ? '#fff' : t.text, fontSize: 12, fontWeight: '700' }}>
-                {lang === 'ru' ? ctaRu : ctaEn}
-              </Text>
-            </Pressable>
-          </View>
+      {/* Title + meta */}
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 }} numberOfLines={1}>
+          {tr(te.titleKey)}
+        </Text>
+        <Text style={{ color: t.textDim, fontSize: 13, marginTop: 2, lineHeight: 18 }} numberOfLines={1}>
+          {tr(te.summaryKey)}
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: te.color }} />
+          <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '600' }}>
+            {evidenceLabel}{te.durationMin ? ` · ${te.durationMin} ${lang === 'ru' ? 'мин' : 'min'}` : ''}
+          </Text>
         </View>
       </View>
+
+      {/* Info / open detail */}
+      <Pressable onPress={(e) => { e.stopPropagation(); onOpen(); }} hitSlop={10}
+        style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: t.border + '80', alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: t.textDim, fontSize: 16, fontWeight: '700' }}>›</Text>
+      </Pressable>
     </Pressable>
   );
 }
