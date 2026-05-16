@@ -76,36 +76,27 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
         {renderTab(PILL_TABS[0])}
         {renderTab(PILL_TABS[1])}
 
-        {/* Raised SOS button */}
-        <View style={{ width: 70, alignItems: 'center' }}>
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              router.push('/craving');
-            }}
-            style={({ pressed }) => ({
-              position: 'absolute',
-              top: -22,
-              width: 62,
-              height: 62,
-              borderRadius: 31,
-              backgroundColor: t.danger,
-              alignItems: 'center',
-              justifyContent: 'center',
-              shadowColor: t.danger,
-              shadowOpacity: 0.55,
-              shadowRadius: 16,
-              shadowOffset: { width: 0, height: 10 },
-              elevation: 14,
-              opacity: pressed ? 0.88 : 1,
-            })}
-          >
-            <Icon.flame size={26} color="#fff" />
-            <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.5, marginTop: 1 }}>
-              SOS
-            </Text>
-          </Pressable>
-        </View>
+        {/* SOS button — inline with the other tabs */}
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            router.push('/craving');
+          }}
+          style={({ pressed }) => ({
+            flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3,
+            paddingVertical: 6, opacity: pressed ? 0.85 : 1,
+          })}
+        >
+          <View style={{
+            width: 30, height: 30, borderRadius: 15, backgroundColor: t.danger,
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon.flame size={18} color="#fff" />
+          </View>
+          <Text style={{ color: t.danger, fontSize: 9, fontWeight: '800', letterSpacing: 0.5 }}>
+            SOS
+          </Text>
+        </Pressable>
 
         {renderTab(PILL_TABS[2])}
         {renderTab(PILL_TABS[3])}
