@@ -342,7 +342,7 @@ function KnowledgeSection() {
               borderRadius: radius.lg, overflow: 'hidden',
             }}>
             {img
-              ? <Image source={img} style={{ width: '100%', aspectRatio: articleAspect(a.id) }} resizeMode="cover" />
+              ? <Image source={img} style={{ width: '100%', aspectRatio: 16 / 9 }} resizeMode="cover" />
               : <View style={{ width: '100%', aspectRatio: 16 / 9, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
                   <I size={44} color={a.color} />
                 </View>}
