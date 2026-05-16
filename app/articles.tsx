@@ -1,12 +1,12 @@
 // Knowledge base — list of coping articles, grouped by category.
-import { ScrollView, View, Text, Pressable } from 'react-native';
+import { ScrollView, View, Text, Pressable, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
 import { Icon } from '../components/Icon';
-import { ARTICLES, ARTICLE_CATEGORY, type ArticleCategory } from '../lib/articles';
+import { ARTICLES, ARTICLE_CATEGORY, ARTICLE_IMAGES, type ArticleCategory } from '../lib/articles';
 
 const ORDER: ArticleCategory[] = ['craving', 'slip', 'triggers', 'body', 'meds', 'motivation'];
 
@@ -45,26 +45,29 @@ export default function Articles() {
               </Text>
               {items.map((a) => {
                 const I = Icon[a.icon];
+                const img = ARTICLE_IMAGES[a.id];
                 return (
                   <Pressable key={a.id} onPress={() => router.push(`/article/${a.id}` as any)}
                     style={{
-                      flexDirection: 'row', alignItems: 'center', gap: 14,
                       backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
-                      borderRadius: radius.lg, padding: 14,
+                      borderRadius: radius.lg, overflow: 'hidden',
                     }}>
-                    <View style={{ width: 46, height: 46, borderRadius: 14, flexShrink: 0,
-                      backgroundColor: a.color + '1E', alignItems: 'center', justifyContent: 'center' }}>
-                      <I size={23} color={a.color} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }} numberOfLines={2}>
+                    {img
+                      ? <Image source={img} style={{ width: '100%', aspectRatio: 1.75 }} resizeMode="cover" />
+                      : <View style={{ width: '100%', aspectRatio: 1.75, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
+                          <I size={44} color={a.color} />
+                        </View>}
+                    <View style={{ padding: 14 }}>
+                      <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.3 }} numberOfLines={2}>
                         {ru ? a.titleRu : a.titleEn}
                       </Text>
-                      <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+                      <Text style={{ color: t.textDim, fontSize: 13, marginTop: 4, lineHeight: 19 }} numberOfLines={2}>
+                        {ru ? a.leadRu : a.leadEn}
+                      </Text>
+                      <Text style={{ color: a.color, fontSize: 12, fontWeight: '700', marginTop: 8 }}>
                         {a.readMin} {ru ? 'мин чтения' : 'min read'}
                       </Text>
                     </View>
-                    <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
                   </Pressable>
                 );
               })}

@@ -397,3 +397,20 @@ export const ARTICLES: Article[] = [
 export function getArticle(id: string): Article | undefined {
   return ARTICLES.find((a) => a.id === id);
 }
+
+// Card illustrations. Static requires — RN bundles only what's listed here.
+export const ARTICLE_IMAGES: Record<string, any> = {
+  'craving-wave':  require('../assets/articles/craving-wave.png'),
+  'craving-now':   require('../assets/articles/craving-now.png'),
+  'craving-day3':  require('../assets/articles/craving-day3.png'),
+  'craving-halt':  require('../assets/articles/craving-halt.png'),
+  'slip-not-fail': require('../assets/articles/slip-not-fail.png'),
+  'slip-ave':      require('../assets/articles/slip-ave.png'),
+  'trig-coffee':   require('../assets/articles/trig-coffee.png'),
+  'trig-alcohol':  require('../assets/articles/trig-alcohol.png'),
+  'trig-stress':   require('../assets/articles/trig-stress.png'),
+  'body-timeline': require('../assets/articles/body-timeline.png'),
+  'body-weight':   require('../assets/articles/body-weight.png'),
+  'body-vape':     require('../assets/articles/body-vape.png'),
+  'meds-overview': require('../assets/articles/meds-overview.png'),
+};

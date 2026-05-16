@@ -1,12 +1,12 @@
 // Article reader.
-import { ScrollView, View, Text, Pressable } from 'react-native';
+import { ScrollView, View, Text, Pressable, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { currentLang } from '../../lib/i18n';
 import { Icon } from '../../components/Icon';
-import { getArticle, ARTICLE_CATEGORY } from '../../lib/articles';
+import { getArticle, ARTICLE_CATEGORY, ARTICLE_IMAGES } from '../../lib/articles';
 
 export default function ArticleScreen() {
   const t = useTheme();
@@ -40,12 +40,14 @@ export default function ArticleScreen() {
           <Text style={{ color: t.accent, fontSize: 17 }}>← {ru ? 'Назад' : 'Back'}</Text>
         </Pressable>
       </View>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 50, gap: 14 }}>
-        <LinearGradient colors={[a.color + '38', a.color + '0A']}
-          style={{ width: 60, height: 60, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}>
-          <I size={32} color={a.color} />
-        </LinearGradient>
-
+      <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
+        {ARTICLE_IMAGES[a.id]
+          ? <Image source={ARTICLE_IMAGES[a.id]} style={{ width: '100%', aspectRatio: 1.75 }} resizeMode="cover" />
+          : <LinearGradient colors={[a.color + '38', a.color + '0A']}
+              style={{ width: '100%', aspectRatio: 1.75, alignItems: 'center', justifyContent: 'center' }}>
+              <I size={64} color={a.color} />
+            </LinearGradient>}
+      <View style={{ padding: spacing.lg, gap: 14 }}>
         <Text style={{ color: a.color, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' }}>
           {(ru ? cat.ru : cat.en)} · {a.readMin} {ru ? 'мин' : 'min'}
         </Text>
@@ -75,6 +77,7 @@ export default function ArticleScreen() {
             ? 'Справочная информация, не медицинская услуга. По вопросам лекарств и здоровья обращайся к врачу.'
             : 'Reference information, not a medical service. For medication and health questions, see a doctor.'}
         </Text>
+      </View>
       </ScrollView>
     </SafeAreaView>
   );
