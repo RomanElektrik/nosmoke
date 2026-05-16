@@ -254,19 +254,22 @@ export function prepChecklist(stepId: StepLevel, faithEnabled = false): PrepItem
   return common;
 }
 
-// Suggest 3 alternative methods for the transition wizard, given the failed current step + Fagerström.
-export function alternativesFor(currentStep: StepLevel | undefined, fager: number): StepLevel[] {
+// Suggest up to 3 alternative methods for the transition wizard.
+// `pharmaOff` (pregnancy / user refuses meds) keeps the list behavioural-only —
+// the user must never hit a dead end where every option is a drug.
+export function alternativesFor(currentStep: StepLevel | undefined, fager: number, pharmaOff = false): StepLevel[] {
+  // Behavioural intensive is ALWAYS an option — no one is left without a non-pharma path.
+  if (pharmaOff) return ['L1_behavioral'];
+
   const order: StepLevel[] = ['L1_behavioral', 'L2_nrt_light', 'L3_nrt_combo', 'L4_pharma', 'L5_intensive'];
   const curIdx = currentStep ? order.indexOf(currentStep) : -1;
-  // Always include the immediate next step, then nearby strong options.
   const set = new Set<StepLevel>();
   if (curIdx + 1 < order.length) set.add(order[curIdx + 1]);
   if (fager >= 5) set.add('L3_nrt_combo');
   if (fager >= 7) set.add('L4_pharma');
-  if (fager >= 8) set.add('L5_intensive');
-  // Always offer combined NRT + behavioural as a baseline alternative.
+  // Always offer cytisine and a behavioural-intensive path as baseline alternatives.
   set.add('L2_nrt_light');
-  // Drop current.
+  set.add('L1_behavioral');
   if (currentStep) set.delete(currentStep);
   return Array.from(set).slice(0, 3);
 }

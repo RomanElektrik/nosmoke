@@ -26,8 +26,12 @@ export default function Slip() {
   const { t: tr } = useTranslation();
   const lang = currentLang();
   const [state] = useAppState();
+  // If the slip was just logged via the daily check-in, the trigger is already
+  // known — don't ask the same question twice (P1: no double survey).
+  const lastSmoked = [...state.cravings].reverse().find((c) => c.outcome === 'smoked');
+  const knownTrigger = lastSmoked?.trigger ?? '';
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
-  const [trigger, setTrigger] = useState<string>('');
+  const [trigger, setTrigger] = useState<string>(knownTrigger);
   const [nextStep, setNextStep] = useState<string>('');
   const [advice, setAdvice] = useState<string>('');
   const [loadingAi, setLoadingAi] = useState(false);
@@ -106,9 +110,13 @@ export default function Slip() {
             </Text>
           </View>
 
-          <Pressable onPress={() => { Haptics.selectionAsync(); setStep(1); }}
+          <Pressable onPress={() => { Haptics.selectionAsync(); setStep(knownTrigger ? 2 : 1); }}
             style={{ marginTop: 12, padding: 18, borderRadius: radius.xl, backgroundColor: '#5AC8FA', alignItems: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>{lang === 'ru' ? 'Что произошло →' : 'What happened →'}</Text>
+            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>
+              {knownTrigger
+                ? (lang === 'ru' ? 'Дальше →' : 'Continue →')
+                : (lang === 'ru' ? 'Что произошло →' : 'What happened →')}
+            </Text>
           </Pressable>
         </ScrollView>
       </SafeAreaView>

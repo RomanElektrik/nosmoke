@@ -20,7 +20,7 @@ import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
 import type { StepLevel } from '../lib/storage';
-import { STEPS, getStep, alternativesFor, prepChecklist, recommendStep } from '../lib/stepped';
+import { STEPS, getStep, alternativesFor, prepChecklist, recommendStep, pharmaBlocked } from '../lib/stepped';
 import { scheduleQuitProgram } from '../lib/notifications';
 import { Icon } from '../components/Icon';
 
@@ -46,7 +46,10 @@ export default function Transition() {
 
   if (!p) return null;
   const fager = p.fagerstromScore ?? 0;
-  const alts: StepLevel[] = useMemo(() => alternativesFor(p.currentStep, fager), [p.currentStep, fager]);
+  const alts: StepLevel[] = useMemo(
+    () => alternativesFor(p.currentStep, fager, pharmaBlocked(p)),
+    [p.currentStep, fager, p.healthFlags],
+  );
   const recommended = recommendStep(p);
   const slips7 = state.slips.filter((ts) => ts > Date.now() - 7 * 86400_000).length;
   const slipsTotal = state.slips.length;

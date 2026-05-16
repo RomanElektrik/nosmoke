@@ -67,6 +67,9 @@ export type Profile = {
   // Health screening (P0 safety) — gates pharmacotherapy recommendations
   age?: number;
   healthFlags?: HealthFlag[];
+  // Taper method: gradual reduction over N weeks to a full-quit target date
+  taperWeeks?: number;
+  taperTargetDate?: number; // ms epoch — planned full-quit day
 };
 
 export type HealthFlag =

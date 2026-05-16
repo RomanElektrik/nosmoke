@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -18,12 +19,15 @@ export default function Plan() {
   const p = state.profile;
   const recommended = p ? recommendStep(p) : 'L1_behavioral';
   const step = getStep(recommended);
+  const isTaper = p?.method === 'taper';
+  const [taperWeeks, setTaperWeeks] = useState(4);
 
   async function start() {
     if (!p) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await requestPermissions();
     const now = Date.now();
+    const taperTargetDate = isTaper ? now + taperWeeks * 7 * 86400_000 : undefined;
     await update((s) => ({
       ...s,
       profile: s.profile ? {
@@ -32,6 +36,8 @@ export default function Plan() {
         onboardingComplete: true,
         currentStep: recommended,
         stepEnteredAt: now,
+        taperWeeks: isTaper ? taperWeeks : undefined,
+        taperTargetDate,
       } : s.profile,
     }));
     await scheduleQuitProgram(now, lang, 8, p.checkInHour ?? 21);
@@ -103,12 +109,53 @@ export default function Plan() {
           </Text>
         </View>
 
+        {/* Taper plan — only for users who chose gradual reduction */}
+        {isTaper && (() => {
+          const targetMs = Date.now() + taperWeeks * 7 * 86400_000;
+          const targetStr = new Date(targetMs).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long' });
+          return (
+            <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: '#FF9F0A14', borderWidth: 1, borderColor: '#FF9F0A40', gap: 10 }}>
+              <Text style={{ color: '#FF9F0A', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+                {lang === 'ru' ? 'Постепенное снижение' : 'Gradual reduction'}
+              </Text>
+              <Text style={{ color: t.text, fontSize: 14, lineHeight: 21 }}>
+                {lang === 'ru'
+                  ? 'Ты выбрал бросать постепенно. Начинаем снижать сегодня, полный отказ — к выбранной дате.'
+                  : 'You chose to quit gradually. We start reducing today; full quit by the chosen date.'}
+              </Text>
+              <Text style={{ color: t.textDim, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                {lang === 'ru' ? 'За сколько недель' : 'Over how many weeks'}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {[2, 4, 6, 8].map((w) => {
+                  const sel = taperWeeks === w;
+                  return (
+                    <Pressable key={w} onPress={() => { Haptics.selectionAsync(); setTaperWeeks(w); }}
+                      style={{ flex: 1, paddingVertical: 12, borderRadius: radius.md, alignItems: 'center',
+                        backgroundColor: sel ? '#FF9F0A' : t.bgElev, borderWidth: 1, borderColor: sel ? '#FF9F0A' : t.border }}>
+                      <Text style={{ color: sel ? '#fff' : t.text, fontWeight: '700' }}>{w} {lang === 'ru' ? 'нед' : 'wk'}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={{ color: t.text, fontSize: 14 }}>
+                {lang === 'ru' ? 'Дата полного отказа: ' : 'Full quit date: '}
+                <Text style={{ fontWeight: '700' }}>{targetStr}</Text>
+              </Text>
+            </View>
+          );
+        })()}
+
         <Pressable onPress={start}
           style={({ pressed }) => ({
             marginTop: 8, backgroundColor: t.accent, borderRadius: radius.xl, paddingVertical: 18,
             alignItems: 'center', opacity: pressed ? 0.85 : 1,
           })}>
-          <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>{lang === 'ru' ? 'Бросаю прямо сейчас' : 'Quitting right now'}</Text>
+          <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>
+            {isTaper
+              ? (lang === 'ru' ? 'Начинаю снижать сегодня' : 'Start reducing today')
+              : (lang === 'ru' ? 'Бросаю прямо сейчас' : 'Quitting right now')}
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
