@@ -10,6 +10,7 @@ import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
 import { chat, ChatMessage, CoachMode } from '../lib/ai';
+import { usePremium, FREE_AI_DAILY_LIMIT } from '../lib/subscription';
 import { Icon, type IconKey } from '../components/Icon';
 
 const MODE_META: Record<CoachMode, { icon: IconKey; color: string; ru: string; en: string }> = {
@@ -73,6 +74,10 @@ export default function ChatScreen() {
   const meta = MODE_META[mode];
 
   const [state] = useAppState();
+  const premium = usePremium();
+  const today = new Date().toISOString().slice(0, 10);
+  const usedToday = state.aiUsage?.date === today ? state.aiUsage.count : 0;
+  const freeLeft = Math.max(0, FREE_AI_DAILY_LIMIT - usedToday);
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -106,6 +111,11 @@ export default function ChatScreen() {
   async function send() {
     const text = input.trim();
     if (!text || loading) return;
+    // Free tier: limited AI messages per day. Premium = unlimited.
+    if (!premium && usedToday >= FREE_AI_DAILY_LIMIT) {
+      router.push("/paywall" as any);
+      return;
+    }
     const next: ChatMessage[] = [...history, { role: 'user', content: text }];
     setHistory(next);
     setInput('');
@@ -115,6 +125,14 @@ export default function ChatScreen() {
       const final = [...next, { role: 'assistant' as const, content: reply || '…' }];
       setHistory(final);
       await persist(final);
+      if (!premium) {
+        await update((s) => ({
+          ...s,
+          aiUsage: s.aiUsage?.date === today
+            ? { date: today, count: s.aiUsage.count + 1 }
+            : { date: today, count: 1 },
+        }));
+      }
     } catch (e: any) {
       const errMsg = e?.message ?? (lang === 'ru' ? 'Ошибка соединения' : 'Connection error');
       setHistory([...next, { role: 'assistant' as const, content: errMsg }]);
@@ -188,6 +206,19 @@ export default function ChatScreen() {
             </View>
           )}
         </ScrollView>
+
+        {!premium && (
+          <Pressable onPress={() => router.push("/paywall" as any)}
+            style={{ marginHorizontal: spacing.md, marginBottom: 8, padding: 10, borderRadius: 12, backgroundColor: t.accent + '14', borderWidth: 1, borderColor: t.accent + '40', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Icon.crown size={15} color={t.accent} />
+            <Text style={{ color: t.text, fontSize: 12, flex: 1 }}>
+              {freeLeft > 0
+                ? (lang === 'ru' ? `Осталось бесплатных сообщений сегодня: ${freeLeft}` : `Free messages left today: ${freeLeft}`)
+                : (lang === 'ru' ? 'Лимит на сегодня исчерпан. Premium — безлимитный ИИ.' : 'Daily limit reached. Premium — unlimited AI.')}
+            </Text>
+            <Text style={{ color: t.accent, fontSize: 12, fontWeight: '700' }}>Premium →</Text>
+          </Pressable>
+        )}
 
         <View style={{ flexDirection: 'row', gap: 8, padding: spacing.md, paddingTop: 0 }}>
           <TextInput

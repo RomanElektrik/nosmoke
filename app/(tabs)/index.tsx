@@ -119,6 +119,9 @@ export default function Home() {
         {/* Today focus — single prioritised action + crisis-day support */}
         <TodayFocus secs={secs} />
 
+        {/* Vaping / IQOS — type-specific guidance */}
+        <VapeNote />
+
         {/* Pending start banner */}
         {p.pendingMethod && p.pendingQuitDate && p.pendingQuitDate > Date.now() && (() => {
           const newStep = getStep(p.pendingMethod);
@@ -385,6 +388,48 @@ function TodayFocus({ secs }: { secs: number }) {
           <Text style={{ color: action.color, fontSize: 20 }}>›</Text>
         </View>
       </Pressable>
+    </View>
+  );
+}
+
+// Vaping / IQOS users have a different habit shape: no natural "pack" pacing,
+// constant access, often hidden high nicotine intake. One rotating tip.
+const VAPE_TIPS_RU = [
+  'У вейпа нет «пачки» — нет естественной паузы. Назначь себе чёткие правила: где и когда нельзя парить.',
+  'Скрытая доза часто выше, чем кажется. Если планируешь снижать постепенно — снижай крепость жидкости (мг никотина), а не только число затяжек.',
+  'Убери вейп из зоны лёгкого доступа: из кармана, со стола, от кровати. Каждый лишний шаг до устройства — твой союзник.',
+  'Затяжка «на автомате» — главный враг вейпера. Перед каждой спрашивай себя: это тяга или просто рука потянулась?',
+];
+const VAPE_TIPS_EN = [
+  'A vape has no "pack" — no natural pause. Set yourself clear rules: where and when you will not vape.',
+  'Hidden nicotine intake is often higher than it feels. If tapering, lower the liquid strength (nicotine mg), not just puff count.',
+  'Move the vape out of easy reach — out of your pocket, off the desk, away from the bed. Every extra step is your ally.',
+  'Autopilot puffs are the vaper\'s main enemy. Before each one ask: is this a craving, or just my hand reaching?',
+];
+
+function VapeNote() {
+  const t = useTheme();
+  const lang = currentLang();
+  const [state] = useAppState();
+  const type = state.profile?.type;
+  if (type !== 'vape' && type !== 'iqos') return null;
+  const tips = lang === 'ru' ? VAPE_TIPS_RU : VAPE_TIPS_EN;
+  const idx = Math.floor(Date.now() / 86400_000) % tips.length;
+  return (
+    <View style={{
+      padding: 14, borderRadius: radius.lg,
+      backgroundColor: '#5AC8FA12', borderWidth: 1, borderColor: '#5AC8FA30',
+      gap: 6,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Icon.wind size={16} color="#5AC8FA" />
+        <Text style={{ color: '#5AC8FA', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+          {type === 'iqos'
+            ? (lang === 'ru' ? 'Трек: IQOS' : 'Track: IQOS')
+            : (lang === 'ru' ? 'Трек: вейпинг' : 'Track: vaping')}
+        </Text>
+      </View>
+      <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>{tips[idx]}</Text>
     </View>
   );
 }
