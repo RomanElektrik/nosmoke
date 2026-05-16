@@ -1,12 +1,14 @@
 // Distraction mini-game for craving moments — "2048".
 // A craving is a 3–5 min wave; a calm, absorbing puzzle helps ride it out.
 // No timer, no losing pressure — when the board fills, a gentle restart.
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import Animated, {
+  runOnJS, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
@@ -173,26 +175,7 @@ export default function Game() {
             borderWidth: 1, borderColor: t.border, padding: 8,
             flexDirection: 'row', flexWrap: 'wrap',
           }}>
-            {grid.map((v, i) => {
-              const tile = TILE[v] ?? { bg: '#FFB23D', fg: '#fff' };
-              return (
-                <View key={i} style={{ width: '25%', height: '25%', padding: 4 }}>
-                  <View style={{
-                    flex: 1, borderRadius: radius.md,
-                    backgroundColor: v === 0 ? t.border + '60' : tile.bg,
-                    alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {v > 0 && (
-                      <Text style={{
-                        color: tile.fg, fontWeight: '800',
-                        fontSize: v >= 1024 ? 20 : v >= 128 ? 24 : 28,
-                        letterSpacing: -0.5,
-                      }}>{v}</Text>
-                    )}
-                  </View>
-                </View>
-              );
-            })}
+            {grid.map((v, i) => <Tile key={i} value={v} emptyColor={t.border + '60'} />)}
           </View>
         </GestureDetector>
 
@@ -230,6 +213,48 @@ export default function Game() {
         </View>
       )}
     </SafeAreaView>
+  );
+}
+
+// Animated tile: pops in when it appears, gives a quick squash on merge/change.
+function Tile({ value, emptyColor }: { value: number; emptyColor: string }) {
+  const tile = TILE[value] ?? { bg: '#FFB23D', fg: '#FFFFFF' };
+  const scale = useSharedValue(1);
+  const prev = useRef(value);
+
+  useEffect(() => {
+    if (value > 0) {
+      if (prev.current === 0) {
+        scale.value = 0.2;
+        scale.value = withSpring(1, { damping: 11, stiffness: 220 });
+      } else if (value !== prev.current) {
+        scale.value = withSequence(
+          withTiming(1.16, { duration: 90 }),
+          withTiming(1, { duration: 130 }),
+        );
+      }
+    }
+    prev.current = value;
+  }, [value]);
+
+  const aStyle = useAnimatedStyle(() => ({ transform: [{ scale: value > 0 ? scale.value : 1 }] }));
+
+  return (
+    <View style={{ width: '25%', height: '25%', padding: 4 }}>
+      <Animated.View style={[{
+        flex: 1, borderRadius: radius.md,
+        backgroundColor: value === 0 ? emptyColor : tile.bg,
+        alignItems: 'center', justifyContent: 'center',
+      }, aStyle]}>
+        {value > 0 && (
+          <Text style={{
+            color: tile.fg, fontWeight: '800',
+            fontSize: value >= 1024 ? 20 : value >= 128 ? 24 : 28,
+            letterSpacing: -0.5,
+          }}>{value}</Text>
+        )}
+      </Animated.View>
+    </View>
   );
 }
 
