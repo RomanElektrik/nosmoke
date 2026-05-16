@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, withRepeat, withSequence, Easing,
+} from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
+import Svg, { Circle, Defs, RadialGradient as SvgRadialGradient, Stop } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, currentLang } from '../../lib/i18n';
-import { BreathingOrb } from '../../components/BreathingOrb';
 import { Icon } from '../../components/Icon';
 import { update, useAppState } from '../../lib/storage';
 import { FAGERSTROM_RU, FAGERSTROM_EN, fagerstromBand, nrtRecommendation, taperPlan, REPLACE_ACTIONS_RU, REPLACE_ACTIONS_EN } from '../../lib/clinical';
@@ -60,6 +63,122 @@ function Title({ icon: I, color, title, intro }: any) {
   );
 }
 
+/* ---------------- breathing orb (shared by CyclicSigh & BoxBreath) ---------------- */
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+// A calm, meditative breathing orb. The parent owns phase timing and drives
+// `scale` (0..1.2). This component only renders: layered glow, an SVG progress
+// ring, a soft pulsing core, the phase word and a cycle counter.
+function BreathOrb({
+  color, scale, progress, phaseLabel, subLabel, timeLabel,
+}: {
+  color: string;
+  scale: SharedValue<number>;
+  progress: SharedValue<number>; // 0..1 session completion
+  phaseLabel: string;
+  subLabel: string;
+  timeLabel: string;
+}) {
+  const t = useTheme();
+  const SIZE = 300;
+  const R = 132;            // progress ring radius
+  const CIRC = 2 * Math.PI * R;
+  const ORB = 188;          // core orb diameter
+
+  // Gentle independent shimmer so the orb is never fully static during holds.
+  const shimmer = useSharedValue(1);
+  useEffect(() => {
+    shimmer.value = withRepeat(
+      withSequence(
+        withTiming(1.035, { duration: 2600, easing: Easing.inOut(Easing.sin) }),
+        withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.sin) }),
+      ), -1, false,
+    );
+  }, []);
+
+  const aGlowFar = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value * 1.42 * shimmer.value }],
+    opacity: 0.06 + scale.value * 0.10,
+  }));
+  const aGlowMid = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value * 1.16 }],
+    opacity: 0.10 + scale.value * 0.14,
+  }));
+  const aCore = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value * shimmer.value }],
+  }));
+  const aRing = useAnimatedStyle(() => ({
+    transform: [{ scale: 0.92 + scale.value * 0.10 }],
+    opacity: 0.5 + scale.value * 0.4,
+  }));
+  const ringProps = useAnimatedProps(() => ({
+    strokeDashoffset: CIRC * (1 - Math.min(1, Math.max(0, progress.value))),
+  }));
+
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center', height: SIZE }}>
+      {/* far + mid soft glow */}
+      <Animated.View style={[
+        { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aGlowFar,
+      ]} />
+      <Animated.View style={[
+        { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aGlowMid,
+      ]} />
+
+      {/* SVG progress ring — fills over the whole session */}
+      <Animated.View style={[{ position: 'absolute', width: SIZE, height: SIZE }, aRing]}>
+        <Svg width={SIZE} height={SIZE}>
+          <Circle
+            cx={SIZE / 2} cy={SIZE / 2} r={R}
+            stroke={t.border} strokeWidth={3} fill="none"
+          />
+          <AnimatedCircle
+            cx={SIZE / 2} cy={SIZE / 2} r={R}
+            stroke={color} strokeWidth={4} fill="none"
+            strokeLinecap="round"
+            strokeDasharray={CIRC}
+            animatedProps={ringProps}
+            transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+          />
+        </Svg>
+      </Animated.View>
+
+      {/* main orb with radial-gradient fill */}
+      <Animated.View style={[
+        {
+          width: ORB, height: ORB, borderRadius: ORB / 2,
+          alignItems: 'center', justifyContent: 'center',
+          borderWidth: 1.5, borderColor: color + '88',
+        }, aCore,
+      ]}>
+        <Svg width={ORB} height={ORB} style={{ position: 'absolute' }}>
+          <Defs>
+            <SvgRadialGradient id="orbFill" cx="50%" cy="42%" r="62%">
+              <Stop offset="0%" stopColor={color} stopOpacity={0.42} />
+              <Stop offset="62%" stopColor={color} stopOpacity={0.20} />
+              <Stop offset="100%" stopColor={color} stopOpacity={0.10} />
+            </SvgRadialGradient>
+          </Defs>
+          <Circle cx={ORB / 2} cy={ORB / 2} r={ORB / 2} fill="url(#orbFill)" />
+        </Svg>
+        <Text style={{ color: t.text, fontSize: 23, fontWeight: '700', letterSpacing: -0.3 }}>
+          {phaseLabel}
+        </Text>
+        <Text style={{ color: t.textDim, fontSize: 13, marginTop: 4, fontWeight: '500' }}>
+          {subLabel}
+        </Text>
+        <Text style={{
+          color: color, fontSize: 13, marginTop: 10, fontWeight: '700',
+          fontVariant: ['tabular-nums'] as any, letterSpacing: 1,
+        }}>
+          {timeLabel}
+        </Text>
+      </Animated.View>
+    </View>
+  );
+}
+
 function PrimaryButton({ label, onPress, disabled, color }: any) {
   const t = useTheme();
   return (
@@ -74,10 +193,79 @@ function PrimaryButton({ label, onPress, disabled, color }: any) {
 
 function BoxBreath({ onDone }: { onDone: () => void }) {
   const { t: tr } = useTranslation();
+  const t = useTheme();
+  const lang = currentLang();
+  const COLOR = '#5AC8FA';
+  // Box breathing: inhale 4s — hold 4s — exhale 4s — hold 4s.
+  const PHASES = [
+    { key: 'in',   ru: 'Вдох',     en: 'Inhale', hint: { ru: 'наполняй грудь', en: 'fill the chest' },   dur: 4000, scale: 1.12 },
+    { key: 'h1',   ru: 'Задержка', en: 'Hold',   hint: { ru: 'мягко удержи',   en: 'hold gently' },      dur: 4000, scale: 1.12 },
+    { key: 'out',  ru: 'Выдох',    en: 'Exhale', hint: { ru: 'отпусти воздух', en: 'release the air' },  dur: 4000, scale: 0.6 },
+    { key: 'h2',   ru: 'Задержка', en: 'Hold',   hint: { ru: 'спокойно жди',   en: 'wait calmly' },      dur: 4000, scale: 0.6 },
+  ] as const;
+
+  const TOTAL = 120;
+  const [phase, setPhase] = useState(0);
+  const [cycle, setCycle] = useState(1);
+  const startedAt = useRef(Date.now());
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const scale = useSharedValue(0.6);
+  const progress = useSharedValue(0);
+  const ease = Easing.inOut(Easing.cubic);
+
+  useEffect(() => {
+    startedAt.current = Date.now();
+    const id = setInterval(() => {
+      const e = Math.min(TOTAL, (Date.now() - startedAt.current) / 1000);
+      setElapsedSec(Math.floor(e));
+      progress.value = e / TOTAL;
+      if (e >= TOTAL) {
+        clearInterval(id);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onDone();
+      }
+    }, 200);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const p = PHASES[phase];
+    Haptics.selectionAsync();
+    scale.value = withTiming(p.scale, { duration: p.dur, easing: ease });
+    const id = setTimeout(() => {
+      setPhase((i) => {
+        const n = (i + 1) % PHASES.length;
+        if (n === 0) setCycle((c) => c + 1);
+        return n;
+      });
+    }, p.dur);
+    return () => clearTimeout(id);
+  }, [phase]);
+
+  const cur = PHASES[phase];
+  const remaining = Math.max(0, TOTAL - elapsedSec);
+  const timeLabel = `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
+
   return (
-    <ScrollView contentContainerStyle={{ gap: 16, paddingBottom: 40 }}>
-      <Title icon={Icon.wind} color="#5AC8FA" title={tr('tech.box.t')} intro={tr('tech.box.b')} />
-      <BreathingOrb totalSeconds={120} onDone={onDone} />
+    <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 40 }}>
+      <Title icon={Icon.wind} color={COLOR} title={tr('tech.box.t')}
+        intro={lang === 'ru'
+          ? 'Вдох на 4 — пауза на 4 — выдох на 4 — пауза на 4. Следуй за кругом.'
+          : 'Inhale for 4 — hold 4 — exhale 4 — hold 4. Follow the circle.'} />
+      <View style={{ paddingVertical: 18 }}>
+        <BreathOrb
+          color={COLOR} scale={scale} progress={progress}
+          phaseLabel={lang === 'ru' ? cur.ru : cur.en}
+          subLabel={lang === 'ru' ? cur.hint.ru : cur.hint.en}
+          timeLabel={timeLabel}
+        />
+      </View>
+      <Text style={{ color: t.textDim, textAlign: 'center', fontSize: 13, fontWeight: '600' }}>
+        {lang === 'ru' ? `Круг ${cycle}` : `Round ${cycle}`}
+      </Text>
+      <Pressable onPress={onDone} style={{ marginHorizontal: spacing.lg, padding: 14, alignItems: 'center' }}>
+        <Text style={{ color: t.textDim, fontWeight: '600' }}>{tr('common.done')}</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -86,88 +274,76 @@ function CyclicSigh({ onDone }: { onDone: () => void }) {
   const { t: tr } = useTranslation();
   const t = useTheme();
   const lang = currentLang();
+  const COLOR = '#0A84FF';
   // Pattern (Balban 2023): inhale 1.5s + small top-off 0.8s + exhale 4.5s.
   const PHASES = [
-    { key: 'in1', ru: 'Вдох',          en: 'Inhale',      dur: 1500, scale: 0.95 },
-    { key: 'in2', ru: 'Добор воздуха', en: 'Top off',     dur: 800,  scale: 1.1 },
-    { key: 'out', ru: 'Длинный выдох', en: 'Long exhale', dur: 4500, scale: 0.55 },
+    { key: 'in1', ru: 'Вдох',          en: 'Inhale',      hint: { ru: 'спокойно через нос',  en: 'calmly through the nose' }, dur: 1500, scale: 0.92 },
+    { key: 'in2', ru: 'Добор воздуха', en: 'Top off',     hint: { ru: 'наполни лёгкие',      en: 'fill the lungs' },          dur: 800,  scale: 1.14 },
+    { key: 'out', ru: 'Длинный выдох', en: 'Long exhale', hint: { ru: 'медленно через рот',  en: 'slowly through the mouth' }, dur: 4500, scale: 0.5 },
   ] as const;
 
   const TOTAL = 300;
   const [phase, setPhase] = useState(0);
+  const [cycle, setCycle] = useState(1);
   const startedAt = useRef(Date.now());
   const [elapsedSec, setElapsedSec] = useState(0);
-  const scale = useSharedValue(0.55);
-  const opacity = useSharedValue(0.6);
+  const scale = useSharedValue(0.5);
+  const progress = useSharedValue(0);
 
   // Per-second ticker
   useEffect(() => {
     startedAt.current = Date.now();
     const id = setInterval(() => {
-      const e = Math.floor((Date.now() - startedAt.current) / 1000);
-      setElapsedSec(e);
+      const e = Math.min(TOTAL, (Date.now() - startedAt.current) / 1000);
+      setElapsedSec(Math.floor(e));
+      progress.value = e / TOTAL;
       if (e >= TOTAL) {
         clearInterval(id);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onDone();
       }
-    }, 250);
+    }, 200);
     return () => clearInterval(id);
   }, []);
 
   // Smooth ease curve
-  const ease = Easing.bezier(0.42, 0, 0.58, 1);
+  const ease = Easing.inOut(Easing.cubic);
 
   // Phase animation
   useEffect(() => {
     const p = PHASES[phase];
     Haptics.selectionAsync();
     scale.value = withTiming(p.scale, { duration: p.dur, easing: ease });
-    opacity.value = withTiming(p.key === 'out' ? 0.35 : 0.85, { duration: p.dur, easing: ease });
-    const id = setTimeout(() => setPhase((i) => (i + 1) % PHASES.length), p.dur);
+    const id = setTimeout(() => {
+      setPhase((i) => {
+        const n = (i + 1) % PHASES.length;
+        if (n === 0) setCycle((c) => c + 1);
+        return n;
+      });
+    }, p.dur);
     return () => clearTimeout(id);
   }, [phase]);
 
-  const aOuter = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const aInner = useAnimatedStyle(() => ({ transform: [{ scale: scale.value * 1.18 }], opacity: opacity.value * 0.5 }));
-  const aGlow  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value * 1.5 }], opacity: opacity.value * 0.18 }));
   const cur = PHASES[phase];
   const remaining = Math.max(0, TOTAL - elapsedSec);
+  const timeLabel = `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
 
   return (
-    <ScrollView contentContainerStyle={{ gap: 16, paddingBottom: 40 }}>
-      <Title icon={Icon.wind} color="#0A84FF" title={tr('tech.cyclic.t')}
+    <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 40 }}>
+      <Title icon={Icon.wind} color={COLOR} title={tr('tech.cyclic.t')}
         intro={lang === 'ru'
-          ? 'Двойной вдох носом + длинный выдох ртом. 5 минут.'
-          : 'Double inhale through nose + long exhale through mouth. 5 min.'} />
-      <View style={{ alignItems: 'center', paddingVertical: 28, height: 320, justifyContent: 'center' }}>
-        {/* outer glow */}
-        <Animated.View style={[
-          { position: 'absolute', width: 280, height: 280, borderRadius: 140, backgroundColor: '#0A84FF' }, aGlow,
-        ]} />
-        {/* halo */}
-        <Animated.View style={[
-          { position: 'absolute', width: 240, height: 240, borderRadius: 120, backgroundColor: '#0A84FF20' }, aInner,
-        ]} />
-        {/* main orb */}
-        <Animated.View style={[
-          {
-            width: 200, height: 200, borderRadius: 100,
-            backgroundColor: '#0A84FF24',
-            borderWidth: 2, borderColor: '#0A84FF',
-            alignItems: 'center', justifyContent: 'center',
-          }, aOuter,
-        ]}>
-          <Text style={{ color: t.text, fontSize: 22, fontWeight: '700' }}>
-            {lang === 'ru' ? cur.ru : cur.en}
-          </Text>
-        </Animated.View>
+          ? 'Двойной вдох носом + длинный выдох ртом. Просто следуй за кругом 5 минут.'
+          : 'Double inhale through the nose + long exhale through the mouth. Just follow the circle for 5 minutes.'} />
+      <View style={{ paddingVertical: 18 }}>
+        <BreathOrb
+          color={COLOR} scale={scale} progress={progress}
+          phaseLabel={lang === 'ru' ? cur.ru : cur.en}
+          subLabel={lang === 'ru' ? cur.hint.ru : cur.hint.en}
+          timeLabel={timeLabel}
+        />
       </View>
-      <Text style={{
-        color: t.textDim, textAlign: 'center', fontSize: 18, fontWeight: '600',
-        fontVariant: ['tabular-nums'] as any, letterSpacing: 0.5,
-      }}>
-        {String(Math.floor(remaining / 60)).padStart(2, '0')}:{String(remaining % 60).padStart(2, '0')}
+      <Text style={{ color: t.textDim, textAlign: 'center', fontSize: 13, fontWeight: '600' }}>
+        {lang === 'ru' ? `Цикл ${cycle}` : `Cycle ${cycle}`}
       </Text>
       <Pressable onPress={onDone} style={{ marginHorizontal: spacing.lg, padding: 14, alignItems: 'center' }}>
         <Text style={{ color: t.textDim, fontWeight: '600' }}>{tr('common.done')}</Text>

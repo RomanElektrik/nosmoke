@@ -8,7 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, currentLang } from '../../lib/i18n';
 import { TECHNIQUES, Technique } from '../../lib/techniques';
-import { Icon } from '../../components/Icon';
+import { Icon, IconKey } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
 
 const ORDER = [
@@ -177,6 +177,47 @@ function TechCard({ te, lang, tr, onOpen, onGo }: {
   );
 }
 
+// Renders a body text that may contain \n\n paragraph breaks as spaced paragraphs.
+function Paragraphs({ text, color }: { text: string; color: string }) {
+  const parts = text.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
+  return (
+    <View style={{ gap: 10 }}>
+      {parts.map((p, i) => (
+        <Text key={i} style={{ color, fontSize: 15, lineHeight: 23 }}>{p}</Text>
+      ))}
+    </View>
+  );
+}
+
+function Section({ icon, color, label, body }: {
+  icon: IconKey; color: string; label: string; body: string;
+}) {
+  const t = useTheme();
+  const IconComp = Icon[icon];
+  return (
+    <View style={{
+      borderRadius: radius.lg, borderWidth: 1, borderColor: t.border,
+      backgroundColor: t.bgElev, padding: 16, gap: 10,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{
+          width: 28, height: 28, borderRadius: 9,
+          backgroundColor: color + '1E', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <IconComp size={15} color={color} />
+        </View>
+        <Text style={{
+          color: t.text, fontSize: 12, fontWeight: '800',
+          textTransform: 'uppercase', letterSpacing: 1,
+        }}>
+          {label}
+        </Text>
+      </View>
+      <Paragraphs text={body} color={t.text} />
+    </View>
+  );
+}
+
 function Detail({ te, lang, tr, onClose, onStart }: {
   te: Technique; lang: 'ru' | 'en'; tr: any; onClose: () => void; onStart: () => void;
 }) {
@@ -190,6 +231,19 @@ function Detail({ te, lang, tr, onClose, onStart }: {
     : te.practice === 'ema' ? 'Open journal'
     : te.practice ? 'Start' : null;
 
+  // Structured sections live under tech.<id>.{what,why,how}. i18next returns the
+  // key itself when missing — treat that as absent and fall back to the plain body.
+  const base = te.bodyKey.replace(/\.b$/, '');
+  const resolve = (suffix: string): string | null => {
+    const key = `${base}.${suffix}`;
+    const val = tr(key);
+    return val && val !== key ? val : null;
+  };
+  const what = resolve('what');
+  const why = resolve('why');
+  const how = resolve('how');
+  const hasSections = !!(what || why || how);
+
   return (
     <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: 16, paddingBottom: 60 }}>
       <LinearGradient colors={[te.color + '40', te.color + '10']}
@@ -202,7 +256,17 @@ function Detail({ te, lang, tr, onClose, onStart }: {
         <Chip color={te.color}>{tr(`tech.evidence_${te.evidence}`)}</Chip>
         {!!te.durationMin && <Chip color={t.textDim}>{te.durationMin} {lang === 'ru' ? 'мин' : 'min'}</Chip>}
       </View>
-      <Text style={{ color: t.text, fontSize: 15, lineHeight: 23, marginTop: 8 }}>{tr(te.bodyKey)}</Text>
+
+      {hasSections ? (
+        <View style={{ gap: 12, marginTop: 4 }}>
+          {what && <Section icon="sparkle" color={te.color} label={tr('tech.sec_what')} body={what} />}
+          {why && <Section icon="brain" color={t.info} label={tr('tech.sec_why')} body={why} />}
+          {how && <Section icon="toolbox" color={t.accent} label={tr('tech.sec_how')} body={how} />}
+        </View>
+      ) : (
+        <Paragraphs text={tr(te.bodyKey)} color={t.text} />
+      )}
+
       {ctaRu && (
         <Pressable onPress={onStart}
           style={{ marginTop: 12, padding: 18, borderRadius: radius.xl, backgroundColor: te.color, alignItems: 'center' }}>

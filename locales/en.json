@@ -200,95 +200,152 @@
     "evidence_A": "Strong evidence",
     "evidence_B": "Good evidence",
     "evidence_C": "Supportive",
+    "sec_what": "What it is",
+    "sec_why": "Why it works",
+    "sec_how": "How to do it",
     "fager": {
       "t": "Fagerström test",
       "s": "Score your dependence in 2 minutes",
-      "b": "6 questions about your habit. Score 0–10 guides whether NRT is needed and at what dose. Not a diagnosis — a reason to talk to a clinician."
+      "b": "The Fagerström test — 6 questions about your habit. A 0–10 score shows how strong your physical nicotine dependence is. The score guides medication recommendations.",
+      "what": "This is a short 6-question survey about your habit: how soon after waking you reach for a cigarette, how many you smoke a day, how hard it is to hold off where smoking isn't allowed. It's called the Fagerström test, and doctors worldwide have used it for decades. At the end you get a single number from 0 to 10.\n\nThat number isn't a judgement or a verdict. It's just a measuring tool: it shows how physically attached your body is to nicotine, separate from the habit and the ritual.",
+      "why": "Dependence differs from person to person. For one person it's mostly a habit of keeping their hands busy; for another it's a strong physical need where the body genuinely demands a dose. Treating those two cases the same way doesn't work well.\n\nThe Fagerström score reliably predicts how hard withdrawal will be and which approach will help. With a high score, willpower and techniques alone are usually not enough — medications and replacement therapy have proven benefit here. With a low score, behavioural techniques are often sufficient. That's why the test comes first: it tunes your whole plan to you.",
+      "how": "Answer all 6 questions honestly — there are no \"right\" answers, accuracy is what matters.\n\nLook at your total score and its band. 0–3 is low dependence, 4–6 moderate, 7–10 high.\n\nIf the score is moderate or high, that's a signal to seriously consider medications or NRT with a doctor, rather than relying on willpower alone. Retake the test in a couple of months to see your dependence drop."
     },
     "cbt": {
       "t": "Cognitive Behavioral Therapy",
-      "s": "Rewrite the automatic thought",
-      "b": "Notice the thought (\"I can't cope without it\"), test it, replace with a realistic one. 5 minutes daily — as effective as a session."
+      "s": "Catch the thought — challenge — replace",
+      "b": "Cognitive behavioral therapy teaches you to notice automatic thoughts, test them for truth and replace them with realistic ones. It's the most-researched psychological approach to addiction.",
+      "what": "Cognitive behavioral therapy (CBT) is a set of skills for working with your own thoughts. The core idea is simple: between an event and your action there's always a thought. \"Tough day\" — thought \"I can't relax without a cigarette\" — hand reaches for the pack.\n\nCBT teaches you to catch that in-between thought and work with it before it turns into action. It's not talking about childhood — it's a concrete daily practice of a few minutes.",
+      "why": "Cravings rarely come \"bare\" — they're almost always paired with a justifying thought: \"just one\", \"I deserve it\", \"I'll slip anyway\". These thoughts feel true, but on a closer look they're often exaggerated or simply wrong.\n\nResearch over recent decades shows CBT is one of the most effective psychological approaches for addiction. When you regularly challenge automatic thoughts, they lose their power — the brain stops treating them as commands. Over time, the thought \"I can't cope\" no longer launches your hand toward the pack.",
+      "how": "Catch the thought. As soon as a craving hits, pause and ask: \"What thought is in my head right now?\" Write it down word for word.\n\nChallenge it. Find 2 facts against it. \"I can't cope without a cigarette\" — but you've handled cravings dozens of times, and every one passed within a few minutes.\n\nReplace it. Phrase an honest, realistic version: \"This is hard right now, and the craving will pass on its own in 3–5 minutes, like it has before.\"\n\nDo this 5 minutes a day — ideally at the same time. The skill grows with repetition."
     },
     "surf": {
       "t": "Urge surfing",
-      "s": "Ride the wave of craving",
-      "b": "A craving is a wave: it builds for 1–2 minutes, peaks, fades in 2–3. Don't fight — observe. Where in the body? Warm or cold? It always passes."
+      "s": "A craving is a wave, not a command",
+      "b": "Urge surfing is a mindfulness technique: instead of fighting a craving, you observe it as a body sensation until the wave fades on its own.",
+      "what": "Urge surfing is a way to get through a craving by doing nothing about it. Instead of fighting, distracting yourself or giving in, you simply observe the craving as a sensation in the body — like a surfer on a wave: not trying to stop it, just staying on it until it subsides.\n\nPsychologist Alan Marlatt introduced the technique, and it has become a classic in working with any addiction.",
+      "why": "A craving feels endless, but that's an illusion. It actually has the shape of a wave: it builds for about 1–2 minutes, peaks for around a minute, and fades over 2–3 minutes. Without a cigarette the craving still passes on its own — because it's just a spike of brain activity, not a signal of real danger.\n\nWhen you fight a craving, you tense up inside and feed it with attention — it seems stronger. When you observe it with curiosity, you break the automatic \"craving → action\" link. The brain gets new evidence: the wave passed and I didn't smoke. Each time weakens the habit.",
+      "how": "Notice and name it. Tell yourself: \"There's a craving right now.\" Not \"I have to smoke\", but \"there's a craving\".\n\nFind it in the body. Where exactly is it felt? In the chest, throat, hands? Is it warm or cold, pressing or tingling?\n\nWatch it like a wave. Don't push it away. Just track it: building, peaking, fading. You can narrate silently: \"rising… holding… releasing\".\n\nBreathe with it. Take a few slow exhales. Wait for the wave to fade — usually 3–5 minutes. You did nothing to chase it away, and it left on its own."
     },
     "box": {
-      "t": "Box breathing 4-4-4-4",
+      "t": "Box breathing",
       "s": "60 seconds and the peak passes",
-      "b": "Inhale 4 — hold 4 — exhale 4 — hold 4. Activates the parasympathetic system, dampens the stress response."
+      "b": "Box breathing 4-4-4-4: inhale for 4 counts, hold 4, exhale 4, hold 4. It slows your breathing and switches the nervous system out of stress mode into calm.",
+      "what": "Box breathing is a simple rhythmic technique: inhale for 4 counts, hold for 4, exhale for 4, hold for 4. It makes a \"box\" of four equal sides. One round takes 16 seconds, and 4–6 rounds is usually enough.\n\nAthletes and people in high-stress jobs use this to quickly pull themselves together.",
+      "why": "When a craving or stress hits, breathing speeds up and gets shallow — that's part of the fight-or-flight response. Body and brain read that breathing as an alarm signal and ramp the arousal up further.\n\nBreathing is the one part of this system you can control consciously. By slowing and evening it out — especially lengthening the exhale and the holds — you switch on the parasympathetic nervous system, the body's \"brake\". Heart rate drops, tension eases, the mind clears. A craving peak usually lasts under a minute, and one cycle of breathing is often enough to wait it out.",
+      "how": "Sit or stand upright, shoulders relaxed.\n\nInhale — slowly draw air in through the nose, counting to 4.\n\nHold — calmly keep the air for a count of 4, without straining.\n\nExhale — let the air out smoothly for a count of 4.\n\nHold — pause again for a count of 4, then start over.\n\nRepeat 4–6 rounds. Count at a calm, even pace. If the holds feel hard, shorten them to 2–3 counts — the key is to keep the rhythm."
     },
     "halt": {
       "t": "HALT check",
       "s": "Hungry? Angry? Lonely? Tired?",
-      "b": "Before lighting up, ask: am I one of these? Often the real need isn't nicotine."
+      "b": "HALT is a quick check before a cigarette: am I Hungry, Angry, Lonely or Tired. Often the real need isn't nicotine at all.",
+      "what": "HALT is four letter-questions you ask yourself when the urge to smoke hits: Hungry, Angry (irritated, tense), Lonely, Tired.\n\nIt's a quick half-minute checklist. It doesn't remove the craving directly — it helps you see what's really going on and what you actually lack.",
+      "why": "For decades a cigarette was your universal answer to any discomfort. So now the brain offers it even when the problem has nothing to do with nicotine: you're simply hungry, worn out, angry or lonely.\n\nIf you smoke at that moment, the real need stays unmet — and soon returns. But if you recognise it and meet it directly (eat, rest, reach out to someone), the craving often dissolves on its own, because it has nothing left to feed on. HALT gives you back precision: you stop treating hunger and tiredness with nicotine.",
+      "how": "When a craving hits, don't act right away. Pause for 30 seconds and run through the four letters.\n\nHungry — when did I last eat? If long ago, have something.\n\nAngry — is there irritation, resentment, tension? Name the feeling, release it in words or movement.\n\nLonely — am I feeling alone right now? Message or call someone.\n\nTired — am I tired, short on sleep? Give yourself a pause, rest, drink water.\n\nMeet whichever need rang true — then re-check the craving. It's often noticeably weaker."
     },
     "ifthen": {
       "t": "If-then plan",
-      "s": "Decide your move ahead of time",
-      "b": "\"If offered at work, I take nuts and step outside for 5 min.\" Pre-made scripts work where willpower has already drained."
+      "s": "A ready answer to a trigger",
+      "b": "An if-then plan is a script prepared in advance: \"If trigger X happens, then I do Y.\" A ready decision fires automatically when willpower is already gone.",
+      "what": "An if-then plan (also called an implementation intention) is a short script in the form: \"If situation X happens — then I do specific action Y.\"\n\nFor example: \"If a colleague invites me for a smoke break — then I say I've quit and go make myself tea.\" You link a specific trigger to a specific pre-chosen action — and write it down before the moment arrives.",
+      "why": "Willpower is not an unlimited resource. By evening, under stress, after a hard day, your ability to make considered decisions runs low. That's exactly when slips happen: at the key moment the mind is blank, and the old automatic habit wins.\n\nThe if-then plan bypasses this problem. You make the decision in advance, with a clear head, and attach it to the trigger ahead of time. When the trigger fires, the brain doesn't need to decide anything — the right action surfaces on its own. Research (for example, Armitage's RCT, 2016) shows such plans noticeably raise the odds of holding on, especially in hard moments.",
+      "how": "Identify your triggers. Recall the situations that pull at you most: morning coffee, work stress, alcohol, the commute home.\n\nWrite an answer for each. Formula: \"If [specific trigger] — then [specific action].\" The action should be simple and doable right now.\n\nMake 3 plans to start. Save them in the app — they'll be kept.\n\nReview and refresh. Every 1–2 weeks look over your plans: triggers shift over time, add new scripts."
     },
     "nrt": {
-      "t": "Nicotine replacement",
+      "t": "Nicotine replacement (NRT)",
       "s": "Patch, gum, spray",
-      "b": "NRT roughly doubles success. Dose follows your Fagerström score. Not swapping addictions — a smooth taper off nicotine."
+      "b": "Nicotine replacement therapy (NRT) delivers clean nicotine without cigarette smoke — via patch, gum, spray. It's a smooth taper off nicotine that proven to raise quit rates.",
+      "what": "Nicotine replacement therapy (NRT) is a medical way to get nicotine without cigarettes: patch, gum, nasal or mouth spray, lozenges. They all deliver clean nicotine without the carbon monoxide, tar and thousands of other substances in cigarette smoke.\n\nA combination works best: the patch gives a steady background through the day, and a fast form (gum or spray) tackles sharp craving spikes.",
+      "why": "The main difficulty in quitting isn't the \"bad habit\" itself, but withdrawal: when blood nicotine drops sharply, the brain responds with irritability, anxiety and strong craving. This is exactly why most people slip in the first weeks.\n\nNRT removes the sharp drop. You get nicotine in a smaller, controlled dose, without smoke — and gradually lower it. Withdrawal becomes mild and manageable. This isn't \"swapping one addiction for another\": doses are small, the form is safe, and the course is time-limited. Per large Cochrane reviews, NRT clearly — by roughly one and a half times or more — raises the odds of quitting for good.",
+      "how": "Match the form to you. With strong dependence — a combination: patch plus a fast form.\n\nApply the patch in the morning to clean dry skin, change it once a day. Pick the dose by your cigarette count and Fagerström score.\n\nUse the fast form (gum, spray) in moments of strong craving — as \"first aid\".\n\nDon't quit NRT early. A full course is usually 8–12 weeks with a gradual dose taper. Agree the exact schedule and doses with a doctor or pharmacist."
     },
     "mind": {
       "t": "Mindfulness 10 min",
-      "s": "Train your attention",
-      "b": "Brewer's \"Craving to Quit\" lowers craving via mindful observation. 10 minutes a morning drops your reactivity."
+      "s": "Train your attention daily",
+      "b": "A daily mindfulness practice: 10 minutes of observing breath and sensations. It teaches you to notice a craving without acting on it and lowers reactivity to triggers.",
+      "what": "Mindfulness is the skill of observing what happens inside you without an automatic reaction. The practice is simple: you sit for 10 minutes, gently hold attention on the breath, and when you notice a thought or sensation — you don't grab onto it, just note it and return to the breath.\n\nIt's not about \"clearing the mind of thoughts\" — it's training to notice thoughts and not be led by them.",
+      "why": "Smoking almost always runs on autopilot: trigger — craving — hand to the pack, with no conscious involvement. Mindfulness inserts a pause between the craving and the action. In that pause, a choice appears.\n\nRegular practice literally rewires the response to triggers: you learn to treat a craving as a passing sensation, not a command. Studies of mindfulness-based programs (for example, the work of Judson Brewer) show they lower reactivity to smoking cues and help smokers. As a bonus you get a calmer baseline overall — and fewer reasons to reach for nicotine \"because of stress\".",
+      "how": "Pick a time. Ideally every morning at the same time — that's how a habit forms.\n\nSit comfortably, back straight, eyes can be closed. Just notice the breath without changing it.\n\nWhen a smoking thought arrives — don't fight it. Gently say \"craving\" or \"thought\" to yourself and return attention to the breath.\n\nGetting distracted is normal. Attention will wander dozens of times. Each return to the breath is the training — like a rep in the gym.\n\nStart with 10 minutes a day. Consistency matters more than length."
     },
     "taper": {
       "t": "Taper down",
-      "s": "Minus 25% per week",
-      "b": "If cold turkey isn't working, drop 25% weekly. By week 4 — zero. Log it."
+      "s": "Fewer cigarettes each week",
+      "b": "Tapering is a plan to gradually cut cigarettes over several weeks down to zero. It suits those who find cold turkey hard, though quitting abruptly is usually more effective.",
+      "what": "Tapering is a plan where you don't quit in one day, but cut cigarettes step by step: for example, by a quarter each week, until you reach zero by a set date.\n\nThe app builds a concrete schedule: how many cigarettes in week 1, in week 2 and so on — with a clear final quit day.",
+      "why": "Honestly: for most people quitting abruptly on one set day is more effective than a slow reduction. So a taper plan is a backup option, not a first choice.\n\nBut it has its place. If the thought of \"quitting tomorrow\" causes so much fear that you keep postponing the start altogether — it's better to begin with a reduction than to never begin. The plan makes the big goal less frightening and gives a sense of control. Important: a taper must have a final zero date. Without it, \"smoking a bit less\" easily turns into an endless \"someday later\" — and that's not a plan, that's self-deception.",
+      "how": "Fix your starting point. How many cigarettes a day you smoke now — honestly.\n\nPick a timeframe. Usually 2–8 weeks to full zero. Shorter is more effective.\n\nFollow the weekly targets. The app calculates a new, smaller limit each week.\n\nStretch the intervals. Not just \"fewer\", but wait longer between cigarettes — that loosens the ritual link.\n\nThe zero day is a full quit. From that point switch to behavioural techniques, and with strong dependence — discuss medications or NRT with a doctor for support."
     },
     "ema": {
       "t": "Craving journal",
-      "s": "One tap per episode",
-      "b": "Log every craving: 1–10, trigger, action. In 2 weeks you'll see your patterns better than any therapist."
+      "s": "Log every urge",
+      "b": "The craving journal: you log every urge — its strength, the trigger, what you did. After a couple of weeks personal patterns emerge that memory misses.",
+      "what": "The craving journal is a short entry made the moment you feel like smoking: how strong the craving is on a 1–10 scale, what triggered it, where you were, what you did in the end. The entry takes a few seconds.\n\nThis approach is called ecological momentary assessment (EMA) — recording an event in the real moment, not from memory later. The app builds charts and a list of your main triggers from these entries.",
+      "why": "Memory is a poor witness. It smooths over, forgets and reshapes the picture. If asked a week later when it was hardest, you'll recall a couple of vivid cases and miss the system.\n\nReal-time entries show the truth. After 1–2 weeks clear patterns appear: hardest after coffee, or at 6pm on the way home, or when you're angry. Those are your 80/20 — a few situations causing most of the slips. Knowing them precisely, you can prepare if-then plans for them and not spend effort blindly. Plus the act of logging itself adds a pause between craving and action.",
+      "how": "Log every noticeable craving — both the ones you resisted and the ones after which you smoked. Honesty matters more than a nice picture.\n\nNote three things: strength (1–10), trigger (what came before), outcome (what you did).\n\nDo it right away, in the moment of the craving, not in the evening from memory.\n\nOnce a week open the summary. Look at the top triggers and peak times — that's your map of weak spots.\n\nMake an if-then plan for each frequent trigger. The journal shows the target — the plan gives the answer."
     },
     "money": {
       "t": "Money jar",
-      "s": "Watch the savings grow",
-      "b": "Each unsmoked cigarette is a coin in the jar. Set a goal and spend the savings on it."
+      "s": "What you'll spend the savings on",
+      "b": "The money jar turns every unsmoked cigarette into money saved toward a concrete dream — a bike, a trip, gear. A visible goal strengthens motivation.",
+      "what": "The money jar is a way to make the benefit of quitting visible and tangible. You set a concrete goal — something you've long wanted to buy or do — and the app counts how the money saved on cigarettes adds up toward it, day by day.\n\nEvery unsmoked cigarette isn't an abstract \"benefit\" but a coin that brings you closer to something real.",
+      "why": "The harm of smoking is delayed and invisible: lungs, blood vessels, risks — all of it is \"someday\". A craving is here and now. It's hard for the brain to give up an immediate pleasure for a distant abstraction.\n\nA concrete goal changes the picture. When savings turn into visible progress toward a bike or a trip, quitting gains a tangible, near-term reward. Cochrane reviews show that active incentives — when the benefit is vivid and tied to something wanted — raise quit rates noticeably more than the dry idea of \"saving money\". Bare \"savings\" works weaker than a living dream.",
+      "how": "Pick a concrete goal. Not \"save money\", but a specific thing or event: a bike, a trip, headphones.\n\nEnter its cost — so the app can see the finish line.\n\nWatch the progress. Every smoke-free day moves the bar forward — check in and enjoy the growth.\n\nReach the goal — actually buy it. It's your honestly earned reward. Then set a new one."
     },
     "contract": {
-      "t": "Social contract",
-      "s": "Tell someone close",
-      "b": "One person, weekly check-in. Social commitment triples your odds."
+      "t": "Contract with someone close",
+      "s": "Social commitment",
+      "b": "A contract with someone close: you promise out loud to someone that you're quitting. Social commitment raises the odds; a money deposit contract works even stronger.",
+      "what": "A contract with someone close is a public commitment. You tell at least one person you trust: \"I'm quitting smoking.\" A simple step, but it moves your decision out of \"a private matter no one knows about\" and into a promise made to another person.\n\nA stronger version is a deposit contract: you agree in advance that if you slip, you give up an agreed sum (to a friend or to a cause you dislike).",
+      "why": "While the decision to quit lives only in your head, slipping is easy and almost shame-free — no one will know. As soon as another person knows about it, a powerful mechanism kicks in: we care that our words and actions match, especially in front of people we value.\n\nThis is called social accountability, and it genuinely raises the odds. A deposit contract adds the fear of loss: people dislike losing money more than they like gaining it, so the risk of forfeiting a sum on a slip works as an extra anchor. Per Cochrane (a 2025 review), approaches with financial commitments raise quit rates by roughly one and a half times.",
+      "how": "Choose a person you trust and whose opinion matters to you.\n\nSay it plainly: \"I'm quitting smoking. Today is day ___.\" Specifics make the promise weighty.\n\nAsk for support — for example, to be checked on once a week.\n\nWant to strengthen it — make a deposit contract: \"If I slip, I give up ___.\" The sum should be meaningful but not ruinous.\n\nKeep your person posted on your wins — reporting victories motivates as much as the fear of slipping."
     },
     "replace": {
       "t": "Replace the ritual",
-      "s": "What instead of a cigarette",
-      "b": "A nut, a glass of water, a hand gripper, a 5-minute walk, cold water on the wrists. The body learns a new ritual."
+      "s": "What to do instead of a cigarette",
+      "b": "Replacing the ritual is a concrete short action instead of a cigarette: water, nuts, a walk, a hand gripper. It gives your hands and body a new ritual in place of the old one.",
+      "what": "Replacing the ritual is a pre-chosen short action you do instead of lighting up. A glass of water, a handful of nuts, a couple of minutes with a hand gripper, a short walk, 20 squats, cold water on the wrists.\n\nThe point isn't to \"distract yourself at any cost\", but to give the same ritual — a pause, an action with the hands, a switch — only without nicotine.",
+      "why": "Smoking isn't only the chemistry of nicotine. It's also a body ritual: take it out, light it, occupy hands and mouth, take a pause, switch gears. The brain has tied this ritual to dozens of situations, and when you quit, what remains is not only the craving but an emptiness where the familiar action used to be.\n\nIf that emptiness isn't filled with anything, the hand reaches for the old habit on its own. A replacement gives the brain a new script: the same trigger — but a different ending. The more often you repeat the new ritual, the more firmly it takes the old one's place. The body usually adapts to the new one in 2–3 weeks.",
+      "how": "Prepare a list in advance. 4–5 simple actions available anywhere: water, nuts, breathing, wrist stretches.\n\nWhen the urge hits — don't deliberate, do the chosen action right away. Speed matters: a pause to think is a loophole for the craving.\n\nTie the replacement to the trigger. Used to smoke after meals — now brush your teeth or take a short walk after eating.\n\nRepeat persistently. The first weeks it'll feel artificial — that's normal. After 2–3 weeks the new ritual becomes habitual."
     },
     "faith": {
       "t": "Prayer and scripture",
       "s": "Anchor when reason isn't enough",
-      "b": "A morning prayer, short scripture on freedom from compulsions. Toggle in your profile."
+      "b": "Drawing on faith: a morning prayer and short scripture passages on freedom from compulsions. A spiritual practice as a source of meaning and support in quitting. Toggle in your profile.",
+      "what": "This is a block for those for whom spiritual support matters in quitting smoking. A short morning prayer and small scripture passages — on freedom from compulsions and self-mastery.\n\nIt's not a replacement for techniques and not a medical method, but an extra personal resource. The block is enabled optionally in profile settings.",
+      "why": "Quitting smoking is not only biochemistry but also a question of meaning: what am I doing this for, who am I without cigarettes, where do I find strength in a hard moment. For a person of faith, faith gives a clear answer to this and a steady anchor.\n\nThe sense that you're not one on one with the addiction, the regular rhythm of prayer, an understanding of freedom as a value — all of this supports motivation, especially when the mind is tired and techniques feel mechanical. It works as a source of meaning and calm that complements, rather than replaces, proven methods.",
+      "how": "Enable the block in profile settings if it resonates with you.\n\nStart the day with a short prayer — a couple of minutes is enough to set the tone.\n\nIn a moment of strong craving, turn to a short passage or prayer as an anchor point — alongside breathing and other techniques.\n\nRemember: faith gives meaning and strength, but in hard cases it doesn't remove the need for behavioural techniques, and with strong dependence — a doctor and medications."
     },
     "cyclic": {
       "t": "Cyclic sighing",
-      "s": "Double inhale + long exhale",
-      "b": "Balban 2023 (Cell Reports Medicine): 5 minutes of double-inhale + extended exhale beats mindfulness on mood and HRV. Faster and stronger than box breathing."
+      "s": "5 minutes — the most powerful calm",
+      "b": "Cyclic sighing: a double inhale through the nose and a long exhale through the mouth. In a Stanford study (Balban, 2023), this breathing pattern gave the best effect on mood and calm.",
+      "what": "Cyclic sighing is a special breathing pattern: a calm inhale through the nose, then a short \"top-off\" of air on top — and a long, smooth exhale through the mouth. The double inhale and long exhale repeat in a loop for 5 minutes.\n\nIt's like the natural sigh the body makes on its own when we relax — only deliberate and repeated.",
+      "why": "Stanford scientists (the study by Balban and colleagues, 2023, in Cell Reports Medicine) compared several 5-minute breathing practices and meditation in a randomized experiment. Cyclic sighing showed the best result: it improved mood the most and reduced breathing rate and arousal the most — even compared with meditation.\n\nThe mechanism is this: the double inhale fully opens the lungs, and the long exhale activates the parasympathetic nervous system — the body's \"brake\". The lengthened exhale slows the heart rate and dampens the stress response. When a craving arrives, it raises arousal; cyclic sighing quickly steers it the other way — toward calm.",
+      "how": "Sit comfortably, relax your shoulders.\n\nInhale through the nose — calmly draw in air, about halfway.\n\nTop off — with a short movement, take a bit more air \"on top\" so the lungs fill completely.\n\nLong exhale through the mouth — slowly and smoothly release all the air. The exhale should be noticeably longer than the inhale.\n\nRepeat the cycle for 5 minutes. Follow the breathing circle on screen: it expands — inhale, it contracts — exhale. No need to strain or force the breath — let it stay soft."
     },
     "pharma": {
       "t": "Medications",
       "s": "Varenicline, cytisine, NRT, bupropion",
-      "b": "The strongest medical lever. Varenicline: RR 2.33 vs placebo. Cytisine: roughly equal to varenicline, much cheaper. Combined NRT: gold standard for self-quit. Reference, not prescription — talk to a clinician."
+      "b": "Medications are the strongest medical lever in quitting: varenicline, cytisine, bupropion, NRT. They reduce craving and withdrawal. A doctor chooses the exact regimen.",
+      "what": "This is a reference section about medications that proven to help quit smoking. The main ones: varenicline (Chantix), cytisine (Tabex), bupropion (Wellbutrin) and nicotine replacement therapy (NRT — patches, gum, sprays).\n\nThe section gives an overview: how each medication works, how effective it is, what the limitations are. This is not a prescription — the final choice of drug and dose is made by a doctor.",
+      "why": "With moderate and high dependence, techniques and willpower alone are often not enough: physical withdrawal is too strong, and a person slips not from \"weakness\" but from biochemistry. Medications work precisely on this level.\n\nVarenicline occupies nicotine receptors in the brain: craving weakens, and a cigarette stops giving its former effect — per large reviews, it's the most effective monotherapy (roughly RR 2.3 vs placebo). Cytisine acts similarly, is close to varenicline in effectiveness, and is many times cheaper. Bupropion is an antidepressant that lowers craving. NRT smooths out withdrawal by giving clean nicotine without smoke. This is the most powerful medical lever — especially combined with behavioural techniques.",
+      "how": "First assess your dependence — take the Fagerström test. With a moderate or high score, medications are especially appropriate.\n\nStudy the options in this section: effectiveness, course length, contraindications.\n\nDiscuss with a doctor. Varenicline and bupropion are prescription-only; cytisine and NRT are more accessible, but consultation is still needed, especially with heart disease, pregnancy, mental health conditions.\n\nComplete the full course and follow the schedule. Medications help only when taken correctly — don't stop them early.\n\nCombine with techniques. The medication dampens the craving, while techniques and plans rewire behaviour — together they work strongest."
     },
     "ground": {
       "t": "Grounding 5-4-3-2-1",
       "s": "Back into the body, away from craving",
-      "b": "5 things you see — 4 you hear — 3 you feel on skin — 2 smells — 1 taste. Brings prefrontal cortex back online."
+      "b": "Grounding 5-4-3-2-1: you name in turn 5 things you see, 4 you hear, 3 you feel on your skin, 2 smells, 1 taste. Attention returns to the present moment.",
+      "what": "Grounding 5-4-3-2-1 is a short exercise for the senses. You find around you in turn: 5 things you see, 4 sounds, 3 sensations on the skin, 2 smells and 1 taste.\n\nIt takes a couple of minutes and needs nothing but attention. It's an anchor that gently brings you back to the present moment.",
+      "why": "A craving lives mostly in thoughts: \"I need to smoke\", \"I can't take it\", an imagined cigarette. It's a mental loop disconnected from what's actually happening around you right now.\n\nTo list concrete objects, sounds and smells, the brain has to engage attention and switch from anxious inner chatter to the real sensory world. This brings the prefrontal cortex back online — the part of the brain responsible for control and conscious decisions, the part a craving switches off. The loop breaks, the intensity drops, and the craving loses strength. It helps especially well in panic and an acute spike.",
+      "how": "Stop wherever you are. You can stand or sit.\n\n5 — name to yourself 5 things you see right now.\n\n4 — listen and find 4 different sounds.\n\n3 — note 3 sensations on your skin: clothing, warmth, the support under your feet.\n\n2 — find 2 smells (or just 2 things that could smell).\n\n1 — note 1 taste in your mouth.\n\nGo unhurried, truly noticing each item. By the end of the exercise the craving is usually noticeably weaker."
     },
     "reframe": {
       "t": "Thought reframe",
       "s": "Catch — challenge — replace",
-      "b": "1) Write the automatic thought. 2) Find 2 facts that contradict it. 3) Write a realistic replacement. CBT core."
+      "b": "Reframing: you catch an automatic justifying thought, find facts against it and phrase an honest replacement. It's the core of cognitive therapy as a short exercise.",
+      "what": "Reframing is a concrete exercise from cognitive therapy in three steps: catch the automatic thought, challenge it with facts and replace it with a realistic one.\n\nYou write down the thought pushing you toward a cigarette (\"I can't cope without it\"), examine it and phrase an honest version. The app walks you through all three steps and saves the result.",
+      "why": "A craving is almost always paired with a justifying thought, and it disguises itself as objective truth: \"just one\", \"I won't calm down otherwise\", \"the day is ruined anyway\". Until the thought is named and examined, the brain takes it for a fact — and acts on it.\n\nWhen you write the thought down on paper or screen, it stops being a background whisper and becomes a statement you can test. And almost always it turns out to be exaggerated or simply wrong. Replacing it with a realistic phrasing gives the brain a different, truthful script. This is the core of cognitive behavioral therapy — the most-researched psychological approach to addiction; by repeating the exercise, you gradually strip the justifying thought of its power.",
+      "how": "Step 1. Catch the thought. In the moment of craving, write down word for word what your head is telling you. For example: \"Without a cigarette I won't handle the stress.\"\n\nStep 2. Challenge it. Find at least 2 facts against it. \"I've already gone through stress without cigarettes\", \"nicotine relieves only its own withdrawal, not real stress\".\n\nStep 3. Replace it. Phrase an honest, realistic version: \"The stress is here, and a cigarette won't remove it. I'll get through this moment, like I have before.\"\n\nDo this exercise regularly — especially with the thoughts that recur most often. You can re-read saved reframes in a hard moment."
     },
     "start": "Start practice",
     "open": "Details",

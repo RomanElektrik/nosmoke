@@ -181,6 +181,20 @@ export default function ProgramScreen() {
                         {d.practice && <Text style={{ color: accentColor, fontSize: 13, fontWeight: '700' }}>→</Text>}
                       </View>
                     )}
+
+                    {isToday && (d.whyRu || d.whyEn) && (
+                      <View style={{ marginTop: 4, padding: 10, borderRadius: 10, backgroundColor: t.bg, borderWidth: 1, borderColor: t.border }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <Icon.brain size={13} color={t.textDim} />
+                          <Text style={{ color: t.textDim, fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                            {lang === 'ru' ? 'Почему именно это сегодня' : 'Why this today'}
+                          </Text>
+                        </View>
+                        <Text style={{ color: t.textDim, fontSize: 12, lineHeight: 18 }}>
+                          {lang === 'ru' ? d.whyRu : d.whyEn}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               </Pressable>
