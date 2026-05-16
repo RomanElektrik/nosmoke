@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#10B981"/>
+      <stop offset="1" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FAFAF7"/>
+      <stop offset="1" stop-color="#E5E7DD"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+      <feOffset dx="0" dy="18"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.35"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <g transform="translate(512 540)" filter="url(#shadow)">
+    <path d="M 0 -380 C 220 -340 360 -180 360 0 C 360 200 200 360 0 380 C -200 360 -360 200 -360 0 C -360 -180 -220 -340 0 -380 Z" fill="url(#leaf)"/>
+    <!-- центральная жилка -->
+    <path d="M 0 -360 Q 8 -180 0 0 Q -8 180 0 360" stroke="#047857" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <!-- боковые жилки -->
+    <path d="M 0 -260 Q 70 -290 160 -250" stroke="#047857" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="M 0 -260 Q -70 -290 -160 -250" stroke="#047857" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="M 0 -120 Q 100 -160 220 -100" stroke="#047857" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="M 0 -120 Q -100 -160 -220 -100" stroke="#047857" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="M 0 30 Q 120 0 250 80" stroke="#047857" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="M 0 30 Q -120 0 -250 80" stroke="#047857" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="M 0 180 Q 100 170 200 240" stroke="#047857" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.7"/>
+    <path d="M 0 180 Q -100 170 -200 240" stroke="#047857" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.7"/>
+  </g>
+</svg>

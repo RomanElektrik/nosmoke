@@ -176,8 +176,20 @@ export default function Meds() {
         <View style={{ padding: 12, borderRadius: radius.md, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border }}>
           <Text style={{ color: t.textDim, fontSize: 12, lineHeight: 18 }}>
             {lang === 'ru'
-              ? 'Адхерентность ≥80% — стандарт для эффективности. Если пропускаешь больше 1–2 доз в неделю — обсуди с врачом.'
-              : 'Adherence ≥80% — efficacy standard. Skipping more than 1–2 doses/week — talk to a clinician.'}
+              ? 'Регулярный приём — стандарт для эффективности. Если пропускаешь больше 1–2 доз в неделю — обсуди с врачом.'
+              : 'Regular dosing — efficacy standard. Skipping more than 1–2 doses/week — talk to a clinician.'}
+          </Text>
+        </View>
+
+        {/* Dosing disclaimer */}
+        <View style={{ padding: 12, borderRadius: radius.md, backgroundColor: '#FF950014', borderWidth: 1, borderColor: '#FF950040' }}>
+          <Text style={{ color: '#FF9500', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+            {lang === 'ru' ? 'Важно' : 'Important'}
+          </Text>
+          <Text style={{ color: t.textDim, fontSize: 12, lineHeight: 18 }}>
+            {lang === 'ru'
+              ? 'Расписание показывает типовую схему производителя. Точные дозы и сроки определяет только твой врач — следуй его назначению, а не приложению. При побочных эффектах сразу обратись к врачу.'
+              : 'The schedule shows the manufacturer’s typical regimen. Only your doctor decides exact doses and duration — follow their prescription, not the app. Contact a doctor if side effects appear.'}
           </Text>
         </View>
       </ScrollView>

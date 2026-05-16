@@ -179,36 +179,32 @@ function CyclicSigh({ onDone }: { onDone: () => void }) {
 function Pharma({ onDone }: { onDone: () => void }) {
   const t = useTheme();
   const lang = currentLang();
+  const router = useRouter();
   const [state] = useAppState();
   const p = state.profile;
   const items = (lang === 'ru' ? [
-    { id: 'cytisine',    name: 'Цитизин (Табекс)',     rr: 'RR 2.21', text: 'Растительный препарат. БЕЗ рецепта в России. Курс 25 дней по точной схеме (1 табл каждые 2 ч в первые 3 дня). Quit date — день 5. Цена в десятки раз ниже варениклина.', color: '#30D158' },
-    { id: 'bupropion',   name: 'Бупропион (Велбутрин)', rr: 'RR 1.64', text: 'Антидепрессант, снижает тягу. По рецепту. 8 недель. Особенно хорош при сопутствующей депрессии. Противопоказан при судорогах.', color: '#FF9500' },
-    { id: 'varenicline', name: 'Варениклин (Чампикс)', rr: 'RR 2.32', text: 'Самая эффективная монотерапия. По рецепту. 12 недель с титрованием. Принимать после еды. Возможны тошнота, яркие сны.', color: '#0A84FF' },
+    { id: 'cytisine',    name: 'Цитизин (Табекс)',     rr: 'RR 1.30', text: 'Растительный препарат. БЕЗ рецепта в России, но проконсультируйся с врачом. Курс 25 дней по точной схеме. Противопоказан при беременности и болезнях сердца.', color: '#30D158' },
+    { id: 'bupropion',   name: 'Бупропион (Велбутрин)', rr: 'RR 1.64', text: 'Антидепрессант, снижает тягу. Только по рецепту врача. 8 недель. Противопоказан при судорогах и расстройствах пищевого поведения.', color: '#FF9500' },
+    { id: 'varenicline', name: 'Варениклин (Чампикс)', rr: 'RR 2.32', text: 'Самый эффективный препарат. Только по рецепту врача. 12 недель с титрованием. Возможны тошнота, яркие сны, изменения настроения.', color: '#0A84FF' },
   ] : [
-    { id: 'cytisine',    name: 'Cytisine (Tabex)',      rr: 'RR 2.21', text: 'Plant-derived. OTC in Russia / EU. 25-day strict schedule (1 tab every 2h first 3 days). Quit day = day 5. Many times cheaper than varenicline.', color: '#30D158' },
-    { id: 'bupropion',   name: 'Bupropion (Wellbutrin)', rr: 'RR 1.64', text: 'Antidepressant lowering craving. Prescription. 8 weeks. Best with co-existing depression. Contraindicated with seizures.', color: '#FF9500' },
-    { id: 'varenicline', name: 'Varenicline (Chantix)', rr: 'RR 2.32', text: 'Most effective monotherapy. Prescription. 12 weeks with titration. Take after meals. Nausea, vivid dreams possible.', color: '#0A84FF' },
+    { id: 'cytisine',    name: 'Cytisine (Tabex)',      rr: 'RR 1.30', text: 'Plant-derived. OTC in Russia, but consult a doctor. 25-day strict schedule. Contraindicated in pregnancy and heart disease.', color: '#30D158' },
+    { id: 'bupropion',   name: 'Bupropion (Wellbutrin)', rr: 'RR 1.64', text: 'Antidepressant lowering craving. Prescription only. 8 weeks. Contraindicated with seizures and eating disorders.', color: '#FF9500' },
+    { id: 'varenicline', name: 'Varenicline (Chantix)', rr: 'RR 2.32', text: 'Most effective drug. Prescription only. 12 weeks with titration. Nausea, vivid dreams, mood changes possible.', color: '#0A84FF' },
   ]) as { id: 'varenicline'|'cytisine'|'bupropion'; name: string; rr: string; text: string; color: string }[];
 
   const selected = p?.medication ?? null;
-  async function pick(id: typeof items[number]['id'] | null) {
-    Haptics.notificationAsync(id ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning);
-    const startMs = Date.now();
+  // Starting a medication goes through the safety gate (/med-gate).
+  // Only stopping an active course is done directly here.
+  function startMed(id: typeof items[number]['id']) {
+    Haptics.selectionAsync();
+    router.push({ pathname: '/med-gate', params: { med: id } } as any);
+  }
+  async function stopMed() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     await update((s) => ({
       ...s,
-      profile: s.profile ? {
-        ...s.profile,
-        medication: id ?? undefined,
-        medicationStartedAt: id ? startMs : undefined,
-      } : s.profile,
+      profile: s.profile ? { ...s.profile, medication: undefined, medicationStartedAt: undefined } : s.profile,
     }));
-    if (id) {
-      try {
-        const { scheduleMedicationDoses } = await import('../../lib/notifications');
-        await scheduleMedicationDoses(lang, id, startMs);
-      } catch {}
-    }
   }
   // Adherence calendar: last 14 days from check-ins
   const today = new Date(); today.setHours(0,0,0,0);
@@ -222,8 +218,8 @@ function Pharma({ onDone }: { onDone: () => void }) {
   return (
     <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 40 }}>
       <Title icon={Icon.shield} color="#34C759" title={lang === 'ru' ? 'Лекарства' : 'Medications'} intro={lang === 'ru'
-        ? 'Самый сильный медицинский рычаг. Отметь что принимаешь — и приложение начнёт вести расписание и адхерентность.'
-        : 'Strongest medical lever. Mark what you take — the app will keep your schedule and adherence.'} />
+        ? 'Справочная информация о препаратах, которые помогают бросить. Это не назначение — выбор и дозу определяет врач. Если врач подобрал препарат, приложение поможет вести его расписание.'
+        : 'Reference info on medications that help quitting. This is not a prescription — a doctor chooses the drug and dose. If a doctor prescribed one, the app helps you keep its schedule.'} />
 
       {/* Active medication banner with adherence */}
       {selected && (() => {
@@ -265,14 +261,16 @@ function Pharma({ onDone }: { onDone: () => void }) {
                 <Chip2 color={d.color}>{d.rr}</Chip2>
               </View>
               <Text style={{ color: t.textDim, fontSize: 13, marginTop: 8, lineHeight: 19 }}>{d.text}</Text>
-              <Pressable onPress={() => pick(isMine ? null : d.id)}
+              <Pressable onPress={() => (isMine ? stopMed() : startMed(d.id))}
                 style={{
                   marginTop: 10, paddingVertical: 9, borderRadius: 10, alignItems: 'center',
                   backgroundColor: isMine ? d.color : 'transparent',
                   borderWidth: 1, borderColor: d.color,
                 }}>
                 <Text style={{ color: isMine ? '#fff' : d.color, fontWeight: '700', fontSize: 13 }}>
-                  {isMine ? (lang === 'ru' ? '✓ Принимаю' : '✓ I take this') : (lang === 'ru' ? 'Я принимаю' : 'I take this')}
+                  {isMine
+                    ? (lang === 'ru' ? '✓ Веду курс — остановить' : '✓ On course — stop')
+                    : (lang === 'ru' ? 'Веду этот препарат' : 'I take this — set up')}
                 </Text>
               </Pressable>
             </View>

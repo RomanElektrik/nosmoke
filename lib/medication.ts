@@ -8,6 +8,100 @@ import type { AppState } from './storage';
 
 export type Medication = 'cytisine' | 'bupropion' | 'varenicline';
 
+// ─── Safety information per medication ──────────────────────────────────────
+// Sources: Sopharma Tabex SmPC; FDA Zyban label; FDA Chantix label;
+// NICE NG209; РФ инструкции по применению.
+export type MedSafety = {
+  nameRu: string;
+  nameEn: string;
+  rxRequired: boolean;          // true = prescription needed
+  rxNoteRu: string;
+  rxNoteEn: string;
+  contraindicationsRu: string[]; // hard stops — must NOT take
+  contraindicationsEn: string[];
+  sideEffectsRu: string[];
+  sideEffectsEn: string[];
+  warningRu: string;            // single most important warning
+  warningEn: string;
+};
+
+export const MED_SAFETY: Record<Medication, MedSafety> = {
+  cytisine: {
+    nameRu: 'Цитизин (Табекс)', nameEn: 'Cytisine (Tabex)',
+    rxRequired: false,
+    rxNoteRu: 'В России продаётся без рецепта, но перед приёмом всё равно стоит проконсультироваться с врачом или фармацевтом.',
+    rxNoteEn: 'OTC in Russia, but still consult a doctor or pharmacist before starting.',
+    contraindicationsRu: [
+      'Беременность или грудное вскармливание',
+      'Перенесённый инфаркт, нестабильная стенокардия, тяжёлые аритмии',
+      'Выраженный атеросклероз, недавний инсульт',
+      'Возраст младше 18 лет',
+      'Аллергия на цитизин',
+    ],
+    contraindicationsEn: [
+      'Pregnancy or breastfeeding',
+      'Recent heart attack, unstable angina, severe arrhythmia',
+      'Severe atherosclerosis, recent stroke',
+      'Age under 18',
+      'Allergy to cytisine',
+    ],
+    sideEffectsRu: ['Сухость во рту', 'Тошнота, изменение вкуса', 'Лёгкая головная боль', 'Раздражительность', 'Повышение давления, учащённый пульс'],
+    sideEffectsEn: ['Dry mouth', 'Nausea, altered taste', 'Mild headache', 'Irritability', 'Raised blood pressure, faster heart rate'],
+    warningRu: 'При болезнях сердца и сосудов принимать только после консультации с врачом.',
+    warningEn: 'With heart or vascular disease, take only after consulting a doctor.',
+  },
+  bupropion: {
+    nameRu: 'Бупропион (Велбутрин/Зибан)', nameEn: 'Bupropion (Wellbutrin/Zyban)',
+    rxRequired: true,
+    rxNoteRu: 'Рецептурный препарат. Назначает только врач — он же подбирает дозу и проверяет совместимость.',
+    rxNoteEn: 'Prescription only. A doctor must prescribe it, choose the dose and check interactions.',
+    contraindicationsRu: [
+      'Судороги или эпилепсия в анамнезе',
+      'Расстройство пищевого поведения (анорексия, булимия)',
+      'Резкий отказ от алкоголя или седативных препаратов',
+      'Приём ингибиторов МАО за последние 14 дней',
+      'Беременность или грудное вскармливание',
+      'Биполярное расстройство, тяжёлая депрессия — только под контролем врача',
+    ],
+    contraindicationsEn: [
+      'History of seizures or epilepsy',
+      'Eating disorder (anorexia, bulimia)',
+      'Abrupt withdrawal from alcohol or sedatives',
+      'MAO inhibitors within the last 14 days',
+      'Pregnancy or breastfeeding',
+      'Bipolar disorder, severe depression — only under medical supervision',
+    ],
+    sideEffectsRu: ['Бессонница, сухость во рту', 'Снижает порог судорог', 'Тревога, возбуждение', 'Изменения настроения, мысли о самоповреждении', 'Головная боль, тошнота'],
+    sideEffectsEn: ['Insomnia, dry mouth', 'Lowers seizure threshold', 'Anxiety, agitation', 'Mood changes, self-harm thoughts', 'Headache, nausea'],
+    warningRu: 'Может вызывать перепады настроения, тревогу, в редких случаях — мысли о самоповреждении. При любых таких симптомах немедленно к врачу.',
+    warningEn: 'May cause mood swings, anxiety and, rarely, self-harm thoughts. See a doctor immediately if any of these appear.',
+  },
+  varenicline: {
+    nameRu: 'Варениклин (Чампикс)', nameEn: 'Varenicline (Chantix)',
+    rxRequired: true,
+    rxNoteRu: 'Рецептурный препарат. Назначает только врач — он же подбирает дозу и проверяет совместимость.',
+    rxNoteEn: 'Prescription only. A doctor must prescribe it, choose the dose and check interactions.',
+    contraindicationsRu: [
+      'Беременность или грудное вскармливание',
+      'Тяжёлая почечная недостаточность (доза снижается врачом)',
+      'Психическое расстройство в анамнезе — только под контролем врача',
+      'Возраст младше 18 лет',
+      'Аллергия на варениклин',
+    ],
+    contraindicationsEn: [
+      'Pregnancy or breastfeeding',
+      'Severe kidney impairment (dose reduced by a doctor)',
+      'History of psychiatric disorder — only under medical supervision',
+      'Age under 18',
+      'Allergy to varenicline',
+    ],
+    sideEffectsRu: ['Тошнота (частый эффект)', 'Яркие, необычные сны, бессонница', 'Головная боль', 'Изменения настроения, депрессия, тревога', 'Редко — мысли о самоповреждении'],
+    sideEffectsEn: ['Nausea (common)', 'Vivid, unusual dreams, insomnia', 'Headache', 'Mood changes, depression, anxiety', 'Rarely — self-harm thoughts'],
+    warningRu: 'Может влиять на настроение и поведение. При подавленности, тревоге или мыслях о самоповреждении прекрати приём и сразу обратись к врачу.',
+    warningEn: 'May affect mood and behaviour. If you feel depressed, anxious or have self-harm thoughts, stop and contact a doctor immediately.',
+  },
+};
+
 export type ScheduledDose = {
   doseNumber: number;        // 1..N for the day
   totalDoses: number;        // N

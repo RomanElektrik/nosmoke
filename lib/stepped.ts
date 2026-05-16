@@ -86,8 +86,16 @@ export function getStep(id?: StepLevel): StepSpec {
   return STEPS.find((s) => s.id === id) ?? STEPS[0];
 }
 
+// Is pharmacotherapy off-limits for this user? (pregnancy = behavioural-only, first-line.)
+export function pharmaBlocked(p?: Profile | null): boolean {
+  return !!p?.healthFlags?.includes('pregnant');
+}
+
 // Wisconsin-style initial recommendation (Baker NTR 2011, simplified).
 export function recommendStep(p: Profile): StepLevel {
+  // Safety: during pregnancy / breastfeeding behavioural support is first-line.
+  if (pharmaBlocked(p)) return 'L1_behavioral';
+
   const fager = p.fagerstromScore ?? 0;
   const failedColdTurkey = (p.pastAttempts ?? []).filter(a => a.method === 'cold_turkey').length;
   const failedNrt = (p.pastAttempts ?? []).filter(a => a.method === 'nrt').length;
@@ -127,8 +135,12 @@ export type Escalation = {
 export function escalationSuggestion(state: AppState): Escalation {
   const cur = state.profile?.currentStep;
   if (!cur) return { yes: false, intensity: 'none' };
-  const target = nextStep(cur);
+  let target = nextStep(cur);
   if (!target) return { yes: false, intensity: 'none' };
+  // Pregnancy: never escalate into pharmacotherapy — keep behavioural.
+  if (pharmaBlocked(state.profile) && target !== 'L1_behavioral') {
+    return { yes: false, intensity: 'none' };
+  }
 
   const now = Date.now();
   const since = state.profile?.stepEnteredAt ?? state.profile?.quitDate ?? now;

@@ -64,7 +64,18 @@ export type Profile = {
   selfEfficacy?: number;           // 0–10
   committedAmount?: number;     // active deposit contract: money the user committed
   contractPartner?: string;
+  // Health screening (P0 safety) — gates pharmacotherapy recommendations
+  age?: number;
+  healthFlags?: HealthFlag[];
 };
+
+export type HealthFlag =
+  | 'pregnant'        // беременность / грудное вскармливание
+  | 'seizures'        // судороги / эпилепсия
+  | 'eating_disorder' // расстройство пищевого поведения
+  | 'heart_disease'   // болезни сердца и сосудов
+  | 'psychiatric'     // психическое расстройство в анамнезе
+  | 'kidney';         // тяжёлые болезни почек
 
 export type IfThenPlan = { id: string; ts: number; trigger: string; action: string };
 export type ReframeEntry = { id: string; ts: number; thought: string; counter: string; replacement: string };

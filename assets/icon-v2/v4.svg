@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1E3A8A"/>
+      <stop offset="0.4" stop-color="#7C3AED"/>
+      <stop offset="0.7" stop-color="#F472B6"/>
+      <stop offset="1" stop-color="#FB923C"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FEF3C7"/>
+      <stop offset="0.6" stop-color="#FBBF24"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <!-- Солнце -->
+  <circle cx="512" cy="640" r="180" fill="url(#sun)"/>
+  <!-- Лёгкая дымка вокруг солнца -->
+  <circle cx="512" cy="640" r="220" fill="#FEF3C7" opacity="0.25"/>
+  <circle cx="512" cy="640" r="280" fill="#FEF3C7" opacity="0.12"/>
+  <!-- Дальний горный хребет -->
+  <path d="M 0 720 L 120 600 L 240 680 L 360 580 L 480 670 L 600 560 L 720 660 L 860 580 L 1024 700 L 1024 1024 L 0 1024 Z" fill="#0F172A" opacity="0.55"/>
+  <!-- Передний хребет -->
+  <path d="M 0 820 L 100 720 L 220 800 L 360 700 L 500 800 L 660 720 L 800 810 L 920 740 L 1024 820 L 1024 1024 L 0 1024 Z" fill="#0F172A"/>
+  <!-- Маленькие звёзды вверху -->
+  <circle cx="180" cy="180" r="3" fill="#fff" opacity="0.8"/>
+  <circle cx="320" cy="120" r="2" fill="#fff" opacity="0.6"/>
+  <circle cx="780" cy="160" r="3" fill="#fff" opacity="0.7"/>
+  <circle cx="880" cy="240" r="2" fill="#fff" opacity="0.5"/>
+</svg>

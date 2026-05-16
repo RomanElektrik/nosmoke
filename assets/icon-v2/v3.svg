@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1F2937"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="cig" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E5E7EB"/>
+    </linearGradient>
+    <linearGradient id="filter3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FDBA74"/>
+      <stop offset="1" stop-color="#EA580C"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg3)"/>
+  <!-- Большой круг — фон знака -->
+  <circle cx="512" cy="512" r="380" fill="none" stroke="#EF4444" stroke-width="50"/>
+  <!-- Сигарета горизонтально -->
+  <g transform="translate(512 512)">
+    <rect x="-300" y="-50" width="600" height="100" rx="14" fill="url(#cig)"/>
+    <rect x="-300" y="-50" width="160" height="100" rx="14" fill="url(#filter3)"/>
+    <!-- Полосы на фильтре -->
+    <line x1="-260" y1="-50" x2="-260" y2="50" stroke="#C2410C" stroke-width="3" opacity="0.4"/>
+    <line x1="-220" y1="-50" x2="-220" y2="50" stroke="#C2410C" stroke-width="3" opacity="0.4"/>
+    <line x1="-180" y1="-50" x2="-180" y2="50" stroke="#C2410C" stroke-width="3" opacity="0.4"/>
+    <!-- Тлеющий кончик -->
+    <rect x="290" y="-50" width="10" height="100" fill="#F59E0B"/>
+    <!-- Дымок -->
+    <path d="M 310 -30 Q 350 -80 330 -120 Q 310 -160 350 -200" stroke="#9CA3AF" stroke-width="14" fill="none" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 340 -10 Q 380 -50 360 -90" stroke="#9CA3AF" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.4"/>
+  </g>
+  <!-- Перечёркивающая красная диагональ -->
+  <g transform="translate(512 512) rotate(-45)">
+    <rect x="-380" y="-30" width="760" height="60" rx="30" fill="#EF4444"/>
+  </g>
+</svg>

@@ -30,6 +30,9 @@ export default function Welcome() {
           <Text style={{ color: t.textDim, fontSize: 14, marginTop: 32, lineHeight: 20 }}>
             {tr('onb.promise')}
           </Text>
+          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 16, lineHeight: 17, opacity: 0.8 }}>
+            {tr('onb.health_disclaimer')}
+          </Text>
         </View>
         <Pressable
           onPress={() => router.push('/(onboarding)/quiz')}

@@ -79,6 +79,7 @@ export default function Root() {
         <Stack.Screen name="method" />
         <Stack.Screen name="transition" />
         <Stack.Screen name="meds" />
+        <Stack.Screen name="med-gate" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="chat" options={{ fullScreenGestureEnabled: false }} />
       </Stack>
     </GestureHandlerRootView>
