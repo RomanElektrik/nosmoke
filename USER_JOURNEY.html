@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Бросить курить — путь пользователя</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #0B0F14; color: #F5F5F7; padding: 32px; max-width: 1400px; margin: 0 auto; }
+  h1 { font-size: 32px; letter-spacing: -0.8px; margin-bottom: 8px; }
+  h2 { font-size: 20px; margin-top: 40px; margin-bottom: 12px; color: #34C759; }
+  h3 { font-size: 15px; margin-top: 24px; margin-bottom: 8px; color: #FF9500; text-transform: uppercase; letter-spacing: 1px; }
+  p, li { line-height: 1.55; color: #C8CDD3; font-size: 14px; }
+  .mermaid { background: #11161D; padding: 24px; border-radius: 16px; margin: 16px 0; overflow-x: auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .card { background: #11161D; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; }
+  .card h4 { margin: 0 0 8px; color: #fff; font-size: 15px; }
+  .card .step { color: #34C759; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .card p { font-size: 13px; margin: 8px 0; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-right: 6px; }
+  .b-blue { background: rgba(10,132,255,0.18); color: #5AC8FA; }
+  .b-green { background: rgba(48,209,88,0.18); color: #30D158; }
+  .b-orange { background: rgba(255,149,0,0.18); color: #FF9500; }
+  .b-red { background: rgba(255,69,58,0.18); color: #FF453A; }
+  .b-purple { background: rgba(191,90,242,0.18); color: #BF5AF2; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th, td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: left; vertical-align: top; }
+  th { color: #9AA3AF; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; }
+  code { background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #FFD60A; }
+</style>
+</head>
+<body>
+
+<h1>Путь пользователя «Бросить курить»</h1>
+<p style="color:#9AA3AF">Полная карта решений: вход → онбординг → ежедневная жизнь → срыв → подбор метода → удержание. Stepped-care + Marlatt RP.</p>
+
+<h2>1. Высокоуровневая карта</h2>
+<div class="mermaid">
+flowchart TB
+  A([Открыл приложение]) --> B[Welcome: «Ты можешь бросить»]
+  B --> C[Quiz: возраст курения, сиг/день, цена пачки, тип, утро, триггеры, мотивация, метод, вера]
+  C --> D[Тест личности: 6 вопросов → архетип]
+  D --> E[Depth: попытки, оправдания, важность/уверенность, режим контракта, время чек-ина]
+  E --> F[Plan: рекомендованная ступень + риск-фидбек + контракт]
+  F --> G([🟢 День 0 — старт])
+
+  G --> H{Ежедневный цикл}
+  H --> I[Чек-ин в 21:00<br/>«Курил сегодня?»]
+  I -->|Нет| J[✅ День засчитан → программа +1]
+  I -->|Да| K[🟡 Lapse Recovery]
+  H --> L[Тяга: SOS-кнопка]
+  L --> M[Дыхание 60с → выбор техники → лог]
+  M -->|Удержался| N[Win-экран]
+  M -->|Закурил| K
+  H --> O[Программа дня X из 56]
+  H --> P[ИИ-помощник]
+
+  J --> H
+  N --> H
+  K --> Q{Сколько срывов за 7 дней?}
+  Q -->|1| R[Soft Lapse Recovery:<br/>триггер → 48ч-план]
+  Q -->|2| S[Strong Recovery:<br/>«стоит поднять метод?»]
+  Q -->|3+| T[🔴 Auto-эскалация ступени]
+  R --> H
+  S --> U{Согласен?}
+  U -->|Да| T
+  U -->|Нет| H
+  T --> V[Новая ступень<br/>Lehrer + новая цель]
+  V --> H
+
+  H --> W{Достигнута длительность ступени без срывов?}
+  W -->|Да| X[Деэскалация — снижаем метод]
+  W -->|Нет| H
+  X --> H
+
+  H --> Y{День 56 + 0 срывов в последние 14 дней?}
+  Y -->|Да| Z([🏆 Курс пройден — Maintenance])
+  Y -->|Нет| H
+
+  classDef start fill:#34C759,stroke:#000,color:#000,font-weight:700
+  classDef win fill:#30D158,stroke:#000,color:#000
+  classDef warn fill:#FF9500,stroke:#000,color:#000
+  classDef crisis fill:#FF453A,stroke:#000,color:#fff
+  classDef escalate fill:#BF5AF2,stroke:#000,color:#fff
+  class A,G,Z start
+  class N,J,Z win
+  class K,R warn
+  class T,V escalate
+  class S crisis
+</div>
+
+<h2>2. Stepped-care: 5 ступеней</h2>
+<div class="mermaid">
+flowchart LR
+  L1[Ступень 1<br/>Поведенческие<br/>FTND 0-2<br/>14 дней] -->|3+ срыва за 7д<br/>ИЛИ 14д + 2 срыва| L2
+  L2[Ступень 2<br/>НЗТ моно + CBT<br/>FTND 3-4<br/>28 дней] -->|3+ срыва за 7д| L3
+  L3[Ступень 3<br/>Комбо НЗТ<br/>FTND 5-6<br/>42 дня] -->|3+ срыва за 7д| L4
+  L4[Ступень 4<br/>Цитизин/бупропион<br/>FTND 7+<br/>56 дней] -->|3+ срыва за 7д| L5
+  L5[Ступень 5<br/>Варениклин + CBT<br/>интенсив<br/>84 дня]
+
+  L1 -.длительность пройдена<br/>0 срывов.- M[Maintenance]
+  L2 -.->|обратно| L1
+  L3 -.->|обратно| L2
+  L4 -.->|обратно| L3
+  L5 -.->|обратно| L4
+
+  classDef l1 fill:#5AC8FA,stroke:#000,color:#000
+  classDef l2 fill:#30D158,stroke:#000,color:#000
+  classDef l3 fill:#FF9500,stroke:#000,color:#fff
+  classDef l4 fill:#FF453A,stroke:#000,color:#fff
+  classDef l5 fill:#BF5AF2,stroke:#000,color:#fff
+  classDef maint fill:#34C759,stroke:#000,color:#000,font-weight:700
+  class L1 l1
+  class L2 l2
+  class L3 l3
+  class L4 l4
+  class L5 l5
+  class M maint
+</div>
+
+<h2>3. Lapse Recovery: что происходит при срыве</h2>
+<div class="mermaid">
+flowchart TB
+  S0([🚨 Зарегистрирован срыв]) --> M0{commitmentMode}
+  M0 -->|Soft| K1[Кольцо НЕ обнуляется]
+  M0 -->|Hardcore| K2[quitDate = now<br/>Кольцо в 0<br/>копилка/программа остаются]
+  K1 --> R1
+  K2 --> R1
+
+  R1[T+0: defuse AVE<br/>«Это lapse, не relapse.<br/>Прогресс не отменяется.»] --> R2
+  R2[T+0: показать счётчики<br/>«ты прошёл N тяг»] --> R3
+  R3[T+1мин: триггер?<br/>стресс/кофе/алкоголь/<br/>социум/скука/еда/руль] --> R4
+  R4[T+2мин: один шаг на 48ч<br/>(свободно или 5 шаблонов)] --> R5
+  R5[T+5мин: ИИ план] --> ESC
+  ESC{escalationSuggestion}
+  ESC -->|1 срыв за неделю| F1[Soft: записали, идём дальше]
+  ESC -->|2 срыва за неделю| F2[«Может, метод не подходит?»<br/>Ссылка на /method]
+  ESC -->|3+ срывов за неделю<br/>ИЛИ 14д+2 срыва| F3[🟣 Auto-эскалация:<br/>экран новой ступени]
+  F2 --> H1{User reply}
+  H1 -->|Сменить метод| F3
+  H1 -->|Продолжить| F1
+  F3 --> NEW[currentStep = next<br/>stepEnteredAt = now<br/>пуши пересобираются]
+  F1 --> END([Возврат на главную])
+  NEW --> END
+
+  classDef warn fill:#FF9500,stroke:#000,color:#000
+  classDef escalate fill:#BF5AF2,stroke:#000,color:#fff
+  classDef ok fill:#30D158,stroke:#000,color:#000
+  class R1,R2,R3,R4,R5 warn
+  class F2,F3,NEW escalate
+  class K1,F1,END ok
+  class K2 escalate
+</div>
+
+<h2>4. Дневной цикл — что приложение делает в фоне</h2>
+<div class="mermaid">
+flowchart LR
+  AM[06:00–09:00<br/>Утренняя зона] --> MORN[Push: «Дыхание ДО кофе»]
+  MORN --> CYC[Cyclic sighing 5 мин]
+  CYC --> DAY[09:00–18:00<br/>Дневной фон]
+  DAY --> CRAVE{Тяга?}
+  CRAVE -->|Да| SOS[SOS: дыхание → выбор техники]
+  CRAVE -->|Нет| LIVE[Обычная жизнь]
+  SOS --> LOG[Запись в дневник]
+  LOG --> LIVE
+  LIVE --> EVE[18:00–22:00<br/>Триггерная зона<br/>еда / алкоголь / соцсети]
+  EVE --> CHECK[Push: чек-ин в 21:00]
+  CHECK --> ANSWER{Курил?}
+  ANSWER -->|Нет| GREEN[✅ День +1]
+  ANSWER -->|Да| RED[🟡 Lapse Recovery]
+  GREEN --> SLEEP[22:00+<br/>Сон]
+  RED --> SLEEP
+
+  classDef green fill:#30D158,stroke:#000,color:#000
+  classDef warn fill:#FF9500,stroke:#000,color:#000
+  classDef crisis fill:#FF453A,stroke:#000,color:#fff
+  class GREEN green
+  class RED crisis
+  class SOS,CRAVE,EVE warn
+</div>
+
+<h2>5. Точки решений и логика</h2>
+
+<table>
+<thead><tr><th>Событие</th><th>Условие</th><th>Что делает приложение</th></tr></thead>
+<tbody>
+<tr><td>Тяга</td><td>Тап SOS</td><td>60с дыхания (нельзя пропустить) → выбор техники → лог исхода</td></tr>
+<tr><td>Удержался</td><td>outcome=resisted</td><td>Win-экран, +1 к counter «прошёл волн», haptic success</td></tr>
+<tr><td>Закурил</td><td>outcome=smoked</td><td>Если hardcore → quitDate=now; всегда → /slip Lapse Recovery</td></tr>
+<tr><td>Чек-ин «Нет»</td><td>checkIn.smoked=false</td><td>Зелёный экран, заметка опц., запись</td></tr>
+<tr><td>Чек-ин «Да»</td><td>checkIn.smoked=true</td><td>Запись + slips +1; если hardcore → reset; → escalationSuggestion</td></tr>
+<tr><td>Эскалация</td><td>≥3 срыва за 7 дн ИЛИ 14дн+2срыва</td><td>Экран новой ступени, currentStep=next, stepEnteredAt=now</td></tr>
+<tr><td>Деэскалация</td><td>На ступени ≥ её длительность, 0 срывов с момента входа</td><td>Подсветить «можно снизить метод»</td></tr>
+<tr><td>Веха здоровья</td><td>secsClean ≥ milestone.at</td><td>Push с поздравлением, отметка в Health</td></tr>
+<tr><td>День 3</td><td>secsClean ≈ 72ч</td><td>Тройной пуш «сегодня пик» (биохимия)</td></tr>
+<tr><td>Утро</td><td>checkInHour - 13ч</td><td>Push «дыхание до кофе» (первые 14 дней)</td></tr>
+</tbody>
+</table>
+
+<h2>6. Состояния пользователя</h2>
+<div class="grid">
+  <div class="card">
+    <span class="badge b-blue">L1</span>
+    <h4>Ступень 1 — Поведенческая</h4>
+    <p><strong>Кому:</strong> Фагерстрём 0–2, первая попытка.</p>
+    <p><strong>Что делает приложение:</strong> 4-4-4-4 / cyclic sighing, urge surfing, дневник, if-then. Без лекарств.</p>
+    <p><strong>Длительность до оценки:</strong> 14 дней.</p>
+  </div>
+  <div class="card">
+    <span class="badge b-green">L2</span>
+    <h4>Ступень 2 — НЗТ моно + CBT</h4>
+    <p><strong>Кому:</strong> Фагерстрём 3–4 или 1+ неудача.</p>
+    <p><strong>Что делает:</strong> Один вид НЗТ (пластырь ИЛИ жвачка), 5-мин CBT-урок ежедневно.</p>
+    <p><strong>Длительность:</strong> 28 дней.</p>
+  </div>
+  <div class="card">
+    <span class="badge b-orange">L3</span>
+    <h4>Ступень 3 — Комбо НЗТ + ИИ</h4>
+    <p><strong>Кому:</strong> Фагерстрём 5–6 или 2+ неудач НЗТ.</p>
+    <p><strong>Что делает:</strong> Пластырь + быстрая форма по требованию, ежедневный 10-мин коучинг.</p>
+    <p><strong>Длительность:</strong> 42 дня.</p>
+  </div>
+  <div class="card">
+    <span class="badge b-red">L4</span>
+    <h4>Ступень 4 — Препараты</h4>
+    <p><strong>Кому:</strong> Фагерстрём 7+ или 2+ неудач на НЗТ.</p>
+    <p><strong>Что делает:</strong> Цитизин 25 дней или бупропион 8 нед — через врача. Расширенный CBT.</p>
+    <p><strong>Длительность:</strong> 56 дней.</p>
+  </div>
+  <div class="card">
+    <span class="badge b-purple">L5</span>
+    <h4>Ступень 5 — Варениклин + интенсив</h4>
+    <p><strong>Кому:</strong> Если ничего не помогло.</p>
+    <p><strong>Что делает:</strong> Варениклин 12 нед + структурированная CBT + Marlatt RP.</p>
+    <p><strong>Длительность:</strong> 84 дня.</p>
+  </div>
+</div>
+
+<h2>7. Что показано пользователю на каждом экране</h2>
+<table>
+<thead><tr><th>Экран</th><th>Что видно</th><th>Куда ведёт</th></tr></thead>
+<tbody>
+<tr><td><code>/(tabs)/index</code> — Главная</td><td>Кольцо + live-таймер · 3 chip-стата · карточка метода · CTA чек-ин · копилка · задача дня · быстрые ссылки · sticky SOS</td><td>SOS / checkin / goal / techniques / coach</td></tr>
+<tr><td><code>/(tabs)/health</code></td><td>Hero ближайшей вехи · вертикальный таймлайн 12 точек</td><td>Open detail sheet</td></tr>
+<tr><td><code>/(tabs)/techniques</code></td><td>Карточки методов: фарма, дневник, копилка, контракт, CBT, mindfulness, ритуал. SOS-набор спрятан под main SOS.</td><td>practice/[id] / journal / goal</td></tr>
+<tr><td><code>/(tabs)/coach</code></td><td>3 режима (поддержка / разбор срыва / задача дня) → чат</td><td>OpenRouter</td></tr>
+<tr><td><code>/(tabs)/profile</code></td><td>Stat / привычка / язык / вера / ИИ-ключ / reset</td><td>—</td></tr>
+<tr><td><code>/craving</code></td><td>Дыхание 60с → выбор техники → лог</td><td>SOS / Lapse Recovery / Win</td></tr>
+<tr><td><code>/slip</code> Lapse Recovery</td><td>Defuse AVE → триггер → 48-час план → ИИ</td><td>Главная</td></tr>
+<tr><td><code>/checkin</code></td><td>Бинарный gate Yes/No → ветка</td><td>Slip / escalation / Главная</td></tr>
+<tr><td><code>/goal</code></td><td>Цель копилки + депозит-контракт</td><td>—</td></tr>
+<tr><td><code>/journal</code></td><td>Метрики + график недели + триггеры + список + кнопка «+ Запись»</td><td>—</td></tr>
+<tr><td><code>/program</code></td><td>Уровни + 56-дневный курс</td><td>practice/[id]</td></tr>
+<tr><td><code>/practice/[id]</code></td><td>Конкретная техника: дыхание, urge surf, halt, if-then, grounding, reframe, fagerstrom, nrt, taper, mindfulness, replace, pharma, cyclic_sigh</td><td>—</td></tr>
+</tbody>
+</table>
+
+<h2>8. Что говорит ИИ-помощник по 5A's</h2>
+<table>
+<thead><tr><th>Шаг</th><th>Что делает</th><th>Пример сообщения</th></tr></thead>
+<tbody>
+<tr><td>Ask</td><td>Выясняет статус 1 строкой</td><td>«Курил сегодня?»</td></tr>
+<tr><td>Advise</td><td>Один совет под архетип + Фагерстрём</td><td>«Тревожному типу — дыхание ДО кофе»</td></tr>
+<tr><td>Assess</td><td>Готов попробовать прямо сейчас?</td><td>«Сделаешь сейчас 5 минут?»</td></tr>
+<tr><td>Assist</td><td>Кладёт в конкретную практику</td><td>«Открой /practice/cyclic_sigh»</td></tr>
+<tr><td>Arrange</td><td>Назначает следующий контакт</td><td>«Вернёмся через 24 часа»</td></tr>
+</tbody>
+</table>
+
+<h2>9. Победа</h2>
+<p>Курс считается пройденным когда:</p>
+<ul>
+  <li><strong>Программа:</strong> 56 дней с момента последнего сброса quitDate.</li>
+  <li><strong>Срывы:</strong> 0 за последние 14 дней.</li>
+  <li><strong>Чек-ины:</strong> минимум 70% дней отвечал «Нет».</li>
+</ul>
+<p>После этого приложение переходит в режим Maintenance: чек-ин раз в неделю, push раз в 3 дня, копилка работает дальше как «новая цель».</p>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#0A84FF',
+    primaryTextColor: '#fff',
+    primaryBorderColor: '#0A84FF',
+    lineColor: '#9AA3AF',
+    secondaryColor: '#11161D',
+    tertiaryColor: '#11161D',
+    background: '#0B0F14',
+    fontFamily: '-apple-system, system-ui, sans-serif',
+  },
+  flowchart: { curve: 'basis', padding: 16 },
+});
+</script>
+</body>
+</html>

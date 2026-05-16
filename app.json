@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Бросить курить",
+    "slug": "quit-smoke",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "quitsmoke",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.quitsmoke.client",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "app.quitsmoke.client"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-localization",
+      "expo-notifications",
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8190bbe8-96cc-4a73-a2d3-4a42bc159e1c"
+      }
+    },
+    "owner": "romansuuz"
+  }
+}

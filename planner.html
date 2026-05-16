@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day Planner</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-0: #0a0a10;
+    --bg-1: #0f0f16;
+    --bg-2: #14141e;
+    --bg-3: #1a1a27;
+    --bg-4: #20202f;
+    --bg-5: #272738;
+    --bg-6: #2e2e42;
+    --border: rgba(99,102,241,0.11);
+    --border-hover: rgba(99,102,241,0.3);
+    --accent: #6366f1;
+    --accent-dim: rgba(99,102,241,0.14);
+    --accent-glow: rgba(99,102,241,0.35);
+    --text-0: #eeeef8;
+    --text-1: #b0b0cc;
+    --text-2: #72728e;
+    --text-3: #44445a;
+    --red: #f43f5e;
+    --red-dim: rgba(244,63,94,0.14);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,0.14);
+    --emerald: #10b981;
+    --emerald-dim: rgba(16,185,129,0.14);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59,130,246,0.14);
+    --radius: 8px;
+    --radius-sm: 6px;
+    --shadow: 0 4px 28px rgba(0,0,0,0.55);
+    --transition: 0.16s ease;
+  }
+
+  html { font-size: 14px; }
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg-0);
+    color: var(--text-0);
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-5); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 238px; flex-shrink: 0;
+    background: var(--bg-1);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .sidebar-top {
+    padding: 16px 14px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 14px; font-weight: 700; color: var(--text-0);
+    letter-spacing: -0.3px; margin-bottom: 10px;
+  }
+  .logo-mark {
+    width: 26px; height: 26px; background: var(--accent);
+    border-radius: 7px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 14px var(--accent-glow); flex-shrink: 0;
+  }
+  .sidebar-date { font-size: 11px; color: var(--text-3); }
+  .sidebar-section { flex: 1; overflow-y: auto; padding: 10px 8px; }
+  .sidebar-label {
+    font-size: 10px; font-weight: 600; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: 0.8px; padding: 4px 8px 6px;
+  }
+  .sidebar-all-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 8px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: all var(--transition); margin-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-all-item:hover { background: var(--bg-3); }
+  .sidebar-all-item.active { background: var(--accent-dim); }
+  .sidebar-all-item .folder-name { font-size: 13px; color: var(--text-1); flex: 1; transition: color var(--transition); }
+  .sidebar-all-item:hover .folder-name { color: var(--text-0); }
+  .sidebar-all-item.active .folder-name { color: var(--accent); font-weight: 500; }
+  .sidebar-all-item .folder-count { font-size: 10px; color: var(--text-3); background: var(--bg-4); border-radius: 8px; padding: 1px 6px; }
+  .sidebar-all-item.active .folder-count { background: var(--accent-dim); color: var(--accent); }
+  .folder-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 8px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: all var(--transition); position: relative;
+  }
+  .folder-item:hover { background: var(--bg-3); }
+  .folder-item.active { background: var(--accent-dim); }
+  .folder-item.active .folder-name { color: var(--accent); font-weight: 500; }
+  .folder-color-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .folder-name {
+    font-size: 13px; color: var(--text-1); flex: 1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: color var(--transition);
+  }
+  .folder-item:hover .folder-name { color: var(--text-0); }
+  .folder-count {
+    font-size: 10px; color: var(--text-3);
+    background: var(--bg-4); border-radius: 8px; padding: 1px 6px; flex-shrink: 0;
+  }
+  .folder-item.active .folder-count { background: var(--accent-dim); color: var(--accent); }
+  .folder-actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); flex-shrink: 0; }
+  .folder-item:hover .folder-actions { opacity: 1; }
+  .sidebar-bottom { padding: 10px 8px; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .btn-add-folder {
+    width: 100%; display: flex; align-items: center; gap: 7px;
+    padding: 8px 8px; border-radius: var(--radius-sm);
+    background: transparent; border: 1px dashed var(--border);
+    color: var(--text-3); font-size: 12px; font-family: inherit; cursor: pointer;
+    transition: all var(--transition);
+  }
+  .btn-add-folder:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  /* ── Main ── */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
+  .header {
+    background: var(--bg-1); border-bottom: 1px solid var(--border);
+    padding: 0 22px; height: 54px;
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .folder-title { font-size: 15px; font-weight: 600; color: var(--text-0); letter-spacing: -0.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .folder-desc-text { font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: none; cursor: pointer; font-family: inherit;
+    font-size: 12px; font-weight: 500; border-radius: var(--radius-sm);
+    transition: all var(--transition); white-space: nowrap; outline: none; line-height: 1;
+  }
+  .btn-primary { background: var(--accent); color: #fff; padding: 7px 13px; }
+  .btn-primary:hover { background: #5254cc; box-shadow: 0 0 16px var(--accent-glow); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-ghost { background: transparent; color: var(--text-1); padding: 7px 10px; border: 1px solid transparent; }
+  .btn-ghost:hover { background: var(--bg-4); border-color: var(--border); color: var(--text-0); }
+  .btn-icon {
+    width: 28px; height: 28px; background: transparent; color: var(--text-2);
+    padding: 0; border: 1px solid transparent; border-radius: var(--radius-sm); justify-content: center;
+  }
+  .btn-icon:hover { background: var(--bg-4); border-color: var(--border); color: var(--text-0); }
+  .btn-icon.danger:hover { background: var(--red-dim); border-color: rgba(244,63,94,0.3); color: var(--red); }
+
+  /* ── Progress ── */
+  .progress-wrap {
+    background: var(--bg-2); border-bottom: 1px solid var(--border);
+    padding: 8px 22px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  }
+  .progress-label { font-size: 11px; color: var(--text-3); white-space: nowrap; min-width: 80px; }
+  .progress-track { flex: 1; height: 3px; background: var(--bg-5); border-radius: 2px; overflow: hidden; }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), #818cf8);
+    border-radius: 2px; transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  }
+  .progress-pct { font-size: 11px; font-weight: 600; color: var(--accent); min-width: 30px; text-align: right; }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    background: var(--bg-1); border-bottom: 1px solid var(--border);
+    padding: 8px 22px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap;
+  }
+  .search-wrap { position: relative; flex: 1; min-width: 160px; max-width: 280px; }
+  .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text-3); pointer-events: none; }
+  .search-input {
+    width: 100%; background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-0); font-family: inherit;
+    font-size: 12px; padding: 6px 9px 6px 30px; outline: none; transition: all var(--transition);
+  }
+  .search-input::placeholder { color: var(--text-3); }
+  .search-input:focus { border-color: var(--accent); background: var(--bg-4); box-shadow: 0 0 0 3px var(--accent-dim); }
+  .filter-group { display: flex; align-items: center; gap: 5px; }
+  .filter-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
+  .filter-btn {
+    font-size: 11px; padding: 4px 9px; border-radius: 20px;
+    background: var(--bg-3); border: 1px solid var(--border);
+    color: var(--text-2); cursor: pointer; font-family: inherit; transition: all var(--transition);
+  }
+  .filter-btn:hover { border-color: var(--border-hover); color: var(--text-1); }
+  .filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+
+  /* ── Board ── */
+  .board { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); overflow: hidden; }
+  .column { display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow: hidden; }
+  .column:last-child { border-right: none; }
+  .col-header {
+    padding: 13px 16px 11px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--bg-1);
+  }
+  .col-title-wrap { display: flex; align-items: center; gap: 8px; }
+  .col-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .col-dot.open { background: var(--text-3); }
+  .col-dot.progress { background: var(--amber); box-shadow: 0 0 6px rgba(245,158,11,0.5); }
+  .col-dot.done { background: var(--emerald); box-shadow: 0 0 6px rgba(16,185,129,0.4); }
+  .col-title { font-size: 12px; font-weight: 600; color: var(--text-1); }
+  .col-count { font-size: 10px; background: var(--bg-4); border: 1px solid var(--border); color: var(--text-3); border-radius: 8px; padding: 1px 6px; }
+  .col-body { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 7px; }
+  .col-body.drag-over { background: rgba(99,102,241,0.06); }
+
+  /* ── Empty ── */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 32px 16px; color: var(--text-3); text-align: center; user-select: none;
+  }
+  .empty-icon { width: 36px; height: 36px; border: 2px dashed var(--bg-5); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; }
+  .empty-text { font-size: 11px; }
+
+  /* ── No folder ── */
+  .no-folder {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; color: var(--text-3); user-select: none;
+  }
+  .no-folder-icon {
+    width: 56px; height: 56px; border: 2px dashed var(--bg-5);
+    border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .no-folder-title { font-size: 14px; font-weight: 500; color: var(--text-2); }
+  .no-folder-sub { font-size: 12px; color: var(--text-3); }
+
+  /* ── Task card ── */
+  .task-card {
+    background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 11px 12px;
+    cursor: grab; transition: all var(--transition); user-select: none;
+  }
+  .task-card:hover {
+    border-color: var(--border-hover); background: var(--bg-4);
+    transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .task-card.dragging { opacity: 0.35; transform: scale(0.97); cursor: grabbing; }
+  .task-card.done-card { opacity: 0.62; }
+  .task-card.done-card .task-title { text-decoration: line-through; color: var(--text-2); }
+
+  .card-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 7px; margin-bottom: 6px;
+  }
+  .task-title { font-size: 12px; font-weight: 500; color: var(--text-0); line-height: 1.45; word-break: break-word; }
+  .card-actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); flex-shrink: 0; }
+  .task-card:hover .card-actions { opacity: 1; }
+
+  .task-desc {
+    font-size: 11px; color: var(--text-2); line-height: 1.5; margin-bottom: 8px;
+    word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  .card-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+
+  .badge {
+    display: inline-flex; align-items: center; font-size: 10px; font-weight: 500;
+    padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+  }
+  .badge-high { background: var(--red-dim); color: var(--red); border: 1px solid rgba(244,63,94,0.2); }
+  .badge-medium { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+  .badge-low { background: var(--emerald-dim); color: var(--emerald); border: 1px solid rgba(16,185,129,0.2); }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+  }
+  .chip-overdue { background: var(--red-dim); color: var(--red); border: 1px solid rgba(244,63,94,0.2); font-weight: 500; }
+  .chip-today { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+  .chip-soon { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,130,246,0.2); }
+  .chip-normal { background: var(--bg-5); color: var(--text-2); border: 1px solid transparent; }
+  .chip-duration { background: rgba(99,102,241,0.1); color: #818cf8; border: 1px solid rgba(99,102,241,0.18); }
+  .chip-tag { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(99,102,241,0.18); }
+  .chip-created { background: transparent; color: var(--text-3); border: none; font-size: 10px; padding: 0; }
+
+  /* Deadline row inside card */
+  .card-deadline {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 500;
+    padding: 5px 8px; border-radius: 5px;
+    margin-top: 7px; border: 1px solid transparent;
+  }
+  .card-deadline .dl-date { flex: 1; }
+  .card-deadline .dl-badge {
+    font-size: 10px; font-weight: 600;
+    padding: 1px 6px; border-radius: 3px;
+    background: rgba(0,0,0,0.2);
+  }
+  .card-deadline.chip-overdue { background: var(--red-dim); color: var(--red); border-color: rgba(244,63,94,0.25); }
+  .card-deadline.chip-today { background: var(--amber-dim); color: var(--amber); border-color: rgba(245,158,11,0.25); }
+  .card-deadline.chip-soon { background: var(--blue-dim); color: var(--blue); border-color: rgba(59,130,246,0.25); }
+  .card-deadline.chip-normal { background: var(--bg-4); color: var(--text-2); border-color: var(--border); }
+
+  /* Card footer: created + move buttons */
+  .card-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border);
+    opacity: 0; transition: opacity var(--transition);
+  }
+  .task-card:hover .card-footer { opacity: 1; }
+
+  .card-created { font-size: 10px; color: var(--text-3); }
+
+  .move-btns { display: flex; gap: 3px; }
+
+  .move-btn {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; padding: 3px 7px; border-radius: 4px;
+    border: 1px solid var(--border); background: var(--bg-4);
+    color: var(--text-2); cursor: pointer; font-family: inherit;
+    transition: all var(--transition); white-space: nowrap;
+  }
+  .move-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .move-btn.to-progress:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+  .move-btn.to-done:hover { border-color: var(--emerald); color: var(--emerald); background: var(--emerald-dim); }
+  .move-btn.to-open:hover { border-color: var(--text-2); color: var(--text-1); background: var(--bg-5); }
+
+  /* ── Modal ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(5px);
+    z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity 0.18s ease;
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px;
+    width: 100%; max-width: 500px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(99,102,241,0.08);
+    transform: scale(0.95) translateY(12px); transition: transform 0.18s ease;
+  }
+  .overlay.open .modal { transform: scale(1) translateY(0); }
+  .modal-hd { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 14px; font-weight: 600; color: var(--text-0); letter-spacing: -0.2px; }
+  .modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .modal-ft { padding: 14px 20px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 7px; }
+
+  .form-row { display: flex; gap: 10px; }
+  .form-row > * { flex: 1; min-width: 0; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field-label { font-size: 10px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.6px; }
+
+  .field-input, .field-select, .field-textarea {
+    background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-0); font-family: inherit;
+    font-size: 13px; padding: 8px 11px; outline: none; transition: all var(--transition); width: 100%;
+  }
+  .field-input::placeholder, .field-textarea::placeholder { color: var(--text-3); }
+  .field-input:focus, .field-select:focus, .field-textarea:focus {
+    border-color: var(--accent); background: var(--bg-4); box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+  .field-select {
+    cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2372728e' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+  }
+  .field-select option { background: var(--bg-2); color: var(--text-0); }
+  .field-textarea { resize: vertical; min-height: 68px; line-height: 1.5; }
+
+  /* Duration row */
+  .duration-row { display: flex; gap: 6px; align-items: center; }
+  .duration-input { flex: 1; }
+  .duration-unit {
+    background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-0); font-family: inherit; font-size: 12px; padding: 8px 10px;
+    outline: none; cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2372728e' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px;
+    transition: all var(--transition);
+  }
+  .duration-unit:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+  .duration-unit option { background: var(--bg-2); }
+
+  /* Status tabs */
+  .status-tabs { display: flex; gap: 5px; }
+  .status-tab {
+    flex: 1; padding: 6px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--bg-3); color: var(--text-2); font-size: 11px; font-weight: 500;
+    font-family: inherit; cursor: pointer; transition: all var(--transition); text-align: center;
+  }
+  .status-tab:hover { border-color: var(--border-hover); color: var(--text-1); }
+  .status-tab.st-open { background: var(--bg-5); border-color: rgba(120,120,160,0.35); color: var(--text-0); }
+  .status-tab.st-progress { background: var(--amber-dim); border-color: rgba(245,158,11,0.3); color: var(--amber); }
+  .status-tab.st-done { background: var(--emerald-dim); border-color: rgba(16,185,129,0.3); color: var(--emerald); }
+
+  /* Color grid */
+  .color-grid { display: flex; gap: 7px; flex-wrap: wrap; }
+  .color-swatch {
+    width: 22px; height: 22px; border-radius: 5px; cursor: pointer;
+    border: 2px solid transparent; transition: all var(--transition); flex-shrink: 0;
+  }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.selected { border-color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,0.3); }
+
+  /* Confirm */
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 300;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity 0.15s ease;
+  }
+  .confirm-overlay.open { opacity: 1; pointer-events: all; }
+  .confirm-box {
+    background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px 22px; max-width: 340px; width: 100%; box-shadow: var(--shadow);
+    transform: scale(0.95); transition: transform 0.15s ease;
+  }
+  .confirm-overlay.open .confirm-box { transform: scale(1); }
+  .confirm-title { font-size: 13px; font-weight: 600; color: var(--text-0); margin-bottom: 7px; }
+  .confirm-desc { font-size: 12px; color: var(--text-2); margin-bottom: 16px; line-height: 1.5; }
+  .confirm-actions { display: flex; justify-content: flex-end; gap: 7px; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-red { background: var(--red); color: #fff; }
+  .btn-red:hover { background: #e0284a; transform: translateY(-1px); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 20px; right: 20px;
+    background: var(--bg-4); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 14px; font-size: 12px; color: var(--text-1); box-shadow: var(--shadow);
+    z-index: 400; transform: translateY(6px); opacity: 0; transition: all 0.18s ease;
+    pointer-events: none; max-width: 260px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.ok { border-color: rgba(16,185,129,0.3); color: var(--emerald); }
+  .toast.err { border-color: rgba(244,63,94,0.3); color: var(--red); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="logo">
+        <div class="logo-mark">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        Планировщик
+      </div>
+      <div class="sidebar-date" id="sidebarDate"></div>
+    </div>
+    <div class="sidebar-section" id="folderList">
+      <div class="sidebar-all-item" id="allTasksItem" onclick="selectAllTasks()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--text-3);flex-shrink:0">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        <span class="folder-name">Все задачи</span>
+        <span class="folder-count" id="allTasksCount">0</span>
+      </div>
+      <div class="sidebar-label">Папки</div>
+    </div>
+    <div class="sidebar-bottom">
+      <button class="btn-add-folder" onclick="openFolderModal()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Новая папка
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+
+    <div class="header" id="mainHeader" style="display:none">
+      <div class="header-left">
+        <div>
+          <div class="folder-title" id="headerFolderName"></div>
+          <div class="folder-desc-text" id="headerFolderDesc"></div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-icon" title="Настройки папки" onclick="openFolderModal(true)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <button class="btn btn-ghost" onclick="exportData()" title="Экспорт данных">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Экспорт
+        </button>
+        <label class="btn btn-ghost" style="cursor:pointer" title="Импорт данных">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Импорт
+          <input type="file" accept=".json" style="display:none" onchange="importData(event)">
+        </label>
+        <button class="btn btn-primary" onclick="openTaskModal()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Новая задача
+        </button>
+      </div>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap" style="display:none">
+      <div class="progress-label" id="progressLabel">0 / 0 задач</div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-pct" id="progressPct">0%</div>
+    </div>
+
+    <div class="toolbar" id="toolbarWrap" style="display:none">
+      <div class="search-wrap">
+        <span class="search-icon">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </span>
+        <input type="text" class="search-input" id="searchInput" placeholder="Поиск задач..." oninput="renderBoard()">
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Приоритет</span>
+        <button class="filter-btn active" data-p="all" onclick="setPriorityFilter('all',this)">Все</button>
+        <button class="filter-btn" data-p="high" onclick="setPriorityFilter('high',this)">Высокий</button>
+        <button class="filter-btn" data-p="medium" onclick="setPriorityFilter('medium',this)">Средний</button>
+        <button class="filter-btn" data-p="low" onclick="setPriorityFilter('low',this)">Низкий</button>
+      </div>
+    </div>
+
+    <div class="board" id="boardWrap" style="display:none">
+      <div class="column" ondragover="onDragOver(event,'open')" ondrop="onDrop(event,'open')" ondragleave="onDragLeave(event)">
+        <div class="col-header">
+          <div class="col-title-wrap">
+            <div class="col-dot open"></div>
+            <span class="col-title">Открытые</span>
+            <span class="col-count" id="cnt-open">0</span>
+          </div>
+          <button class="btn btn-icon" onclick="openTaskModal('open')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="col-body" id="tasks-open"></div>
+      </div>
+
+      <div class="column" ondragover="onDragOver(event,'progress')" ondrop="onDrop(event,'progress')" ondragleave="onDragLeave(event)">
+        <div class="col-header">
+          <div class="col-title-wrap">
+            <div class="col-dot progress"></div>
+            <span class="col-title">В работе</span>
+            <span class="col-count" id="cnt-progress">0</span>
+          </div>
+          <button class="btn btn-icon" onclick="openTaskModal('progress')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="col-body" id="tasks-progress"></div>
+      </div>
+
+      <div class="column" ondragover="onDragOver(event,'done')" ondrop="onDrop(event,'done')" ondragleave="onDragLeave(event)">
+        <div class="col-header">
+          <div class="col-title-wrap">
+            <div class="col-dot done"></div>
+            <span class="col-title">Выполнено</span>
+            <span class="col-count" id="cnt-done">0</span>
+          </div>
+          <button class="btn btn-icon" onclick="openTaskModal('done')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="col-body" id="tasks-done"></div>
+      </div>
+    </div>
+
+    <div class="no-folder" id="noFolderState">
+      <div class="no-folder-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <div class="no-folder-title">Выберите папку</div>
+      <div class="no-folder-sub">или создайте новую внизу слева</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Task Modal -->
+<div class="overlay" id="taskOverlay" onclick="handleTaskOverlay(event)">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="taskModalTitle">Новая задача</span>
+      <button class="btn btn-icon" onclick="closeTaskModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label class="field-label">Название <span style="color:var(--red)">*</span></label>
+        <input type="text" class="field-input" id="tTitle" placeholder="Название задачи..." maxlength="120">
+      </div>
+      <div class="field">
+        <label class="field-label">Описание</label>
+        <textarea class="field-textarea" id="tDesc" placeholder="Необязательное описание..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label class="field-label">Статус</label>
+          <div class="status-tabs" id="statusTabs">
+            <button class="status-tab st-open" data-st="open" onclick="pickStatus('open')">Открыта</button>
+            <button class="status-tab" data-st="progress" onclick="pickStatus('progress')">В работе</button>
+            <button class="status-tab" data-st="done" onclick="pickStatus('done')">Готово</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Приоритет</label>
+          <select class="field-select" id="tPriority">
+            <option value="medium">Средний</option>
+            <option value="high">Высокий</option>
+            <option value="low">Низкий</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label class="field-label">Дедлайн</label>
+          <input type="datetime-local" class="field-input" id="tDeadline">
+        </div>
+        <div class="field">
+          <label class="field-label">Продолжительность</label>
+          <div class="duration-row">
+            <input type="number" class="field-input duration-input" id="tDurVal" placeholder="—" min="1" max="999">
+            <select class="duration-unit" id="tDurUnit">
+              <option value="min">мин</option>
+              <option value="h" selected>ч</option>
+              <option value="d">дн</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Тег</label>
+        <input type="text" class="field-input" id="tTag" placeholder="Работа, Личное, Учёба..." maxlength="30">
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost btn-sm" onclick="closeTaskModal()">Отмена</button>
+      <button class="btn btn-primary btn-sm" onclick="saveTask()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Folder Modal -->
+<div class="overlay" id="folderOverlay" onclick="handleFolderOverlay(event)">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="folderModalTitle">Новая папка</span>
+      <button class="btn btn-icon" onclick="closeFolderModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label class="field-label">Название <span style="color:var(--red)">*</span></label>
+        <input type="text" class="field-input" id="fName" placeholder="Название папки..." maxlength="40">
+      </div>
+      <div class="field">
+        <label class="field-label">Описание</label>
+        <input type="text" class="field-input" id="fDesc" placeholder="Необязательно..." maxlength="80">
+      </div>
+      <div class="field">
+        <label class="field-label">Цвет</label>
+        <div class="color-grid" id="colorGrid"></div>
+      </div>
+      <div id="folderDeleteWrap" style="display:none; padding-top:8px; border-top:1px solid var(--border);">
+        <button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:rgba(244,63,94,0.25);" onclick="askDeleteFolder()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/>
+          </svg>
+          Удалить папку и все задачи
+        </button>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost btn-sm" onclick="closeFolderModal()">Отмена</button>
+      <button class="btn btn-primary btn-sm" onclick="saveFolder()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirmTitle">Подтвердите</div>
+    <div class="confirm-desc" id="confirmDesc"></div>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeConfirm()">Отмена</button>
+      <button class="btn btn-red btn-sm" onclick="doConfirm()">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORE_KEY = 'dayplanner_v2';
+  let state = { folders: [], tasks: [] };
+  let activeFolderId = null;
+  let isAllTasksView = false;
+  let editingTaskId = null;
+  let editingFolderId = null;
+  let selectedStatus = 'open';
+  let priorityFilter = 'all';
+  let confirmAction = null;
+  let dragId = null;
+
+  const FOLDER_COLORS = [
+    '#6366f1','#8b5cf6','#ec4899','#f43f5e',
+    '#f59e0b','#10b981','#3b82f6','#06b6d4',
+    '#84cc16','#f97316','#a78bfa','#fb7185',
+  ];
+
+  // ── Storage (File System Access API + IndexedDB handle cache) ──
+
+  const LS_KEY = 'dayplanner_v2'; // fallback
+  let fileHandle = null;
+  const HAS_FSA = typeof window.showOpenFilePicker === 'function';
+
+  // IndexedDB helpers to persist file handle across reloads
+  function idbOpen() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('plannerDB', 1);
+      r.onupgradeneeded = e => e.target.result.createObjectStore('h');
+      r.onsuccess = e => res(e.target.result);
+      r.onerror = () => rej();
+    });
+  }
+  async function idbGet(key) {
+    try { const db = await idbOpen(); return new Promise(res => { const t = db.transaction('h'); const r = t.objectStore('h').get(key); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); }
+    catch { return null; }
+  }
+  async function idbSet(key, val) {
+    try { const db = await idbOpen(); return new Promise(res => { const t = db.transaction('h','readwrite'); t.objectStore('h').put(val, key); t.oncomplete = res; t.onerror = res; }); }
+    catch {}
+  }
+
+  async function save() {
+    if (fileHandle) {
+      try {
+        const w = await fileHandle.createWritable();
+        await w.write(JSON.stringify(state, null, 2));
+        await w.close();
+        return;
+      } catch(e) { toast('Ошибка записи в файл', 'err'); }
+    }
+    // fallback localStorage
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
+  }
+
+  async function loadFromHandle(h) {
+    const file = await h.getFile();
+    const text = await file.text();
+    const p = JSON.parse(text);
+    if (p && Array.isArray(p.folders)) state = p;
+  }
+
+  async function init() {
+    setDate();
+
+    if (!HAS_FSA) {
+      // Firefox / old browser — use localStorage
+      try { const raw = localStorage.getItem(LS_KEY); if (raw) { const p = JSON.parse(raw); if (p && Array.isArray(p.folders)) state = p; } } catch {}
+      bootUI();
+      return;
+    }
+
+    // Try stored handle
+    const stored = await idbGet('fh');
+    if (stored) {
+      try {
+        let perm = await stored.queryPermission({ mode: 'readwrite' });
+        if (perm === 'prompt') {
+          showFilePrompt('Нажмите чтобы открыть файл данных', async () => {
+            perm = await stored.requestPermission({ mode: 'readwrite' });
+            if (perm === 'granted') { fileHandle = stored; await loadFromHandle(fileHandle); bootUI(); }
+            else showFilePicker();
+          });
+          return;
+        }
+        if (perm === 'granted') { fileHandle = stored; await loadFromHandle(fileHandle); bootUI(); return; }
+      } catch {}
+    }
+
+    showFilePicker();
+  }
+
+  function showFilePicker() {
+    showFilePrompt(null, null, true);
+  }
+
+  function showFilePrompt(msg, onContinue, showPicker) {
+    const ov = document.getElementById('filePickerOverlay');
+    if (msg) document.getElementById('filePickerMsg').textContent = msg;
+    else document.getElementById('filePickerMsg').textContent = 'Выберите файл с данными или создайте новый';
+    document.getElementById('filePickerContinueBtn').style.display = onContinue ? '' : 'none';
+    document.getElementById('filePickerOpenBtn').style.display = showPicker ? '' : 'none';
+    document.getElementById('filePickerNewBtn').style.display = showPicker ? '' : 'none';
+    if (onContinue) {
+      document.getElementById('filePickerContinueBtn').onclick = async () => {
+        ov.style.display = 'none';
+        await onContinue();
+      };
+    }
+    ov.style.display = 'flex';
+  }
+
+  async function pickOpenFile() {
+    try {
+      const [h] = await window.showOpenFilePicker({ types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }], excludeAcceptAllOption: false });
+      fileHandle = h;
+      await idbSet('fh', fileHandle);
+      try { await loadFromHandle(fileHandle); } catch {}
+      document.getElementById('filePickerOverlay').style.display = 'none';
+      bootUI();
+    } catch {}
+  }
+
+  async function pickNewFile() {
+    try {
+      const h = await window.showSaveFilePicker({ suggestedName: 'planner-data.json', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+      fileHandle = h;
+      await idbSet('fh', fileHandle);
+      await save();
+      document.getElementById('filePickerOverlay').style.display = 'none';
+      bootUI();
+    } catch {}
+  }
+
+  function bootUI() {
+    renderSidebar();
+    if (state.folders.length) {
+      activeFolderId = state.folders[0].id;
+      showBoard();
+      renderBoard();
+    }
+    setInterval(renderBoard, 60000);
+    // update file indicator
+    if (fileHandle) document.getElementById('fileNameBadge').textContent = fileHandle.name;
+    else document.getElementById('fileNameBadge').textContent = 'localStorage';
+  }
+
+  function genId() { return '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  // ── Sidebar ──────────────────────────────────────────────
+
+  function selectAllTasks() {
+    isAllTasksView = true;
+    activeFolderId = null;
+    priorityFilter = 'all';
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.p === 'all'));
+    const si = document.getElementById('searchInput');
+    if (si) si.value = '';
+    renderSidebar();
+    // show board with "all" header
+    document.getElementById('noFolderState').style.display = 'none';
+    document.getElementById('mainHeader').style.display = 'flex';
+    document.getElementById('progressWrap').style.display = 'flex';
+    document.getElementById('toolbarWrap').style.display = 'flex';
+    document.getElementById('boardWrap').style.display = 'grid';
+    document.getElementById('headerFolderName').textContent = 'Все задачи';
+    document.getElementById('headerFolderDesc').textContent = state.folders.length + ' ' + folderWord(state.folders.length);
+    document.querySelector('.btn-primary').style.display = 'none';
+    renderBoard();
+  }
+
+  function renderSidebar() {
+    const list = document.getElementById('folderList');
+    Array.from(list.querySelectorAll('.folder-item')).forEach(el => el.remove());
+    const hint = list.querySelector('.sidebar-hint');
+
+    // update "all tasks" counter and active state
+    document.getElementById('allTasksCount').textContent = state.tasks.length;
+    document.getElementById('allTasksItem').classList.toggle('active', isAllTasksView);
+
+    if (!state.folders.length) {
+      if (!hint) {
+        const d = document.createElement('div');
+        d.className = 'sidebar-hint';
+        d.style.cssText = 'font-size:11px;color:var(--text-3);padding:6px 8px;';
+        d.textContent = 'Создайте первую папку';
+        list.appendChild(d);
+      }
+      return;
+    }
+    if (hint) hint.remove();
+
+    state.folders.forEach(folder => {
+      const taskCount = state.tasks.filter(t => t.folderId === folder.id).length;
+      const item = document.createElement('div');
+      item.className = 'folder-item' + (folder.id === activeFolderId ? ' active' : '');
+      item.dataset.id = folder.id;
+      item.innerHTML = `
+        <div class="folder-color-dot" style="background:${folder.color||'#6366f1'}"></div>
+        <span class="folder-name">${escHtml(folder.name)}</span>
+        <span class="folder-count">${taskCount}</span>
+        <div class="folder-actions">
+          <button class="btn btn-icon" style="width:22px;height:22px" title="Изменить"
+            onclick="event.stopPropagation();openFolderModal(true,'${folder.id}')">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+        </div>`;
+      item.addEventListener('click', () => selectFolder(folder.id));
+      list.appendChild(item);
+    });
+  }
+
+  function selectFolder(id) {
+    isAllTasksView = false;
+    activeFolderId = id;
+    priorityFilter = 'all';
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.p === 'all'));
+    const si = document.getElementById('searchInput');
+    if (si) si.value = '';
+    renderSidebar();
+    showBoard();
+    renderBoard();
+  }
+
+  function showBoard() {
+    const folder = state.folders.find(f => f.id === activeFolderId);
+    if (!folder) return;
+    document.getElementById('noFolderState').style.display = 'none';
+    document.getElementById('mainHeader').style.display = 'flex';
+    document.getElementById('progressWrap').style.display = 'flex';
+    document.getElementById('toolbarWrap').style.display = 'flex';
+    document.getElementById('boardWrap').style.display = 'grid';
+    document.getElementById('headerFolderName').textContent = folder.name;
+    document.getElementById('headerFolderDesc').textContent = folder.desc || '';
+    document.querySelector('.btn-primary').style.display = '';
+  }
+
+  // ── Board ────────────────────────────────────────────────
+
+  function getTasks(status) {
+    if (!isAllTasksView && !activeFolderId) return [];
+    const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+    return state.tasks.filter(t => {
+      if (!isAllTasksView && t.folderId !== activeFolderId) return false;
+      if (t.status !== status) return false;
+      if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
+      if (q && !t.title.toLowerCase().includes(q) &&
+          !(t.desc||'').toLowerCase().includes(q) &&
+          !(t.tag||'').toLowerCase().includes(q)) return false;
+      return true;
+    }).sort((a, b) => {
+      if (a.deadline && b.deadline) return new Date(a.deadline) - new Date(b.deadline);
+      if (a.deadline) return -1;
+      if (b.deadline) return 1;
+      return new Date(b.createdAt||0) - new Date(a.createdAt||0);
+    });
+  }
+
+  function renderBoard() {
+    ['open','progress','done'].forEach(st => {
+      const tasks = getTasks(st);
+      const container = document.getElementById('tasks-' + st);
+      document.getElementById('cnt-' + st).textContent = tasks.length;
+      if (!tasks.length) {
+        container.innerHTML = `<div class="empty-state">
+          <div class="empty-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="9" y1="12" x2="15" y2="12"/><line x1="12" y1="9" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="empty-text">${st==='open'?'Нет открытых':st==='progress'?'Ничего в работе':'Ничего не выполнено'}</div>
+        </div>`;
+        return;
+      }
+      container.innerHTML = '';
+      tasks.forEach(t => container.appendChild(buildCard(t)));
+    });
+    updateProgress();
+  }
+
+  function buildCard(task) {
+    const el = document.createElement('div');
+    el.className = 'task-card' + (task.status === 'done' ? ' done-card' : '');
+    el.dataset.id = task.id;
+    el.draggable = true;
+    el.addEventListener('dragstart', e => {
+      dragId = task.id;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', task.id);
+      requestAnimationFrame(() => el.classList.add('dragging'));
+    });
+    el.addEventListener('dragend', () => {
+      dragId = null;
+      el.classList.remove('dragging');
+      document.querySelectorAll('.col-body').forEach(c => c.classList.remove('drag-over'));
+    });
+
+    const dl = deadlineLabel(task.deadline);
+    const dlHtml = dl ? `<div class="card-deadline chip-${dl.cls}">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span class="dl-date">${escHtml(dl.text)}</span>
+      ${dl.badge ? `<span class="dl-badge">${escHtml(dl.badge)}</span>` : ''}
+    </div>` : '';
+
+    const durHtml = task.durVal ? `<span class="chip chip-duration">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="12" x2="15" y2="13"/>
+      </svg>${task.durVal} ${durUnitLabel(task.durUnit)}</span>` : '';
+
+    const tagHtml = task.tag ? `<span class="chip chip-tag">${escHtml(task.tag)}</span>` : '';
+    const folder = state.folders.find(f => f.id === task.folderId);
+    const folderHtml = isAllTasksView && folder
+      ? `<span class="chip" style="background:${folder.color}22;color:${folder.color};border:1px solid ${folder.color}44;max-width:90px;overflow:hidden;text-overflow:ellipsis">${escHtml(folder.name)}</span>` : '';
+    const prioLabel = { high:'Высокий', medium:'Средний', low:'Низкий' }[task.priority] || task.priority;
+    const createdStr = fmtCreated(task.createdAt);
+
+    // Move buttons depending on current status
+    let moveBtns = '';
+    if (task.status === 'open') {
+      moveBtns = `
+        <button class="move-btn to-progress" onclick="moveTask('${task.id}','progress')" title="Перенести в работу">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          В работу
+        </button>
+        <button class="move-btn to-done" onclick="moveTask('${task.id}','done')" title="Отметить выполненным">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Готово
+        </button>`;
+    } else if (task.status === 'progress') {
+      moveBtns = `
+        <button class="move-btn to-open" onclick="moveTask('${task.id}','open')" title="Вернуть в открытые">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Открытые
+        </button>
+        <button class="move-btn to-done" onclick="moveTask('${task.id}','done')" title="Отметить выполненным">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Готово
+        </button>`;
+    } else {
+      moveBtns = `
+        <button class="move-btn to-open" onclick="moveTask('${task.id}','open')" title="Вернуть в открытые">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Открыть снова
+        </button>
+        <button class="move-btn to-progress" onclick="moveTask('${task.id}','progress')" title="Вернуть в работу">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          В работу
+        </button>`;
+    }
+
+    el.innerHTML = `
+      <div class="card-top">
+        <div class="task-title">${escHtml(task.title)}</div>
+        <div class="card-actions">
+          <button class="btn btn-icon" style="width:24px;height:24px" title="Изменить" onclick="openTaskModal(null,'${task.id}')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="btn btn-icon danger" style="width:24px;height:24px" title="Удалить" onclick="askDeleteTask('${task.id}')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      ${task.desc ? `<div class="task-desc">${escHtml(task.desc)}</div>` : ''}
+      <div class="card-meta">
+        ${folderHtml}<span class="badge badge-${task.priority}">${prioLabel}</span>
+        ${durHtml}${tagHtml}
+      </div>
+      ${dlHtml}
+      <div class="card-footer">
+        <div class="card-created">${createdStr}</div>
+        <div class="move-btns">${moveBtns}</div>
+      </div>`;
+    return el;
+  }
+
+  function moveTask(id, newStatus) {
+    const task = state.tasks.find(t => t.id === id);
+    if (!task) return;
+    task.status = newStatus;
+    save();
+    renderBoard();
+    renderSidebar();
+    const labels = { open:'Открытые', progress:'В работе', done:'Выполнено' };
+    toast('Перемещено в «' + labels[newStatus] + '»');
+  }
+
+  function updateProgress() {
+    const ft = isAllTasksView ? state.tasks : state.tasks.filter(t => t.folderId === activeFolderId);
+    const done = ft.filter(t => t.status === 'done').length;
+    const total = ft.length;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    document.getElementById('progressLabel').textContent = `${done} / ${total} задач`;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct + '%';
+  }
+
+  function exportData() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'planner-backup-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Данные экспортированы');
+  }
+
+  function importData(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!parsed || !Array.isArray(parsed.folders)) { toast('Неверный формат файла', 'err'); return; }
+        state = parsed;
+        save();
+        activeFolderId = state.folders[0]?.id || null;
+        isAllTasksView = false;
+        renderSidebar();
+        if (activeFolderId) { showBoard(); renderBoard(); }
+        toast('Данные импортированы — ' + state.tasks.length + ' задач');
+      } catch(err) { toast('Ошибка чтения файла', 'err'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  function folderWord(n) {
+    if (n % 10 === 1 && n % 100 !== 11) return 'папка';
+    if ([2,3,4].includes(n%10) && ![12,13,14].includes(n%100)) return 'папки';
+    return 'папок';
+  }
+
+  // ── Task Modal ───────────────────────────────────────────
+
+  function openTaskModal(defaultStatus, editId) {
+    editingTaskId = editId || null;
+    document.getElementById('taskModalTitle').textContent = editId ? 'Редактировать задачу' : 'Новая задача';
+    if (editId) {
+      const t = state.tasks.find(x => x.id === editId);
+      if (!t) return;
+      document.getElementById('tTitle').value = t.title;
+      document.getElementById('tDesc').value = t.desc || '';
+      document.getElementById('tPriority').value = t.priority;
+      document.getElementById('tDeadline').value = t.deadline || '';
+      document.getElementById('tDurVal').value = t.durVal || '';
+      document.getElementById('tDurUnit').value = t.durUnit || 'h';
+      document.getElementById('tTag').value = t.tag || '';
+      pickStatus(t.status);
+    } else {
+      document.getElementById('tTitle').value = '';
+      document.getElementById('tDesc').value = '';
+      document.getElementById('tPriority').value = 'medium';
+      document.getElementById('tDeadline').value = '';
+      document.getElementById('tDurVal').value = '';
+      document.getElementById('tDurUnit').value = 'h';
+      document.getElementById('tTag').value = '';
+      pickStatus(defaultStatus || 'open');
+    }
+    document.getElementById('taskOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('tTitle').focus(), 80);
+  }
+
+  function closeTaskModal() { document.getElementById('taskOverlay').classList.remove('open'); editingTaskId = null; }
+  function handleTaskOverlay(e) { if (e.target === document.getElementById('taskOverlay')) closeTaskModal(); }
+
+  function pickStatus(st) {
+    selectedStatus = st;
+    document.querySelectorAll('#statusTabs .status-tab').forEach(tab => {
+      tab.className = 'status-tab' + (tab.dataset.st === st ? ' st-' + st : '');
+    });
+  }
+
+  function saveTask() {
+    const title = document.getElementById('tTitle').value.trim();
+    if (!title) {
+      const el = document.getElementById('tTitle');
+      el.style.borderColor = 'var(--red)'; el.focus();
+      setTimeout(() => el.style.borderColor = '', 1200);
+      return;
+    }
+    const durVal = document.getElementById('tDurVal').value.trim();
+    const data = {
+      title,
+      desc: document.getElementById('tDesc').value.trim(),
+      status: selectedStatus,
+      priority: document.getElementById('tPriority').value,
+      deadline: document.getElementById('tDeadline').value || '',
+      durVal: durVal ? parseInt(durVal) : null,
+      durUnit: document.getElementById('tDurUnit').value,
+      tag: document.getElementById('tTag').value.trim(),
+    };
+    if (editingTaskId) {
+      const idx = state.tasks.findIndex(t => t.id === editingTaskId);
+      if (idx !== -1) { state.tasks[idx] = { ...state.tasks[idx], ...data }; toast('Задача обновлена'); }
+    } else {
+      state.tasks.push({ id: genId(), folderId: activeFolderId, createdAt: new Date().toISOString(), ...data });
+      toast('Задача создана');
+    }
+    save(); closeTaskModal(); renderBoard(); renderSidebar();
+  }
+
+  // ── Folder Modal ─────────────────────────────────────────
+
+  let selectedFolderColor = FOLDER_COLORS[0];
+
+  function openFolderModal(isEdit, folderId) {
+    editingFolderId = isEdit ? (folderId || activeFolderId) : null;
+    document.getElementById('folderModalTitle').textContent = editingFolderId ? 'Настройки папки' : 'Новая папка';
+    document.getElementById('folderDeleteWrap').style.display = editingFolderId ? 'block' : 'none';
+    selectedFolderColor = FOLDER_COLORS[0];
+    if (editingFolderId) {
+      const f = state.folders.find(x => x.id === editingFolderId);
+      if (f) { document.getElementById('fName').value = f.name; document.getElementById('fDesc').value = f.desc || ''; selectedFolderColor = f.color || FOLDER_COLORS[0]; }
+    } else {
+      document.getElementById('fName').value = '';
+      document.getElementById('fDesc').value = '';
+    }
+    buildColorGrid();
+    document.getElementById('folderOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('fName').focus(), 80);
+  }
+
+  function buildColorGrid() {
+    const grid = document.getElementById('colorGrid');
+    grid.innerHTML = '';
+    FOLDER_COLORS.forEach(c => {
+      const sw = document.createElement('div');
+      sw.className = 'color-swatch' + (c === selectedFolderColor ? ' selected' : '');
+      sw.style.background = c;
+      sw.onclick = () => { selectedFolderColor = c; grid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected')); sw.classList.add('selected'); };
+      grid.appendChild(sw);
+    });
+  }
+
+  function closeFolderModal() { document.getElementById('folderOverlay').classList.remove('open'); editingFolderId = null; }
+  function handleFolderOverlay(e) { if (e.target === document.getElementById('folderOverlay')) closeFolderModal(); }
+
+  function saveFolder() {
+    const name = document.getElementById('fName').value.trim();
+    if (!name) {
+      const el = document.getElementById('fName');
+      el.style.borderColor = 'var(--red)'; el.focus();
+      setTimeout(() => el.style.borderColor = '', 1200);
+      return;
+    }
+    const data = { name, desc: document.getElementById('fDesc').value.trim(), color: selectedFolderColor };
+    if (editingFolderId) {
+      const idx = state.folders.findIndex(f => f.id === editingFolderId);
+      if (idx !== -1) { state.folders[idx] = { ...state.folders[idx], ...data }; toast('Папка обновлена'); }
+    } else {
+      const nf = { id: genId(), createdAt: new Date().toISOString(), ...data };
+      state.folders.push(nf);
+      activeFolderId = nf.id;
+      toast('Папка создана');
+    }
+    save(); closeFolderModal(); renderSidebar();
+    if (activeFolderId) { showBoard(); renderBoard(); }
+  }
+
+  // ── Delete ───────────────────────────────────────────────
+
+  function askDeleteTask(id) {
+    confirmAction = () => { state.tasks = state.tasks.filter(t => t.id !== id); save(); renderBoard(); renderSidebar(); toast('Задача удалена'); };
+    document.getElementById('confirmTitle').textContent = 'Удалить задачу?';
+    document.getElementById('confirmDesc').textContent = 'Это действие необратимо.';
+    document.getElementById('confirmOverlay').classList.add('open');
+  }
+
+  function askDeleteFolder() {
+    closeFolderModal();
+    const fid = editingFolderId || activeFolderId;
+    const folder = state.folders.find(f => f.id === fid);
+    const cnt = state.tasks.filter(t => t.folderId === fid).length;
+    confirmAction = () => {
+      state.tasks = state.tasks.filter(t => t.folderId !== fid);
+      state.folders = state.folders.filter(f => f.id !== fid);
+      if (activeFolderId === fid) activeFolderId = state.folders[0]?.id || null;
+      save(); renderSidebar();
+      if (activeFolderId) { showBoard(); renderBoard(); }
+      else {
+        ['mainHeader','progressWrap','toolbarWrap'].forEach(id => document.getElementById(id).style.display = 'none');
+        document.getElementById('boardWrap').style.display = 'none';
+        document.getElementById('noFolderState').style.display = 'flex';
+      }
+      toast('Папка удалена');
+    };
+    document.getElementById('confirmTitle').textContent = 'Удалить папку?';
+    document.getElementById('confirmDesc').textContent = `Папка «${folder?.name}» и ${cnt} ${taskWord(cnt)} будут удалены навсегда.`;
+    document.getElementById('confirmOverlay').classList.add('open');
+  }
+
+  function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('open'); confirmAction = null; }
+  function doConfirm() { if (confirmAction) confirmAction(); closeConfirm(); }
+
+  // ── Drag & Drop ──────────────────────────────────────────
+
+  function onDragOver(e, st) {
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.col-body').forEach(c => c.classList.remove('drag-over'));
+    document.getElementById('tasks-' + st).classList.add('drag-over');
+  }
+
+  function onDragLeave(e) {
+    if (!e.currentTarget.contains(e.relatedTarget))
+      e.currentTarget.querySelector('.col-body')?.classList.remove('drag-over');
+  }
+
+  function onDrop(e, st) {
+    e.preventDefault();
+    document.querySelectorAll('.col-body').forEach(c => c.classList.remove('drag-over'));
+    if (!dragId) return;
+    moveTask(dragId, st);
+    dragId = null;
+  }
+
+  // ── Filters ──────────────────────────────────────────────
+
+  function setPriorityFilter(val, btn) {
+    priorityFilter = val;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderBoard();
+  }
+
+  // ── Toast ────────────────────────────────────────────────
+
+  let toastTimer;
+  function toast(msg, type) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show ' + (type || 'ok');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  // ── Helpers ──────────────────────────────────────────────
+
+  function deadlineLabel(iso) {
+    if (!iso) return null;
+    const dl = new Date(iso), now = new Date();
+    const diff = dl - now;
+    const dMin = diff/60000, dH = diff/3600000, dD = diff/86400000;
+    const m = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    const hh = String(dl.getHours()).padStart(2,'0');
+    const mm = String(dl.getMinutes()).padStart(2,'0');
+    const dateStr = dl.getDate()+' '+m[dl.getMonth()]+', '+hh+':'+mm;
+    if (diff < 0) {
+      const ago = Math.abs(dD);
+      const badge = ago < 1 ? 'Просрочено' : Math.ceil(ago)+'д просрочено';
+      return { text: dateStr, badge, cls:'overdue' };
+    }
+    let badge = null;
+    if (dMin < 60) badge = Math.ceil(dMin)+'мин';
+    else if (dH < 24) badge = Math.ceil(dH)+'ч';
+    else if (dD < 3) badge = Math.ceil(dD)+'д';
+    const cls = dMin < 60 ? 'today' : dH < 24 ? 'today' : dD < 3 ? 'soon' : 'normal';
+    return { text: dateStr, badge, cls };
+  }
+
+  function durUnitLabel(u) { return { min:'мин', h:'ч', d:'дн' }[u] || u; }
+
+  function fmtCreated(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const now = new Date();
+    const diffD = (now - d) / 86400000;
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    if (diffD < 1 && now.getDate() === d.getDate()) return 'Сегодня, ' + hh + ':' + mm;
+    if (diffD < 2 && now.getDate() - d.getDate() === 1) return 'Вчера, ' + hh + ':' + mm;
+    const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    return d.getDate()+' '+months[d.getMonth()]+', '+hh+':'+mm;
+  }
+
+  function taskWord(n) {
+    if (n % 10 === 1 && n % 100 !== 11) return 'задача';
+    if ([2,3,4].includes(n%10) && ![12,13,14].includes(n%100)) return 'задачи';
+    return 'задач';
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function setDate() {
+    const d = new Date();
+    const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+    const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    document.getElementById('sidebarDate').textContent = days[d.getDay()]+', '+d.getDate()+' '+months[d.getMonth()];
+  }
+
+  // ── Keyboard ─────────────────────────────────────────────
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (document.getElementById('confirmOverlay').classList.contains('open')) { closeConfirm(); return; }
+      if (document.getElementById('taskOverlay').classList.contains('open')) { closeTaskModal(); return; }
+      if (document.getElementById('folderOverlay').classList.contains('open')) { closeFolderModal(); return; }
+    }
+    if (e.key === 'Enter' && document.getElementById('taskOverlay').classList.contains('open') &&
+        e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON') {
+      e.preventDefault(); saveTask();
+    }
+    if (e.key === 'Enter' && document.getElementById('folderOverlay').classList.contains('open') &&
+        e.target.tagName !== 'BUTTON') {
+      e.preventDefault(); saveFolder();
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k' && activeFolderId) { e.preventDefault(); openTaskModal(); }
+  });
+
+  // ── Expose ───────────────────────────────────────────────
+
+  Object.assign(window, {
+    openTaskModal, closeTaskModal, handleTaskOverlay, pickStatus, saveTask,
+    openFolderModal, closeFolderModal, handleFolderOverlay, saveFolder, askDeleteFolder,
+    askDeleteTask, moveTask,
+    closeConfirm, doConfirm,
+    setPriorityFilter,
+    onDragOver, onDrop, onDragLeave,
+    renderBoard, selectAllTasks,
+    exportData, importData,
+  });
+
+  // ── Init ─────────────────────────────────────────────────
+
+  Object.assign(window, { pickOpenFile, pickNewFile });
+  init();
+
+})();
+</script>
+</body>
+</html>
