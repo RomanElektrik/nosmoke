@@ -347,58 +347,50 @@ export function methodFocus(stepId: StepLevel | undefined, day: number, lang: 'r
   }
   if (stepId === 'L2_nrt_light') {
     return {
-      titleRu: 'НЗТ + поведение',
-      titleEn: 'NRT + behaviour',
-      lineRu: day <= 7
-        ? 'Первая неделя пластыря/жвачки. Не пропускай — иначе теряешь смысл.'
-        : 'Поддерживай дозу. Жвачка/леденец — только при настоящей тяге, не для удовольствия.',
-      lineEn: day <= 7
-        ? 'First week of patch/gum. Don’t skip — otherwise pointless.'
-        : 'Hold the dose. Gum/lozenge — only on real craving, not for pleasure.',
+      titleRu: 'Цитизин (Табекс)',
+      titleEn: 'Cytisine (Tabex)',
+      lineRu: day <= 25
+        ? `Курс цитизина — день ${day} из 25. Принимай строго по схеме.`
+        : 'Курс цитизина окончен — продолжай поведенческий блок и if-then.',
+      lineEn: day <= 25
+        ? `Cytisine course — day ${day} of 25. Take strictly per schedule.`
+        : 'Cytisine course done — keep the behavioural block and if-then.',
     };
   }
   if (stepId === 'L3_nrt_combo') {
     return {
-      titleRu: 'Комбинированная НЗТ',
-      titleEn: 'Combined NRT',
-      lineRu: day <= 14
-        ? `Пластырь 21 мг каждое утро + быстрая форма по требованию. День ${day} из 42.`
-        : day <= 28
-          ? 'Снижение: 14 мг. Быстрая форма всё ещё под рукой.'
-          : 'Завершение: 7 мг или ничего. Психологическое отвыкание.',
-      lineEn: day <= 14
-        ? `21 mg patch every morning + fast form on demand. Day ${day} of 42.`
-        : day <= 28
-          ? 'Step-down: 14 mg. Fast form still on hand.'
-          : 'Finish: 7 mg or none. Psychological wean.',
+      titleRu: 'Бупропион',
+      titleEn: 'Bupropion',
+      lineRu: day <= 8
+        ? `Бупропион, набор дозы. День ${day}. Quit date — день 8.`
+        : `Поддерживающая доза 150 мг × 2/день. День ${day} из 56.`,
+      lineEn: day <= 8
+        ? `Bupropion, dose ramp. Day ${day}. Quit date = day 8.`
+        : `Maintenance 150 mg × 2/day. Day ${day} of 56.`,
     };
   }
   if (stepId === 'L4_pharma') {
     return {
-      titleRu: 'Цитизин или бупропион',
-      titleEn: 'Cytisine or bupropion',
-      lineRu: day <= 25
-        ? `Цитизин курс — день ${day} из 25. Принимай строго по схеме.`
-        : 'Курс цитизина окончен — продолжай поведенческий блок и if-then.',
-      lineEn: day <= 25
-        ? `Cytisine course — day ${day} of 25. Take strictly per schedule.`
-        : 'Cytisine course done — keep behavioural block and if-then.',
+      titleRu: 'Варениклин (Чампикс)',
+      titleEn: 'Varenicline (Chantix)',
+      lineRu: day <= 7
+        ? `Варениклин, титрация: 0.5 мг. День ${day}. Quit date — день 8.`
+        : `Поддерживающая доза 1 мг 2 р/день. День ${day} из 84. Яркие сны — норма.`,
+      lineEn: day <= 7
+        ? `Varenicline titration: 0.5 mg. Day ${day}. Quit date = day 8.`
+        : `Maintenance 1 mg BID. Day ${day} of 84. Vivid dreams are normal.`,
     };
   }
   if (stepId === 'L5_intensive') {
     return {
-      titleRu: 'Варениклин + интенсив',
-      titleEn: 'Varenicline + intensive',
+      titleRu: 'Варениклин — расширенный курс',
+      titleEn: 'Varenicline — extended course',
       lineRu: day <= 7
-        ? `Титрация: 0.5 мг. День ${day}. Принимать с едой.`
-        : day <= 84
-          ? `Поддерживающая доза 1 мг 2 р/день. День ${day} из 84. Странные сны — норма.`
-          : 'Курс 12 нед окончен. Поддерживающая фаза.',
+        ? `Варениклин, титрация: 0.5 мг. День ${day}.`
+        : `Расширенный курс 24 недели. День ${day}. Принимать с едой.`,
       lineEn: day <= 7
-        ? `Titration: 0.5 mg. Day ${day}. Take with food.`
-        : day <= 84
-          ? `Maintenance 1 mg BID. Day ${day} of 84. Vivid dreams are normal.`
-          : '12-week course done. Maintenance phase.',
+        ? `Varenicline titration: 0.5 mg. Day ${day}.`
+        : `Extended 24-week course. Day ${day}. Take with food.`,
     };
   }
   return null;

@@ -330,6 +330,11 @@ function PlanCard() {
   const [state] = useAppState();
   const stepId = state.profile?.currentStep;
   if (!stepId) return null;
+  // While a method transition is scheduled, the pending banner above IS the
+  // plan — don't show a second, conflicting "current plan" card.
+  if (state.profile?.pendingMethod && (state.profile?.pendingQuitDate ?? 0) > Date.now()) {
+    return null;
+  }
   const step = getStep(stepId);
   const prog = programToday(state);
   const sug = escalationSuggestion(state);
