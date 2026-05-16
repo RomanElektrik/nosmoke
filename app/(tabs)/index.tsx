@@ -269,30 +269,23 @@ function BreathingDrop({ secs, lang }: { secs: number; lang: 'ru' | 'en' }) {
   const aCore = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
-    <View style={{ width: 232, height: 232, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginTop: 14 }}>
-      {/* glow layer 1 */}
+    <View style={{ width: 248, height: 248, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginTop: 14 }}>
+      {/* outer soft halo */}
       <View style={{
-        position: 'absolute', width: 232, height: 232, borderRadius: 116,
+        position: 'absolute', width: 248, height: 248, borderRadius: 124,
         backgroundColor: t.accentSoft,
       }} />
-      {/* glow layer 2 */}
-      <View style={{
-        position: 'absolute', width: 156, height: 156, borderRadius: 78,
-        backgroundColor: t.accent + '38',
-      }} />
-      {/* core circle */}
+      {/* large solid green core — the number sits fully inside it */}
       <Animated.View style={[{
-        width: 100, height: 100, borderRadius: 50,
-        alignItems: 'center', justifyContent: 'center',
+        width: 188, height: 188, borderRadius: 94,
+        alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+        shadowColor: t.accent, shadowOpacity: 0.5, shadowRadius: 26,
+        shadowOffset: { width: 0, height: 14 }, elevation: 10,
       }, aCore]}>
         <LinearGradient
-          colors={['#3BD168', '#1FA85A']}
-          start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }}
-          style={{
-            position: 'absolute', width: 100, height: 100, borderRadius: 50,
-            shadowColor: t.accent, shadowOpacity: 0.5, shadowRadius: 24,
-            shadowOffset: { width: 0, height: 12 }, elevation: 10,
-          }}
+          colors={['#3BD168', '#1B9C52']}
+          start={{ x: 0.2, y: 0 }} end={{ x: 0.85, y: 1 }}
+          style={{ position: 'absolute', width: 188, height: 188 }}
         />
       </Animated.View>
       {/* centre headline */}
