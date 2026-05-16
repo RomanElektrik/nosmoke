@@ -45,8 +45,6 @@ export default function Profile() {
 
         <MethodCard />
 
-        <ContractCard />
-
         <CheckInTimeCard />
 
         <QuickActionsCard />
@@ -130,78 +128,6 @@ function MethodCard() {
         </View>
       </GlassCard>
     </Pressable>
-  );
-}
-
-function ContractCard() {
-  const t = useTheme();
-  const lang = currentLang();
-  const [state] = useAppState();
-  const p = state.profile;
-  if (!p) return null;
-  const mode = p.commitmentMode ?? 'soft';
-
-  async function setMode(m: 'soft' | 'hardcore') {
-    Alert.alert(
-      lang === 'ru' ? 'Сменить режим?' : 'Change mode?',
-      m === 'hardcore'
-        ? (lang === 'ru'
-          ? 'В жёстком режиме любой срыв обнуляет счётчик дней. Программа и копилка остаются.'
-          : 'In hardcore mode any slip resets day counter. Program and jar stay.')
-        : (lang === 'ru'
-          ? 'В мягком режиме срыв не обнуляет ничего — ты учишься на нём.'
-          : 'In soft mode a slip resets nothing — you learn from it.'),
-      [
-        { text: lang === 'ru' ? 'Отмена' : 'Cancel', style: 'cancel' },
-        {
-          text: lang === 'ru' ? 'Сменить' : 'Switch',
-          onPress: async () => {
-            await update((s) => ({
-              ...s,
-              profile: s.profile ? { ...s.profile, commitmentMode: m } : s.profile,
-            }));
-          },
-        },
-      ],
-    );
-  }
-
-  return (
-    <GlassCard>
-      <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>
-        {lang === 'ru' ? 'Контракт' : 'Contract'}
-      </Text>
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-        <Pressable onPress={() => setMode('soft')}
-          style={{
-            flex: 1, padding: 14, borderRadius: 12,
-            backgroundColor: mode === 'soft' ? '#34C75914' : t.bgElev,
-            borderWidth: 1, borderColor: mode === 'soft' ? '#34C759' : t.border,
-            alignItems: 'center', gap: 4,
-          }}>
-          <Text style={{ color: t.text, fontWeight: '700', fontSize: 14 }}>
-            {lang === 'ru' ? 'Мягкий' : 'Soft'}
-          </Text>
-          <Text style={{ color: t.textDim, fontSize: 11 }}>
-            {lang === 'ru' ? 'без обнуления' : 'no reset'}
-          </Text>
-        </Pressable>
-        <Pressable onPress={() => setMode('hardcore')}
-          style={{
-            flex: 1, padding: 14, borderRadius: 12,
-            backgroundColor: mode === 'hardcore' ? '#FF453A14' : t.bgElev,
-            borderWidth: 1, borderColor: mode === 'hardcore' ? '#FF453A' : t.border,
-            alignItems: 'center', gap: 4,
-          }}>
-          <Text style={{ color: t.text, fontWeight: '700', fontSize: 14 }}>
-            {lang === 'ru' ? 'Жёсткий' : 'Hardcore'}
-          </Text>
-          <Text style={{ color: t.textDim, fontSize: 11 }}>
-            {lang === 'ru' ? 'обнуляет дни' : 'resets days'}
-          </Text>
-        </Pressable>
-      </View>
-    </GlassCard>
   );
 }
 

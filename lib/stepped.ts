@@ -192,11 +192,6 @@ export function deescalationSuggestion(state: AppState): { yes: boolean; toStep?
   return { yes: false };
 }
 
-// Hardcore-mode check: should a slip reset the quit date?
-export function shouldHardReset(state: AppState): boolean {
-  return state.profile?.commitmentMode === 'hardcore';
-}
-
 // Preparation checklist per method.
 export type PrepItem = { id: string; ru: string; en: string };
 

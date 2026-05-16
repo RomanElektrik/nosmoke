@@ -22,42 +22,19 @@ export default function Craving() {
   const [trigger, setTrigger] = useState<Trigger | undefined>();
   const [outcome, setOutcome] = useState<'resisted' | 'smoked' | null>(null);
 
-  async function doSave(applyHardReset: boolean) {
+  async function save() {
+    if (!outcome) return;
     Haptics.notificationAsync(
       outcome === 'resisted' ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning
     );
-    await update((s) => {
-      const next = {
-        ...s,
-        cravings: [...s.cravings, { ts: Date.now(), intensity, trigger, outcome: outcome! }],
-        slips: outcome === 'smoked' ? [...s.slips, Date.now()] : s.slips,
-      };
-      if (outcome === 'smoked' && applyHardReset && s.profile) {
-        next.profile = { ...s.profile, quitDate: Date.now() };
-      }
-      return next;
-    });
+    // A slip never resets the quit date / streak (AVE-aware lapse recovery).
+    await update((s) => ({
+      ...s,
+      cravings: [...s.cravings, { ts: Date.now(), intensity, trigger, outcome: outcome! }],
+      slips: outcome === 'smoked' ? [...s.slips, Date.now()] : s.slips,
+    }));
     if (outcome === 'resisted') setPhase('win');
     else router.replace('/slip');
-  }
-
-  function save() {
-    if (!outcome) return;
-    const lang = state.profile?.language ?? 'ru';
-    if (outcome === 'smoked' && state.profile?.commitmentMode === 'hardcore') {
-      Alert.alert(
-        lang === 'ru' ? 'Жёсткий режим' : 'Hardcore mode',
-        lang === 'ru'
-          ? 'Сейчас счётчик дней без сигарет обнулится. Программа, копилка и уровни сохранятся. Продолжить?'
-          : 'Day counter will reset to zero. Program, jar and levels stay. Continue?',
-        [
-          { text: lang === 'ru' ? 'Не обнулять' : 'Keep streak', onPress: () => doSave(false) },
-          { text: lang === 'ru' ? 'Обнулить' : 'Reset', style: 'destructive', onPress: () => doSave(true) },
-        ],
-      );
-    } else {
-      doSave(true);
-    }
   }
 
   return (

@@ -99,10 +99,10 @@ export default function Plan() {
             {lang === 'ru' ? 'Твой контракт' : 'Your contract'}
           </Text>
           <Text style={{ color: t.text, fontSize: 14, lineHeight: 21 }}>
-            • {lang === 'ru' ? 'Режим' : 'Mode'}: <Text style={{ fontWeight: '700' }}>{p.commitmentMode === 'hardcore' ? (lang === 'ru' ? 'Жёсткий' : 'Hardcore') : (lang === 'ru' ? 'Мягкий' : 'Soft')}</Text>
+            • {lang === 'ru' ? 'Чек-ин каждый день в' : 'Daily check-in at'}: <Text style={{ fontWeight: '700' }}>{String(p.checkInHour ?? 21).padStart(2, '0')}:00</Text>
           </Text>
           <Text style={{ color: t.text, fontSize: 14, lineHeight: 21 }}>
-            • {lang === 'ru' ? 'Чек-ин каждый день в' : 'Daily check-in at'}: <Text style={{ fontWeight: '700' }}>{String(p.checkInHour ?? 21).padStart(2, '0')}:00</Text>
+            • {lang === 'ru' ? 'Срыв не обнуляет прогресс — разбираем причину и идём дальше' : 'A slip never resets progress — we analyse the cause and move on'}
           </Text>
           <Text style={{ color: t.text, fontSize: 14, lineHeight: 21 }}>
             • {lang === 'ru' ? 'Если этот метод не сработает — сами поднимем до следующего' : 'If this method does not work — we step up automatically'}

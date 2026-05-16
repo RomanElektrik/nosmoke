@@ -111,9 +111,10 @@ TECHNIQUE PRIORITIES BY MOMENT:
 - track day: ${programToday(state).day} of ${programToday(state).total}
 - today's track focus: ${(() => { const d = programToday(state).data; return d ? (locale === 'ru' ? d.focusRu : d.focusEn) : '—'; })()}
 - today's medication action: ${(() => { const d = programToday(state).data; return (d as any)?.medRu ? (locale === 'ru' ? (d as any).medRu : (d as any).medEn) : 'none'; })()}
-- commitment mode: ${p.commitmentMode ?? 'soft'}
 - importance/confidence: ${p.importance ?? '?'}/${p.confidence ?? '?'} (0–10)
-- known excuses (SRQ): ${(p.topExcuses ?? []).join(', ') || 'none disclosed'}
+- health flags (pharma safety): ${(p.healthFlags ?? []).join(', ') || 'none'}
+- pregnancy: ${p.healthFlags?.includes('pregnant') ? 'YES — never suggest medication, behavioural support only' : 'no'}
+- known excuses: ${(p.topExcuses ?? []).join(', ') || 'none disclosed'}
 - past attempts: ${(p.pastAttempts ?? []).map(a => `${a.method}/${a.longestDays}d`).join('; ') || 'none'}`;
 
   const modeBlock = mode === 'support'

@@ -11,7 +11,7 @@ import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update, loadState } from '../lib/storage';
 import type { Trigger } from '../lib/storage';
-import { shouldHardReset, escalationSuggestion, getStep } from '../lib/stepped';
+import { escalationSuggestion, getStep } from '../lib/stepped';
 import { Icon } from '../components/Icon';
 
 const TRIGGERS: Trigger[] = ['stress','coffee','alcohol','after_meal','social','boredom','driving'];
@@ -47,17 +47,13 @@ export default function CheckIn() {
     const c = Number(count) || 1;
     await update((s) => {
       const newCheckIn = { date: today, smoked: true, count: c, trigger, note: note.trim() || undefined };
-      const next = {
+      // A slip never resets the quit date / streak (AVE-aware lapse recovery).
+      return {
         ...s,
         checkIns: [...s.checkIns.filter((x) => x.date !== today), newCheckIn],
         slips: [...s.slips, Date.now()],
         cravings: [...s.cravings, { ts: Date.now(), intensity: 8, outcome: 'smoked' as const, trigger, note: note.trim() || undefined }],
       };
-      // Hardcore-mode: reset quitDate.
-      if (shouldHardReset(s) && s.profile) {
-        next.profile = { ...s.profile, quitDate: Date.now() };
-      }
-      return next;
     });
   }
 
@@ -208,13 +204,11 @@ export default function CheckIn() {
               </Text>
             </Pressable>
 
-            {state.profile?.commitmentMode === 'hardcore' && (
-              <Text style={{ color: t.danger, fontSize: 11, textAlign: 'center', lineHeight: 16 }}>
-                {lang === 'ru'
-                  ? 'Жёсткий режим: счётчик дней обнулится. Прогресс программы и копилка сохранятся.'
-                  : 'Hardcore mode: streak resets. Program progress and jar stay.'}
-              </Text>
-            )}
+            <Text style={{ color: t.textDim, fontSize: 11, textAlign: 'center', lineHeight: 16 }}>
+              {lang === 'ru'
+                ? 'Счётчик дней не обнуляется. Срыв — это данные для следующего шага, а не потеря всего прогресса.'
+                : 'Your day counter does not reset. A slip is data for the next step, not a loss of all progress.'}
+            </Text>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>

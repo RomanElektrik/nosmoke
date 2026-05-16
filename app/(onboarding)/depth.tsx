@@ -10,12 +10,12 @@ import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, currentLang } from '../../lib/i18n';
 import { update } from '../../lib/storage';
-import type { AttemptMethod, Excuse, CommitmentMode } from '../../lib/storage';
+import type { AttemptMethod, Excuse } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
 
 const tt = (ru: string, en: string) => (currentLang() === 'ru' ? ru : en);
 
-type Step = 0 | 1 | 2 | 3 | 4 | 5;
+type Step = 0 | 1 | 2 | 3 | 4;
 
 export default function Depth() {
   const t = useTheme();
@@ -34,14 +34,12 @@ export default function Depth() {
   // Step 3 — readiness sliders 0-10
   const [importance, setImportance] = useState<number>(7);
   const [confidence, setConfidence] = useState<number>(5);
-  // Step 4 — commitment mode
-  const [commitmentMode, setCommitmentMode] = useState<CommitmentMode>('soft');
-  // Step 5 — daily check-in time
+  // Step 4 — daily check-in time
   const [checkInHour, setCheckInHour] = useState<number>(21);
 
-  const TOTAL_STEPS = 6;
+  const TOTAL_STEPS = 5;
 
-  function next() { Haptics.selectionAsync(); if (step < 5) setStep((step + 1) as Step); else finish(); }
+  function next() { Haptics.selectionAsync(); if (step < 4) setStep((step + 1) as Step); else finish(); }
   function back() { Haptics.selectionAsync(); if (step > 0) setStep((step - 1) as Step); else router.back(); }
 
   async function finish() {
@@ -64,7 +62,7 @@ export default function Depth() {
           importance,
           confidence,
           selfEfficacy: confidence,
-          commitmentMode,
+          commitmentMode: 'soft',
           checkInHour,
         },
       };
@@ -90,15 +88,14 @@ export default function Depth() {
           />}
           {step === 2 && <StepExcuses value={excuses} onChange={setExcuses} />}
           {step === 3 && <StepReadiness importance={importance} confidence={confidence} onImportance={setImportance} onConfidence={setConfidence} />}
-          {step === 4 && <StepCommitment value={commitmentMode} onChange={setCommitmentMode} />}
-          {step === 5 && <StepCheckInTime hour={checkInHour} onChange={setCheckInHour} />}
+          {step === 4 && <StepCheckInTime hour={checkInHour} onChange={setCheckInHour} />}
         </ScrollView>
         <View style={{ flexDirection: 'row', gap: 10, padding: spacing.lg }}>
           <Pressable onPress={back} style={{ paddingHorizontal: 18, paddingVertical: 16, borderRadius: radius.xl, borderWidth: 1, borderColor: t.border }}>
             <Text style={{ color: t.text, fontSize: 16 }}>{tr('common.back')}</Text>
           </Pressable>
           <Pressable onPress={next} style={{ flex: 1, paddingVertical: 18, borderRadius: radius.xl, backgroundColor: t.accent, alignItems: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }}>{step === 5 ? tr('common.done') : tr('common.continue')}</Text>
+            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }}>{step === 4 ? tr('common.done') : tr('common.continue')}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -246,7 +243,7 @@ function StepExcuses({ value, onChange }: { value: Excuse[]; onChange: (v: Excus
   return (
     <View style={{ gap: 16 }}>
       <H1>{tt('Какие из этих мыслей у тебя бывают?', 'Which of these thoughts do you have?')}</H1>
-      <Sub>{tt('Эти оправдания одинаковые у миллионов курильщиков (валидированный опросник SRQ). Зная твои — мы заранее их перебьём.', 'These rationalizations are common among millions of smokers (validated SRQ questionnaire). Knowing yours, we counter them ahead of time.')}</Sub>
+      <Sub>{tt('Эти оправдания одинаковые у миллионов курильщиков. Зная твои — мы заранее их перебьём.', 'These rationalizations are common among millions of smokers. Knowing yours, we counter them ahead of time.')}</Sub>
       <View style={{ gap: 8, marginTop: 4 }}>
         {EXCUSES.map((e) => {
           const sel = value.includes(e.v);
@@ -304,52 +301,8 @@ function StepReadiness({ importance, confidence, onImportance, onConfidence }: a
         <Slider value={confidence} onChange={onConfidence} color="#0A84FF" />
       </View>
       <Sub>
-        {tt('Шкалы из мотивационного интервьюирования (Vangeli 2011). Они помогут помощнику говорить с тобой по делу.', 'MI scales (Vangeli 2011). They help the assistant talk to you precisely.')}
+        {tt('Это поможет ИИ-помощнику говорить с тобой по делу, а не общими словами.', 'This helps the AI assistant talk to you to the point, not in generic words.')}
       </Sub>
-    </View>
-  );
-}
-
-function StepCommitment({ value, onChange }: { value: CommitmentMode; onChange: (v: CommitmentMode) => void }) {
-  const t = useTheme();
-  const opts = [
-    {
-      v: 'soft' as const,
-      title: tt('Мягкий режим', 'Soft mode'),
-      sub: tt('Срыв ≠ ноль. Прогресс не сбрасывается. Анализируем срыв и идём дальше.', 'A slip ≠ zero. Progress is preserved. We analyse and move on.'),
-      science: tt('Доказательно: AVE (abstinence violation effect) — потеря всего после одной сигареты ускоряет полный срыв (Marlatt 1985, Witkiewitz 2004).', 'Evidence: AVE — losing everything after one cigarette accelerates a full relapse (Marlatt 1985, Witkiewitz 2004).'),
-      color: '#34C759',
-    },
-    {
-      v: 'hardcore' as const,
-      title: tt('Жёсткий режим', 'Hardcore mode'),
-      sub: tt('Любая сигарета = полный рестарт счётчика. Сильнее давление, риск AVE-каскада.', 'Any cigarette = full counter restart. Stronger pressure, AVE risk.'),
-      science: tt('Эффект-сайз похож на депозит-контракт (Halpern NEJM 2015). Подходит, если тебя реально подстёгивают цифры.', 'Effect-size similar to deposit-contracts (Halpern NEJM 2015). Fits if numbers really push you.'),
-      color: '#FF453A',
-    },
-  ];
-  return (
-    <View style={{ gap: 16 }}>
-      <H1>{tt('Какой контракт с собой?', 'What contract with yourself?')}</H1>
-      <Sub>{tt('Можно изменить в любой момент в Профиле.', 'Can be changed any time in Profile.')}</Sub>
-      <View style={{ gap: 12, marginTop: 4 }}>
-        {opts.map((o) => {
-          const sel = value === o.v;
-          return (
-            <Pressable key={o.v} onPress={() => { Haptics.selectionAsync(); onChange(o.v); }}
-              style={{
-                padding: 16, borderRadius: radius.lg,
-                backgroundColor: sel ? o.color + '14' : t.bgElev,
-                borderWidth: 1, borderColor: sel ? o.color : t.border,
-                gap: 6,
-              }}>
-              <Text style={{ color: t.text, fontSize: 17, fontWeight: '700' }}>{o.title}</Text>
-              <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>{o.sub}</Text>
-              <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4, lineHeight: 17 }}>{o.science}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
     </View>
   );
 }
@@ -360,7 +313,7 @@ function StepCheckInTime({ hour, onChange }: { hour: number; onChange: (h: numbe
   return (
     <View style={{ gap: 16 }}>
       <H1>{tt('Ежедневный чек-ин', 'Daily check-in')}</H1>
-      <Sub>{tt('Раз в день мы спросим: «Сегодня курил?» Один тап. Это самый сильный поведенческий рычаг по литературе (mHealth Cochrane 2024, RR 1.54).', 'Once a day we ask: "Did you smoke today?" One tap. The strongest behavioural lever in the literature (mHealth Cochrane 2024, RR 1.54).')}</Sub>
+      <Sub>{tt('Раз в день мы спросим: «Сегодня курил?» Один тап. Это один из самых сильных поведенческих приёмов — он держит тебя в контакте с целью.', 'Once a day we ask: "Did you smoke today?" One tap. One of the strongest behavioural tools — it keeps you in contact with your goal.')}</Sub>
       <Text style={{ color: t.textDim, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 6 }}>{tt('В какое время', 'At what time')}</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {presets.map((h) => {
