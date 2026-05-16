@@ -20,6 +20,8 @@ import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped'
 import { getTrack } from '../../lib/tracks';
 import { update } from '../../lib/storage';
 import { todayDoses, isDoseTaken, doseKey, medCourseDay, expectedMedForStep, MED_SAFETY } from '../../lib/medication';
+import { newlyUnlocked, ACHIEVEMENTS, buildContext, achProgress, isAchUnlocked } from '../../lib/achievements';
+import { AchievementUnlock } from '../../components/AchievementUnlock';
 
 export default function Home() {
   const t = useTheme();
@@ -27,11 +29,27 @@ export default function Home() {
   const { t: tr } = useTranslation();
   const [state] = useAppState();
   const [now, setNow] = useState(Date.now());
+  const [unlockQueue, setUnlockQueue] = useState<string[]>([]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Detect & persist newly unlocked achievements, queue them for celebration.
+  useEffect(() => {
+    const fresh = newlyUnlocked(state);
+    if (fresh.length === 0) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    update((s) => ({
+      ...s,
+      achievements: {
+        ...(s.achievements ?? {}),
+        ...Object.fromEntries(fresh.map((id) => [id, Date.now()])),
+      },
+    }));
+    setUnlockQueue((q) => [...q, ...fresh.filter((id) => !q.includes(id))]);
+  }, [state]);
 
   // Auto-activate pending method when its scheduled date arrives.
   useEffect(() => {
@@ -118,6 +136,9 @@ export default function Home() {
 
         {/* Single prioritised action */}
         <TodayFocus secs={secs} />
+
+        {/* Closest achievement to unlock */}
+        <NearAchievement />
 
         {/* Pending start banner */}
         {p.pendingMethod && p.pendingQuitDate && p.pendingQuitDate > Date.now() && (() => {
@@ -208,7 +229,60 @@ export default function Home() {
         <Icon.flame size={20} color="#fff" />
         <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 }}>{tr('home.sos')}</Text>
       </Pressable>
+
+      {unlockQueue.length > 0 && (
+        <AchievementUnlock
+          achId={unlockQueue[0]}
+          onClose={() => setUnlockQueue((q) => q.slice(1))}
+        />
+      )}
     </SafeAreaView>
+  );
+}
+
+// Compact card: the locked achievement closest to unlocking — "something to
+// look forward to" (Kwit pattern). Tapping opens the full achievements wall.
+function NearAchievement() {
+  const t = useTheme();
+  const router = useRouter();
+  const lang = currentLang();
+  const [state] = useAppState();
+  const ctx = buildContext(state);
+  const stored = state.achievements ?? {};
+
+  const locked = ACHIEVEMENTS
+    .filter((a) => !stored[a.id] && !isAchUnlocked(a, ctx))
+    .map((a) => ({ a, prog: achProgress(a, ctx) }))
+    .sort((x, y) => y.prog - x.prog);
+
+  if (locked.length === 0) return null;
+  const { a, prog } = locked[0];
+  const I = Icon[a.icon];
+
+  return (
+    <Pressable onPress={() => router.push('/achievements' as any)}>
+      <View style={{
+        padding: 14, borderRadius: radius.lg,
+        backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+      }}>
+        <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: a.color + '20', alignItems: 'center', justifyContent: 'center' }}>
+          <I size={23} color={a.color} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+            {lang === 'ru' ? 'Скоро достижение' : 'Almost there'}
+          </Text>
+          <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', marginTop: 2 }} numberOfLines={1}>
+            {lang === 'ru' ? a.titleRu : a.titleEn}
+          </Text>
+          <View style={{ height: 5, borderRadius: 5, backgroundColor: t.border, overflow: 'hidden', marginTop: 6 }}>
+            <View style={{ width: `${prog * 100}%`, height: '100%', backgroundColor: a.color }} />
+          </View>
+        </View>
+        <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
+      </View>
+    </Pressable>
   );
 }
 

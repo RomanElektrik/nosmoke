@@ -126,6 +126,7 @@ export type AppState = {
   chatHistories?: Partial<Record<'support' | 'analyze_slip' | 'daily_task', { role: 'user' | 'assistant'; content: string; ts: number }[]>>;
   doseLogs?: { date: string; doseNumber: number; takenAt: number }[];
   aiUsage?: { date: string; count: number };  // free-tier daily AI message counter
+  achievements?: Record<string, number>;       // achievement id → unlocked-at ms
 };
 
 const KEY = 'qs:state:v1';

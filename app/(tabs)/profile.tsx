@@ -46,6 +46,18 @@ export default function Profile() {
 
         <PremiumCard />
 
+        <Pressable onPress={() => router.push('/achievements' as any)}>
+          <GlassCard>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Icon.star size={22} color={t.accent} />
+              <Text style={{ color: t.text, fontSize: 16, fontWeight: '600', flex: 1 }}>
+                {lang === 'ru' ? 'Достижения' : 'Achievements'}
+              </Text>
+              <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
+            </View>
+          </GlassCard>
+        </Pressable>
+
         <HabitCard />
 
         <MethodCard />
