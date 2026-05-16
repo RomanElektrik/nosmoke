@@ -9,6 +9,7 @@ import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, currentLang } from '../../lib/i18n';
 import { TECHNIQUES, Technique } from '../../lib/techniques';
 import { Icon } from '../../components/Icon';
+import { SwipeToHome } from '../../components/SwipeToHome';
 
 const ORDER = [
   'pharma', 'nrt', 'taper',
@@ -48,6 +49,7 @@ export default function Techniques() {
   }
 
   return (
+    <SwipeToHome>
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header */}
@@ -111,6 +113,7 @@ export default function Techniques() {
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
+    </SwipeToHome>
   );
 }
 

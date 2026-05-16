@@ -10,6 +10,7 @@ import { useAppState } from '../../lib/storage';
 import { MILESTONES, secondsClean, progressFor, Milestone } from '../../lib/health';
 import { formatDuration } from '../../lib/money';
 import { Icon } from '../../components/Icon';
+import { SwipeToHome } from '../../components/SwipeToHome';
 
 export default function Health() {
   const t = useTheme();
@@ -32,6 +33,7 @@ export default function Health() {
   const future = MILESTONES.filter((m) => m.at > secs);
 
   return (
+    <SwipeToHome>
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header */}
@@ -84,6 +86,7 @@ export default function Health() {
         {open && <DetailSheet m={open} secs={secs} lang={lang} onClose={() => setOpen(null)} />}
       </Modal>
     </SafeAreaView>
+    </SwipeToHome>
   );
 }
 
