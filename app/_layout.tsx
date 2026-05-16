@@ -4,7 +4,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { loadState, update, useAppState } from '../lib/storage';
-import { useTheme } from '../lib/theme';
+import { useTheme, setThemeId, THEMES, type ThemeId } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
 import { initPurchases } from '../lib/subscription';
 import '../lib/i18n';
@@ -19,6 +19,9 @@ export default function Root() {
   useEffect(() => {
     initPurchases();
     loadState().then(async (s) => {
+      // Apply the saved design style.
+      const tid = s.profile?.themeId;
+      if (tid && THEMES[tid as ThemeId]) setThemeId(tid as ThemeId);
       // Migration: legacy profile without currentStep → auto-recommend.
       if (s.profile && !s.profile.currentStep) {
         const recommended = recommendStep(s.profile);
@@ -81,6 +84,7 @@ export default function Root() {
         <Stack.Screen name="method" />
         <Stack.Screen name="transition" />
         <Stack.Screen name="meds" />
+        <Stack.Screen name="appearance" />
         <Stack.Screen name="med-gate" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="paywall" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="chat" options={{ fullScreenGestureEnabled: false }} />

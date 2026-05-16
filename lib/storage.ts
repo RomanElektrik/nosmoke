@@ -41,7 +41,7 @@ export type Profile = {
   openrouterKey?: string;
   openrouterModel?: string;
   wakeHour?: number;            // 0-23, used for morning hot-zone push
-  themeId?: 'pure' | 'onyx' | 'sand' | 'forest' | 'aurora';
+  themeId?: string;   // ThemeId from lib/theme — design style
   medication?: 'varenicline' | 'cytisine' | 'bupropion' | null;
   medicationStartedAt?: number;
   // Stepped-care
