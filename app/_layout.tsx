@@ -82,6 +82,8 @@ export default function Root() {
         <Stack.Screen name="transition" />
         <Stack.Screen name="meds" />
         <Stack.Screen name="achievements" />
+        <Stack.Screen name="articles" />
+        <Stack.Screen name="article/[id]" />
         <Stack.Screen name="med-gate" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="paywall" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="chat" options={{ fullScreenGestureEnabled: false }} />

@@ -19,6 +19,7 @@ import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped'
 import { todayDoses, isDoseTaken, expectedMedForStep, MED_SAFETY } from '../../lib/medication';
 import { newlyUnlocked, ACHIEVEMENTS, buildContext, achProgress, isAchUnlocked } from '../../lib/achievements';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
+import { ARTICLES } from '../../lib/articles';
 
 export default function Home() {
   const t = useTheme();
@@ -200,6 +201,9 @@ export default function Home() {
             title={tr('tabs.techniques')}
             onPress={() => router.push('/(tabs)/techniques')} />
         </View>
+
+        {/* Knowledge — coping articles */}
+        <KnowledgeSection />
       </ScrollView>
 
       {unlockQueue.length > 0 && (
@@ -304,6 +308,55 @@ function BreathingDrop({ secs, lang }: { secs: number; lang: 'ru' | 'en' }) {
           {unit}
         </Text>
       </View>
+    </View>
+  );
+}
+
+// Knowledge — 3 rotating coping articles + link to the full list.
+function KnowledgeSection() {
+  const t = useTheme();
+  const router = useRouter();
+  const lang = currentLang();
+  const start = Math.floor(Date.now() / 86400_000) % ARTICLES.length;
+  const featured = [0, 1, 2].map((i) => ARTICLES[(start + i) % ARTICLES.length]);
+
+  return (
+    <View style={{ gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+        <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase', marginLeft: 6 }}>
+          {lang === 'ru' ? 'Знание' : 'Knowledge'}
+        </Text>
+        <Pressable onPress={() => router.push('/articles' as any)} hitSlop={8}>
+          <Text style={{ color: t.accent, fontSize: 13, fontWeight: '600', marginRight: 6 }}>
+            {lang === 'ru' ? 'Все статьи' : 'All articles'}
+          </Text>
+        </Pressable>
+      </View>
+      {featured.map((a) => {
+        const I = Icon[a.icon];
+        return (
+          <Pressable key={a.id} onPress={() => router.push(`/article/${a.id}` as any)}
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 14,
+              backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
+              borderRadius: radius.lg, padding: 14,
+            }}>
+            <View style={{ width: 46, height: 46, borderRadius: 14, flexShrink: 0,
+              backgroundColor: a.color + '1E', alignItems: 'center', justifyContent: 'center' }}>
+              <I size={23} color={a.color} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }} numberOfLines={2}>
+                {lang === 'ru' ? a.titleRu : a.titleEn}
+              </Text>
+              <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+                {lang === 'ru' ? a.leadRu : a.leadEn}
+              </Text>
+            </View>
+            <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
