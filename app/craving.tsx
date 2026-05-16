@@ -21,6 +21,7 @@ export default function Craving() {
   const [intensity, setIntensity] = useState(6);
   const [trigger, setTrigger] = useState<Trigger | undefined>();
   const [outcome, setOutcome] = useState<'resisted' | 'smoked' | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   async function save() {
     if (!outcome) return;
@@ -52,46 +53,76 @@ export default function Craving() {
           </>
         )}
 
-        {phase === 'choose' && (
-          <>
-            <Text style={{ color: t.text, fontSize: 18, fontWeight: '600' }}>{tr('sos.next')}</Text>
-            {[
-              { icon: Icon.feather,  color: '#0A84FF', label: tr('sos.opt_surf'),
-                onPress: () => router.push('/practice/urge_surf') },
-              { icon: Icon.wind,     color: '#5AC8FA', label: tr('tech.cyclic.t'),
-                onPress: () => router.push('/practice/cyclic_sigh') },
-              { icon: Icon.sparkle,  color: '#BF5AF2', label: tr('tech.ground.t'),
-                onPress: () => router.push('/practice/grounding') },
-              { icon: Icon.pulse,    color: '#FF9F0A', label: tr('practice.halt.title'),
-                onPress: () => router.push('/practice/halt_check') },
-              { icon: Icon.drop,     color: '#5AC8FA', label: tr('tech.replace.t'),
-                onPress: () => router.push('/practice/replace') },
-              { icon: Icon.chat,     color: '#30D158', label: tr('sos.opt_coach'),
-                onPress: () => router.replace('/(tabs)/coach') },
-              ...(state.profile?.faithEnabled ? [{
-                icon: Icon.cross, color: '#FF9500', label: tr('sos.opt_pray'),
-                onPress: () => router.replace('/faith'),
-              }] : []),
-            ].map((o, i) => (
-              <Pressable key={i} onPress={o.onPress}
-                style={{
-                  padding: 14, borderRadius: radius.md, backgroundColor: t.bgElev,
-                  borderWidth: 1, borderColor: t.border,
-                  flexDirection: 'row', alignItems: 'center', gap: 12,
-                }}>
-                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: o.color + '22', alignItems: 'center', justifyContent: 'center' }}>
-                  <o.icon size={20} color={o.color} />
+        {phase === 'choose' && (() => {
+          const ru = (state.profile?.language ?? 'ru') === 'ru';
+          // ONE recommended action — urge surfing is the evidence-based craving-moment skill.
+          const others = [
+            { icon: Icon.wind,    color: '#5AC8FA', label: tr('tech.cyclic.t'),       onPress: () => router.push('/practice/cyclic_sigh') },
+            { icon: Icon.sparkle, color: '#BF5AF2', label: tr('tech.ground.t'),       onPress: () => router.push('/practice/grounding') },
+            { icon: Icon.pulse,   color: '#FF9F0A', label: tr('practice.halt.title'), onPress: () => router.push('/practice/halt_check') },
+            { icon: Icon.drop,    color: '#5AC8FA', label: tr('tech.replace.t'),      onPress: () => router.push('/practice/replace') },
+            { icon: Icon.chat,    color: '#30D158', label: tr('sos.opt_coach'),       onPress: () => router.replace('/(tabs)/coach') },
+            ...(state.profile?.faithEnabled ? [{
+              icon: Icon.cross, color: '#FF9500', label: tr('sos.opt_pray'),
+              onPress: () => router.replace('/faith'),
+            }] : []),
+          ];
+          return (
+            <>
+              <Text style={{ color: t.text, fontSize: 18, fontWeight: '600' }}>{tr('sos.next')}</Text>
+
+              {/* Primary recommended action */}
+              <Pressable onPress={() => router.push('/practice/urge_surf')}
+                style={{ padding: 18, borderRadius: radius.lg, backgroundColor: '#0A84FF14', borderWidth: 1, borderColor: '#0A84FF50', gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#0A84FF24', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon.feather size={26} color="#0A84FF" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#0A84FF', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+                      {ru ? 'Сделай сейчас' : 'Do this now'}
+                    </Text>
+                    <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', marginTop: 2 }}>{tr('sos.opt_surf')}</Text>
+                  </View>
                 </View>
-                <Text style={{ color: t.text, fontSize: 16, flex: 1 }}>{o.label}</Text>
-                <Icon.arrowRight size={16} color={t.textDim} />
+                <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 19 }}>
+                  {ru
+                    ? 'Тяга — это волна: она нарастает и спадает за 3–5 минут. Прокатись на ней, не туши.'
+                    : 'A craving is a wave — it rises and falls within 3–5 minutes. Surf it instead of fighting.'}
+                </Text>
               </Pressable>
-            ))}
-            <Pressable onPress={() => setPhase('log')}
-              style={{ padding: 14, alignItems: 'center', marginTop: 8 }}>
-              <Text style={{ color: t.accent, fontWeight: '600' }}>{tr('sos.result_q')}</Text>
-            </Pressable>
-          </>
-        )}
+
+              {!showAll ? (
+                <Pressable onPress={() => { Haptics.selectionAsync(); setShowAll(true); }}
+                  style={{ padding: 12, alignItems: 'center' }}>
+                  <Text style={{ color: t.accent, fontWeight: '600' }}>
+                    {ru ? 'Другие техники' : 'Other techniques'}
+                  </Text>
+                </Pressable>
+              ) : (
+                others.map((o, i) => (
+                  <Pressable key={i} onPress={o.onPress}
+                    style={{
+                      padding: 14, borderRadius: radius.md, backgroundColor: t.bgElev,
+                      borderWidth: 1, borderColor: t.border,
+                      flexDirection: 'row', alignItems: 'center', gap: 12,
+                    }}>
+                    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: o.color + '22', alignItems: 'center', justifyContent: 'center' }}>
+                      <o.icon size={20} color={o.color} />
+                    </View>
+                    <Text style={{ color: t.text, fontSize: 16, flex: 1 }}>{o.label}</Text>
+                    <Icon.arrowRight size={16} color={t.textDim} />
+                  </Pressable>
+                ))
+              )}
+
+              <Pressable onPress={() => { Haptics.selectionAsync(); setPhase('log'); }}
+                style={{ padding: 16, marginTop: 8, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, backgroundColor: t.bgElev, alignItems: 'center' }}>
+                <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>{tr('sos.result_q')}</Text>
+              </Pressable>
+            </>
+          );
+        })()}
 
         {phase === 'log' && (
           <>

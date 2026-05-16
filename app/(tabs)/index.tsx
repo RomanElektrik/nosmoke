@@ -116,6 +116,9 @@ export default function Home() {
             label={lang === 'ru' ? 'жизни' : 'life'} mono />
         </View>
 
+        {/* Today focus — single prioritised action + crisis-day support */}
+        <TodayFocus secs={secs} />
+
         {/* Pending start banner */}
         {p.pendingMethod && p.pendingQuitDate && p.pendingQuitDate > Date.now() && (() => {
           const newStep = getStep(p.pendingMethod);
@@ -295,6 +298,94 @@ export default function Home() {
         <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 }}>{tr('home.sos')}</Text>
       </Pressable>
     </SafeAreaView>
+  );
+}
+
+// Single prioritised "do this now" card. Days 1–6 = peak-abstinence crisis window
+// (research: days 2–5 are subjectively the hardest, the main retention drop-off).
+function TodayFocus({ secs }: { secs: number }) {
+  const t = useTheme();
+  const router = useRouter();
+  const lang = currentLang();
+  const [state] = useAppState();
+  if (!state.profile) return null;
+
+  const days = Math.floor(secs / 86400);
+  const inCrisis = days >= 0 && days <= 6;
+  const today = new Date().toISOString().slice(0, 10);
+  const checkDone = !!state.checkIns.find((c) => c.date === today);
+
+  // Medication dose overdue today?
+  let medOverdue = false;
+  if (state.profile.medication) {
+    const { schedule } = todayDoses(state, lang);
+    const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+    medOverdue = schedule.some((d) => (d.hour * 60 + d.minute) <= nowMin && !isDoseTaken(state, today, d.doseNumber));
+  }
+
+  // Priority: overdue medication → daily check-in → breathing practice.
+  let action: { label: string; sub: string; href: string; color: string; icon: any };
+  if (medOverdue) {
+    action = {
+      label: lang === 'ru' ? 'Приём препарата' : 'Take your medication',
+      sub: lang === 'ru' ? 'Есть доза, которую пора принять' : 'A dose is due now',
+      href: '/meds', color: '#0A84FF', icon: Icon.shield,
+    };
+  } else if (!checkDone) {
+    action = {
+      label: lang === 'ru' ? 'Чек-ин дня' : 'Daily check-in',
+      sub: lang === 'ru' ? 'Один тап — ответь честно' : 'One tap — be honest',
+      href: '/checkin', color: '#34C759', icon: Icon.pulse,
+    };
+  } else {
+    action = {
+      label: lang === 'ru' ? '5 минут дыхания' : '5 minutes of breathing',
+      sub: lang === 'ru' ? 'Снизит тягу и стресс прямо сейчас' : 'Lowers craving and stress right now',
+      href: '/practice/cyclic_sigh', color: '#0A84FF', icon: Icon.wind,
+    };
+  }
+
+  const crisisMsg = lang === 'ru'
+    ? (days <= 1 ? 'Первые часы — самые шумные. Это нормально и это пройдёт.'
+      : days <= 3 ? `День ${days + 1}. Это пик: тяга сильнее всего на 2–4 день. Дальше станет легче — держись.`
+      : `День ${days + 1}. Самое тяжёлое уже позади или рядом. Каждый прожитый день ослабляет тягу.`)
+    : (days <= 1 ? 'The first hours are the loudest. This is normal and it passes.'
+      : days <= 3 ? `Day ${days + 1}. This is the peak — craving is strongest on days 2–4. It eases after — hold on.`
+      : `Day ${days + 1}. The hardest part is near or behind you. Every day weakens the craving.`);
+
+  const I = action.icon;
+  return (
+    <View style={{ gap: 10 }}>
+      {inCrisis && (
+        <View style={{
+          padding: 12, borderRadius: radius.md,
+          backgroundColor: '#FF9F0A14', borderWidth: 1, borderColor: '#FF9F0A40',
+          flexDirection: 'row', alignItems: 'center', gap: 10,
+        }}>
+          <Icon.heart size={18} color="#FF9F0A" />
+          <Text style={{ color: t.text, fontSize: 13, flex: 1, lineHeight: 18 }}>{crisisMsg}</Text>
+        </View>
+      )}
+      <Pressable onPress={() => { Haptics.selectionAsync(); router.push(action.href as any); }}>
+        <View style={{
+          padding: 16, borderRadius: radius.lg,
+          backgroundColor: action.color + '14', borderWidth: 1, borderColor: action.color + '50',
+          flexDirection: 'row', alignItems: 'center', gap: 14,
+        }}>
+          <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: action.color + '28', alignItems: 'center', justifyContent: 'center' }}>
+            <I size={28} color={action.color} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: action.color, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+              {lang === 'ru' ? 'Сделай сейчас' : 'Do this now'}
+            </Text>
+            <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', marginTop: 2 }}>{action.label}</Text>
+            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>{action.sub}</Text>
+          </View>
+          <Text style={{ color: action.color, fontSize: 20 }}>›</Text>
+        </View>
+      </Pressable>
+    </View>
   );
 }
 
