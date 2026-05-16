@@ -42,9 +42,9 @@ export default function ArticleScreen() {
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
         {ARTICLE_IMAGES[a.id]
-          ? <Image source={ARTICLE_IMAGES[a.id]} style={{ width: '100%', aspectRatio: 16 / 9 }} resizeMode="cover" />
+          ? <Image source={ARTICLE_IMAGES[a.id]} style={{ width: '100%', height: 168 }} resizeMode="cover" />
           : <LinearGradient colors={[a.color + '38', a.color + '0A']}
-              style={{ width: '100%', aspectRatio: 16 / 9, alignItems: 'center', justifyContent: 'center' }}>
+              style={{ width: '100%', height: 168, alignItems: 'center', justifyContent: 'center' }}>
               <I size={64} color={a.color} />
             </LinearGradient>}
       <View style={{ padding: spacing.lg, gap: 14 }}>
