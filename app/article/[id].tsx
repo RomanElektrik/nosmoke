@@ -55,9 +55,20 @@ export default function ArticleScreen() {
           {ru ? a.titleRu : a.titleEn}
         </Text>
 
-        {body.map((p, i) => (
-          <Text key={i} style={{ color: t.text, fontSize: 16, lineHeight: 25 }}>{p}</Text>
-        ))}
+        {body.map((block, i) =>
+          block.type === 'h' ? (
+            <Text
+              key={i}
+              style={{
+                color: a.color, fontSize: 19, fontWeight: '800',
+                letterSpacing: -0.3, lineHeight: 25, marginTop: 14,
+              }}>
+              {block.text}
+            </Text>
+          ) : (
+            <Text key={i} style={{ color: t.text, fontSize: 16, lineHeight: 25 }}>{block.text}</Text>
+          ),
+        )}
 
         {/* Takeaway */}
         <View style={{
