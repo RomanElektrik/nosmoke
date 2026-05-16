@@ -44,17 +44,19 @@ export default function Transition() {
   const [bridgePerDay, setBridgePerDay] = useState<string>('');
   const [prep, setPrep] = useState<{ id: string; done: boolean }[]>([]);
 
-  if (!p) return null;
-  const fager = p.fagerstromScore ?? 0;
+  // Hooks must run unconditionally — never place an early return before them.
+  const fager = p?.fagerstromScore ?? 0;
   const alts: StepLevel[] = useMemo(
-    () => alternativesFor(p.currentStep, fager, pharmaBlocked(p)),
-    [p.currentStep, fager, p.healthFlags],
+    () => alternativesFor(p?.currentStep, fager, pharmaBlocked(p)),
+    [p?.currentStep, fager, p?.healthFlags],
   );
+
+  if (!p) return null;
   const recommended = recommendStep(p);
   const slips7 = state.slips.filter((ts) => ts > Date.now() - 7 * 86400_000).length;
   const slipsTotal = state.slips.length;
 
-  function close() { router.back(); }
+  function close() { router.canGoBack() ? router.back() : router.replace('/(tabs)'); }
 
   // ---------- 1. REALITY CHECK ----------
   if (phase === 'reality') {

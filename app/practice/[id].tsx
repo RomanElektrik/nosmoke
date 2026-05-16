@@ -759,6 +759,7 @@ function Replace({ onDone }: { onDone: () => void }) {
   const [pick, setPick] = useState(() => list[Math.floor(Math.random() * list.length)]);
   function reroll() {
     Haptics.selectionAsync();
+    if (list.length < 2) return; // nothing else to roll to — avoid infinite loop
     let next = pick;
     while (next === pick) next = list[Math.floor(Math.random() * list.length)];
     setPick(next);

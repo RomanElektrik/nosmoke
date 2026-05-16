@@ -69,7 +69,7 @@ export default function Faith() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: spacing.md }}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} hitSlop={12}>
           <Text style={{ color: t.accent, fontSize: 17 }}>← {tr('common.back')}</Text>
         </Pressable>
       </View>
@@ -135,7 +135,7 @@ export default function Faith() {
           </Text>
         </GlassCard>
 
-        <Pressable onPress={() => router.back()}
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
           style={{ marginTop: 16, padding: 16, borderRadius: radius.xl, backgroundColor: t.accent, alignItems: 'center' }}>
           <Text style={{ color: '#fff', fontWeight: '600' }}>{tr('common.done')}</Text>
         </Pressable>
