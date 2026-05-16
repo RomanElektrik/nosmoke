@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Smoke-Free" },
+  "app": {
+    "name": "Smoke-Free"
+  },
   "common": {
     "continue": "Continue",
     "back": "Back",
@@ -96,11 +98,26 @@
     "result_title": "Your type:",
     "result_cta": "Continue",
     "arch": {
-      "anxious":  { "t": "Anxious",   "tip": "For you, smoking is anxiolytic. Bet on 4-4-4-4 breathing, 10-min walks, 5-4-3-2-1 grounding." },
-      "social":   { "t": "Social",    "tip": "You smoke in company. Prepare a \"no, thanks\" line and a hand-replacement ritual (water, nut, gripper)." },
-      "habitual": { "t": "Habitual",  "tip": "It's autopilot. Break triggers: change coffee spot, route, timing. If-then plans." },
-      "reward":   { "t": "Rewarder",  "tip": "You chase dopamine. Activate the savings jar as a visible reward + a new pleasure ritual." },
-      "identity": { "t": "Identity-driven", "tip": "\"I'm a smoker\" is core to you. Work on self-definition and values. You are more than your habit." }
+      "anxious": {
+        "t": "Anxious",
+        "tip": "For you, smoking is anxiolytic. Bet on 4-4-4-4 breathing, 10-min walks, 5-4-3-2-1 grounding."
+      },
+      "social": {
+        "t": "Social",
+        "tip": "You smoke in company. Prepare a \"no, thanks\" line and a hand-replacement ritual (water, nut, gripper)."
+      },
+      "habitual": {
+        "t": "Habitual",
+        "tip": "It's autopilot. Break triggers: change coffee spot, route, timing. If-then plans."
+      },
+      "reward": {
+        "t": "Rewarder",
+        "tip": "You chase dopamine. Activate the savings jar as a visible reward + a new pleasure ritual."
+      },
+      "identity": {
+        "t": "Identity-driven",
+        "tip": "\"I'm a smoker\" is core to you. Work on self-definition and values. You are more than your habit."
+      }
     }
   },
   "tabs": {
@@ -108,7 +125,9 @@
     "health": "Health",
     "techniques": "Techniques",
     "coach": "Assistant",
-    "profile": "Me"
+    "profile": "Me",
+    "path": "Path",
+    "awards": "Awards"
   },
   "home": {
     "clean_for": "Smoke-free",
@@ -127,42 +146,150 @@
     "upcoming": "Upcoming",
     "in": "in {{time}}",
     "source": "Source: {{src}}",
-    "m20": { "t": "Heart rate and BP normalize", "b": "20 minutes after the last cigarette, vessels relax and blood pressure drops." },
-    "h8": { "t": "Carbon monoxide halved", "b": "In 8–12 hours CO drops in half; oxygen returns to tissues. (CDC)" },
-    "d1": { "t": "Blood chemistry normalizes", "b": "Within 24 hours oxygenation and vascular tone recover. Long-term MI risk decline starts here. (Surgeon General 2020)" },
-    "d2": { "t": "Taste and smell", "b": "Nicotine has fully left your body. Senses come back." },
-    "d3": { "t": "Bronchi relax", "b": "Breathing gets easier, endurance grows." },
-    "w2": { "t": "Circulation and lungs", "b": "Circulation improves; lung function up to +30%." },
-    "m1": { "t": "Less coughing", "b": "Cilia regenerate and start clearing your lungs." },
-    "m9": { "t": "Lungs near non-smoker", "b": "Smoker's cough and shortness of breath subside." },
-    "y1": { "t": "Excess CHD risk halved", "b": "After one year, excess coronary heart disease risk drops by ~half. (Surgeon General 2020)" },
-    "y5": { "t": "Stroke risk approaches normal", "b": "Over 5–15 years, stroke risk approaches that of a never-smoker. (Surgeon General 2020)" },
-    "y10": { "t": "Lung cancer halved", "b": "Lung cancer risk drops by half." },
-    "y15": { "t": "Heart like new", "b": "Coronary heart disease risk equals a non-smoker's." }
+    "m20": {
+      "t": "Heart rate and BP normalize",
+      "b": "20 minutes after the last cigarette, vessels relax and blood pressure drops."
+    },
+    "h8": {
+      "t": "Carbon monoxide halved",
+      "b": "In 8–12 hours CO drops in half; oxygen returns to tissues. (CDC)"
+    },
+    "d1": {
+      "t": "Blood chemistry normalizes",
+      "b": "Within 24 hours oxygenation and vascular tone recover. Long-term MI risk decline starts here. (Surgeon General 2020)"
+    },
+    "d2": {
+      "t": "Taste and smell",
+      "b": "Nicotine has fully left your body. Senses come back."
+    },
+    "d3": {
+      "t": "Bronchi relax",
+      "b": "Breathing gets easier, endurance grows."
+    },
+    "w2": {
+      "t": "Circulation and lungs",
+      "b": "Circulation improves; lung function up to +30%."
+    },
+    "m1": {
+      "t": "Less coughing",
+      "b": "Cilia regenerate and start clearing your lungs."
+    },
+    "m9": {
+      "t": "Lungs near non-smoker",
+      "b": "Smoker's cough and shortness of breath subside."
+    },
+    "y1": {
+      "t": "Excess CHD risk halved",
+      "b": "After one year, excess coronary heart disease risk drops by ~half. (Surgeon General 2020)"
+    },
+    "y5": {
+      "t": "Stroke risk approaches normal",
+      "b": "Over 5–15 years, stroke risk approaches that of a never-smoker. (Surgeon General 2020)"
+    },
+    "y10": {
+      "t": "Lung cancer halved",
+      "b": "Lung cancer risk drops by half."
+    },
+    "y15": {
+      "t": "Heart like new",
+      "b": "Coronary heart disease risk equals a non-smoker's."
+    }
   },
   "tech": {
     "title": "Techniques",
     "evidence_A": "Strong evidence",
     "evidence_B": "Good evidence",
     "evidence_C": "Supportive",
-    "fager": { "t": "Fagerström test", "s": "Score your dependence in 2 minutes", "b": "6 questions about your habit. Score 0–10 guides whether NRT is needed and at what dose. Not a diagnosis — a reason to talk to a clinician." },
-    "cbt": { "t": "Cognitive Behavioral Therapy", "s": "Rewrite the automatic thought", "b": "Notice the thought (\"I can't cope without it\"), test it, replace with a realistic one. 5 minutes daily — as effective as a session." },
-    "surf": { "t": "Urge surfing", "s": "Ride the wave of craving", "b": "A craving is a wave: it builds for 1–2 minutes, peaks, fades in 2–3. Don't fight — observe. Where in the body? Warm or cold? It always passes." },
-    "box": { "t": "Box breathing 4-4-4-4", "s": "60 seconds and the peak passes", "b": "Inhale 4 — hold 4 — exhale 4 — hold 4. Activates the parasympathetic system, dampens the stress response." },
-    "halt": { "t": "HALT check", "s": "Hungry? Angry? Lonely? Tired?", "b": "Before lighting up, ask: am I one of these? Often the real need isn't nicotine." },
-    "ifthen": { "t": "If-then plan", "s": "Decide your move ahead of time", "b": "\"If offered at work, I take nuts and step outside for 5 min.\" Pre-made scripts work where willpower has already drained." },
-    "nrt": { "t": "Nicotine replacement", "s": "Patch, gum, spray", "b": "NRT roughly doubles success. Dose follows your Fagerström score. Not swapping addictions — a smooth taper off nicotine." },
-    "mind": { "t": "Mindfulness 10 min", "s": "Train your attention", "b": "Brewer's \"Craving to Quit\" lowers craving via mindful observation. 10 minutes a morning drops your reactivity." },
-    "taper": { "t": "Taper down", "s": "Minus 25% per week", "b": "If cold turkey isn't working, drop 25% weekly. By week 4 — zero. Log it." },
-    "ema": { "t": "Craving journal", "s": "One tap per episode", "b": "Log every craving: 1–10, trigger, action. In 2 weeks you'll see your patterns better than any therapist." },
-    "money": { "t": "Money jar", "s": "Watch the savings grow", "b": "Each unsmoked cigarette is a coin in the jar. Set a goal and spend the savings on it." },
-    "contract": { "t": "Social contract", "s": "Tell someone close", "b": "One person, weekly check-in. Social commitment triples your odds." },
-    "replace": { "t": "Replace the ritual", "s": "What instead of a cigarette", "b": "A nut, a glass of water, a hand gripper, a 5-minute walk, cold water on the wrists. The body learns a new ritual." },
-    "faith": { "t": "Prayer and scripture", "s": "Anchor when reason isn't enough", "b": "A morning prayer, short scripture on freedom from compulsions. Toggle in your profile." },
-    "cyclic": { "t": "Cyclic sighing", "s": "Double inhale + long exhale", "b": "Balban 2023 (Cell Reports Medicine): 5 minutes of double-inhale + extended exhale beats mindfulness on mood and HRV. Faster and stronger than box breathing." },
-    "pharma": { "t": "Medications", "s": "Varenicline, cytisine, NRT, bupropion", "b": "The strongest medical lever. Varenicline: RR 2.33 vs placebo. Cytisine: roughly equal to varenicline, much cheaper. Combined NRT: gold standard for self-quit. Reference, not prescription — talk to a clinician." },
-    "ground": { "t": "Grounding 5-4-3-2-1", "s": "Back into the body, away from craving", "b": "5 things you see — 4 you hear — 3 you feel on skin — 2 smells — 1 taste. Brings prefrontal cortex back online." },
-    "reframe": { "t": "Thought reframe", "s": "Catch — challenge — replace", "b": "1) Write the automatic thought. 2) Find 2 facts that contradict it. 3) Write a realistic replacement. CBT core." },
+    "fager": {
+      "t": "Fagerström test",
+      "s": "Score your dependence in 2 minutes",
+      "b": "6 questions about your habit. Score 0–10 guides whether NRT is needed and at what dose. Not a diagnosis — a reason to talk to a clinician."
+    },
+    "cbt": {
+      "t": "Cognitive Behavioral Therapy",
+      "s": "Rewrite the automatic thought",
+      "b": "Notice the thought (\"I can't cope without it\"), test it, replace with a realistic one. 5 minutes daily — as effective as a session."
+    },
+    "surf": {
+      "t": "Urge surfing",
+      "s": "Ride the wave of craving",
+      "b": "A craving is a wave: it builds for 1–2 minutes, peaks, fades in 2–3. Don't fight — observe. Where in the body? Warm or cold? It always passes."
+    },
+    "box": {
+      "t": "Box breathing 4-4-4-4",
+      "s": "60 seconds and the peak passes",
+      "b": "Inhale 4 — hold 4 — exhale 4 — hold 4. Activates the parasympathetic system, dampens the stress response."
+    },
+    "halt": {
+      "t": "HALT check",
+      "s": "Hungry? Angry? Lonely? Tired?",
+      "b": "Before lighting up, ask: am I one of these? Often the real need isn't nicotine."
+    },
+    "ifthen": {
+      "t": "If-then plan",
+      "s": "Decide your move ahead of time",
+      "b": "\"If offered at work, I take nuts and step outside for 5 min.\" Pre-made scripts work where willpower has already drained."
+    },
+    "nrt": {
+      "t": "Nicotine replacement",
+      "s": "Patch, gum, spray",
+      "b": "NRT roughly doubles success. Dose follows your Fagerström score. Not swapping addictions — a smooth taper off nicotine."
+    },
+    "mind": {
+      "t": "Mindfulness 10 min",
+      "s": "Train your attention",
+      "b": "Brewer's \"Craving to Quit\" lowers craving via mindful observation. 10 minutes a morning drops your reactivity."
+    },
+    "taper": {
+      "t": "Taper down",
+      "s": "Minus 25% per week",
+      "b": "If cold turkey isn't working, drop 25% weekly. By week 4 — zero. Log it."
+    },
+    "ema": {
+      "t": "Craving journal",
+      "s": "One tap per episode",
+      "b": "Log every craving: 1–10, trigger, action. In 2 weeks you'll see your patterns better than any therapist."
+    },
+    "money": {
+      "t": "Money jar",
+      "s": "Watch the savings grow",
+      "b": "Each unsmoked cigarette is a coin in the jar. Set a goal and spend the savings on it."
+    },
+    "contract": {
+      "t": "Social contract",
+      "s": "Tell someone close",
+      "b": "One person, weekly check-in. Social commitment triples your odds."
+    },
+    "replace": {
+      "t": "Replace the ritual",
+      "s": "What instead of a cigarette",
+      "b": "A nut, a glass of water, a hand gripper, a 5-minute walk, cold water on the wrists. The body learns a new ritual."
+    },
+    "faith": {
+      "t": "Prayer and scripture",
+      "s": "Anchor when reason isn't enough",
+      "b": "A morning prayer, short scripture on freedom from compulsions. Toggle in your profile."
+    },
+    "cyclic": {
+      "t": "Cyclic sighing",
+      "s": "Double inhale + long exhale",
+      "b": "Balban 2023 (Cell Reports Medicine): 5 minutes of double-inhale + extended exhale beats mindfulness on mood and HRV. Faster and stronger than box breathing."
+    },
+    "pharma": {
+      "t": "Medications",
+      "s": "Varenicline, cytisine, NRT, bupropion",
+      "b": "The strongest medical lever. Varenicline: RR 2.33 vs placebo. Cytisine: roughly equal to varenicline, much cheaper. Combined NRT: gold standard for self-quit. Reference, not prescription — talk to a clinician."
+    },
+    "ground": {
+      "t": "Grounding 5-4-3-2-1",
+      "s": "Back into the body, away from craving",
+      "b": "5 things you see — 4 you hear — 3 you feel on skin — 2 smells — 1 taste. Brings prefrontal cortex back online."
+    },
+    "reframe": {
+      "t": "Thought reframe",
+      "s": "Catch — challenge — replace",
+      "b": "1) Write the automatic thought. 2) Find 2 facts that contradict it. 3) Write a realistic replacement. CBT core."
+    },
     "start": "Start practice",
     "open": "Details",
     "filter_all": "All",
@@ -176,11 +303,16 @@
     "halt": {
       "title": "HALT check",
       "intro": "Before lighting up — 4 short questions. Often the real need isn't nicotine.",
-      "h": "Am I hungry?", "h_hint": "If yes — eat something with protein, recheck the craving in 10 minutes.",
-      "a": "Am I angry / wired?", "a_hint": "If yes — 10 long exhales or 20 squats.",
-      "l": "Am I lonely?", "l_hint": "If yes — text one person. Even \"hi\".",
-      "t": "Am I tired?", "t_hint": "If yes — 5 minutes lying down, legs above head. Not a cigarette.",
-      "yes": "Yes", "no": "No",
+      "h": "Am I hungry?",
+      "h_hint": "If yes — eat something with protein, recheck the craving in 10 minutes.",
+      "a": "Am I angry / wired?",
+      "a_hint": "If yes — 10 long exhales or 20 squats.",
+      "l": "Am I lonely?",
+      "l_hint": "If yes — text one person. Even \"hi\".",
+      "t": "Am I tired?",
+      "t_hint": "If yes — 5 minutes lying down, legs above head. Not a cigarette.",
+      "yes": "Yes",
+      "no": "No",
       "done_title": "Done",
       "done_text": "You saw what hides under the craving. Now you have a choice."
     },

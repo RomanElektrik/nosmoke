@@ -4,22 +4,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, currentLang } from '../../lib/i18n';
-import { useAppState } from '../../lib/storage';
+import { useAppState, update } from '../../lib/storage';
 import { secondsClean, nextMilestone, progressFor } from '../../lib/health';
 import {
   moneySaved, cigsAvoided, lifeRegainedSeconds,
   formatMoneyLive, formatDurationLive, formatCigs, formatDuration,
 } from '../../lib/money';
-import { StreakRing } from '../../components/StreakRing';
 import { Icon } from '../../components/Icon';
-import { MoneyJar } from '../../components/MoneyJar';
-import { programToday, currentLevel, nextLevel, levelProgress, cravingsSurvived, checkInStreak, programPhase, LEVELS } from '../../lib/program';
+import { programToday } from '../../lib/program';
 import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped';
-import { getTrack } from '../../lib/tracks';
-import { update } from '../../lib/storage';
-import { todayDoses, isDoseTaken, doseKey, medCourseDay, expectedMedForStep, MED_SAFETY } from '../../lib/medication';
+import { todayDoses, isDoseTaken, expectedMedForStep, MED_SAFETY } from '../../lib/medication';
 import { newlyUnlocked, ACHIEVEMENTS, buildContext, achProgress, isAchUnlocked } from '../../lib/achievements';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
 
@@ -78,73 +75,71 @@ export default function Home() {
   const p = state.profile;
   const secs = secondsClean(p.quitDate, now);
   const next = nextMilestone(secs);
-  const progress = next ? progressFor(next, secs) : 1;
   const lang = currentLang();
-  const lvl = currentLevel(secs);
-  const programDay = programToday(state);
-  const survived = cravingsSurvived(state);
-  const checkStreak = checkInStreak(state);
-  const phase = programPhase(state);
   const localeStr = lang === 'ru' ? 'ru-RU' : 'en-US';
 
   const days = Math.floor(secs / 86400);
-  const ringLabel = days >= 1 ? `${days}` : `${Math.floor(secs / 3600)}h`;
-  const ringSub = days >= 1 ? (lang === 'ru' ? 'дней без сигарет' : 'days smoke-free') : '';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      {/* Atmosphere gradient */}
       <LinearGradient
-        colors={[t.accentSoft, 'transparent']}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 360 }}
+        colors={[t.accentSoft, t.accentSoft, 'transparent']}
+        locations={[0, 0.35, 1]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 420 }}
       />
-      <ScrollView contentContainerStyle={{ padding: spacing.md, gap: 14, paddingBottom: 130 }}>
-        <View style={{ alignItems: 'center', marginTop: 20 }}>
-          <StreakRing progress={progress} label={ringLabel} sub={ringSub} />
-          <Text style={{
-            color: t.text, fontSize: 24, fontWeight: '600', letterSpacing: -0.3, marginTop: 14,
-            fontVariant: ['tabular-nums'] as any,
-          }}>
-            {formatDurationLive(secs, lang)}
+      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.md, gap: 14, paddingBottom: 150 }}>
+        <Text style={{ color: t.textDim, fontSize: 13, textAlign: 'center', marginTop: 12 }}>
+          {greeting(lang)}
+        </Text>
+
+        {/* Breathing drop */}
+        <BreathingDrop count={days} lang={lang} />
+
+        {/* Live timer */}
+        <Text style={{
+          color: t.textDim, fontSize: 14, textAlign: 'center', marginTop: 4,
+          fontVariant: ['tabular-nums'] as any,
+        }}>
+          {formatDurationLive(secs, lang)}
+        </Text>
+        {next && (
+          <Text style={{ color: t.textDim, fontSize: 12, textAlign: 'center', marginTop: -8 }}>
+            {lang === 'ru' ? 'до вехи' : 'to milestone'} «{tr(next.titleKey)}» — {formatDuration(next.at - secs, lang)}
           </Text>
-          {next && (
-            <View style={{
-              marginTop: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-              backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
-            }}>
-              <Text style={{ color: t.textDim, fontSize: 12 }}>
-                {lang === 'ru' ? 'до' : 'to'} <Text style={{ color: t.text, fontWeight: '600' }}>{tr(next.titleKey)}</Text> · {formatDuration(next.at - secs, lang)}
+        )}
+
+        {/* Live stats sentence */}
+        <Pressable onPress={() => router.push('/journal')}>
+          <View style={{
+            backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
+            borderRadius: radius.lg, padding: 16, marginTop: 4,
+          }}>
+            <Text style={{ color: t.text, fontSize: 14, lineHeight: 22, textAlign: 'center' }}>
+              {lang === 'ru' ? 'Ты вернул себе ' : 'You reclaimed '}
+              <Text style={{ color: t.accent, fontWeight: '800' }}>
+                {formatMoneyLive(moneySaved(p, secs), p.currency, localeStr)}
               </Text>
-            </View>
-          )}
-        </View>
+              {lang === 'ru' ? ', не выкурил ' : ', avoided '}
+              <Text style={{ color: t.warn, fontWeight: '800' }}>{formatCigs(cigsAvoided(p, secs))}</Text>
+              {lang === 'ru' ? ' и отыграл ' : ' and won back '}
+              <Text style={{ color: t.danger, fontWeight: '800' }}>
+                {formatDuration(lifeRegainedSeconds(p, secs), lang)}
+              </Text>
+              {lang === 'ru' ? ' жизни.' : ' of life.'}
+            </Text>
+          </View>
+        </Pressable>
 
-        {/* Streak + Level row */}
-        <View style={{ flexDirection: 'row', gap: 10, marginTop: 2 }}>
-          <StreakBadge streak={checkStreak} lang={lang} />
-          <LevelBadge secs={secs} lang={lang} onPress={() => router.push('/program')} />
-        </View>
+        {/* СЕЙЧАС */}
+        <SectionLabel text={lang === 'ru' ? 'Сейчас' : 'Now'} />
+        <TodayFocus />
 
-        {/* chip stats */}
-        <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-          <ChipStat
-            color="#30D158" icon={<Icon.sparkle size={18} color="#30D158" />}
-            value={formatMoneyLive(moneySaved(p, secs), p.currency, localeStr)}
-            label={lang === 'ru' ? 'сэкономил' : 'saved'} />
-          <ChipStat
-            color="#FF9500" icon={<Icon.flame size={18} color="#FF9500" />}
-            value={formatCigs(cigsAvoided(p, secs))}
-            label={lang === 'ru' ? 'не выкурил' : 'avoided'} />
-          <ChipStat
-            color="#FF453A" icon={<Icon.heart size={18} color="#FF453A" />}
-            value={formatDurationLive(lifeRegainedSeconds(p, secs), lang)}
-            label={lang === 'ru' ? 'жизни' : 'life'} mono />
-        </View>
-
-        {/* Single prioritised action */}
-        <TodayFocus secs={secs} />
-
-        {/* Closest achievement to unlock */}
+        {/* Closest achievement */}
         <NearAchievement />
+
+        {/* ТВОЙ ПУТЬ */}
+        <SectionLabel text={lang === 'ru' ? 'Твой путь' : 'Your path'} />
 
         {/* Pending start banner */}
         {p.pendingMethod && p.pendingQuitDate && p.pendingQuitDate > Date.now() && (() => {
@@ -157,7 +152,6 @@ export default function Home() {
               <View style={{
                 padding: 16, borderRadius: radius.lg,
                 backgroundColor: newStep.color + '14', borderWidth: 1, borderColor: newStep.color + '40',
-                gap: 8,
               }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: newStep.color + '24', alignItems: 'center', justifyContent: 'center' }}>
@@ -181,60 +175,32 @@ export default function Home() {
           );
         })()}
 
-        {/* Graduation banner */}
-        {phase === 'graduated' && (
-          <Pressable onPress={() => router.push('/program')}>
-            <View style={{
-              padding: 16, borderRadius: radius.lg,
-              backgroundColor: '#FFD60A20', borderWidth: 1, borderColor: '#FFD60A60',
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={{
-                  width: 44, height: 44, borderRadius: 14, backgroundColor: '#FFD60A30',
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Icon.crown size={26} color="#FFD60A" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#FFD60A', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-                    {lang === 'ru' ? 'Курс пройден' : 'Course complete'}
-                  </Text>
-                  <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', marginTop: 2 }}>
-                    {lang === 'ru' ? 'Maintenance mode' : 'Maintenance mode'}
-                  </Text>
-                  <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
-                    {lang === 'ru' ? 'Поддержка раз в неделю. Ты молодец.' : 'Support once a week. Well done.'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </Pressable>
-        )}
+        <MethodCard />
+        <MedicationCard />
 
-        {/* Merged plan card: method + program + medication + escalation */}
-        {phase !== 'graduated' && <PlanCard />}
-
-        <MoneyJar profile={p} onPress={() => router.push('/goal')} />
-
+        {/* ПОМОЩЬ РЯДОМ */}
+        <SectionLabel text={lang === 'ru' ? 'Помощь рядом' : 'Help nearby'} />
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          <QuickLink icon={<Icon.pulse size={20} color={t.text} />} label={tr('tabs.health')} onPress={() => router.push('/(tabs)/health')} />
-          <QuickLink icon={<Icon.toolbox size={20} color={t.text} />} label={tr('tabs.techniques')} onPress={() => router.push('/(tabs)/techniques')} />
-          <QuickLink icon={<Icon.chat size={20} color={t.text} />} label={tr('tabs.coach')} onPress={() => router.push('/(tabs)/coach')} />
+          <SquareCard
+            color={t.info} icon={<Icon.chat size={22} color={t.info} />}
+            title={lang === 'ru' ? 'ИИ-помощник' : 'AI coach'}
+            onPress={() => router.push('/(tabs)/coach')} />
+          <SquareCard
+            color="#BF5AF2" icon={<Icon.star size={22} color="#BF5AF2" />}
+            title={lang === 'ru' ? 'Награды' : 'Awards'}
+            onPress={() => router.push('/(tabs)/awards')} />
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <SquareCard
+            color={t.accent} icon={<Icon.pulse size={22} color={t.accent} />}
+            title={tr('tabs.health')}
+            onPress={() => router.push('/(tabs)/health')} />
+          <SquareCard
+            color={t.warn} icon={<Icon.toolbox size={22} color={t.warn} />}
+            title={tr('tabs.techniques')}
+            onPress={() => router.push('/(tabs)/techniques')} />
         </View>
       </ScrollView>
-
-      <Pressable
-        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); router.push('/craving'); }}
-        style={({ pressed }) => ({
-          position: 'absolute', left: 16, right: 16, bottom: 24,
-          backgroundColor: t.danger, borderRadius: radius.xl, paddingVertical: 18, alignItems: 'center',
-          shadowColor: t.danger, shadowOpacity: 0.4, shadowRadius: 18, shadowOffset: { width: 0, height: 10 },
-          elevation: 8, opacity: pressed ? 0.9 : 1,
-          flexDirection: 'row', justifyContent: 'center', gap: 10,
-        })}>
-        <Icon.flame size={20} color="#fff" />
-        <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 }}>{tr('home.sos')}</Text>
-      </Pressable>
 
       {unlockQueue.length > 0 && (
         <AchievementUnlock
@@ -246,8 +212,112 @@ export default function Home() {
   );
 }
 
-// Compact card: the locked achievement closest to unlocking — "something to
-// look forward to" (Kwit pattern). Tapping opens the full achievements wall.
+function greeting(lang: 'ru' | 'en'): string {
+  const h = new Date().getHours();
+  if (lang === 'ru') {
+    if (h < 6) return 'Доброй ночи';
+    if (h < 12) return 'Доброе утро';
+    if (h < 18) return 'Добрый день';
+    return 'Добрый вечер';
+  }
+  if (h < 6) return 'Good night';
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+// ─── Breathing drop ───────────────────────────────────────────────────────────
+// Layered radial glows + a central circle with a slow breathing pulse.
+function BreathingDrop({ count, lang }: { count: number; lang: 'ru' | 'en' }) {
+  const t = useTheme();
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    scale.value = withRepeat(
+      withTiming(1.05, { duration: 2750, easing: Easing.inOut(Easing.ease) }),
+      -1, true,
+    );
+  }, []);
+
+  const aCore = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return (
+    <View style={{ width: 232, height: 232, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginTop: 14 }}>
+      {/* glow layer 1 */}
+      <View style={{
+        position: 'absolute', width: 232, height: 232, borderRadius: 116,
+        backgroundColor: t.accentSoft,
+      }} />
+      {/* glow layer 2 */}
+      <View style={{
+        position: 'absolute', width: 156, height: 156, borderRadius: 78,
+        backgroundColor: t.accent + '38',
+      }} />
+      {/* core circle */}
+      <Animated.View style={[{
+        width: 100, height: 100, borderRadius: 50,
+        alignItems: 'center', justifyContent: 'center',
+      }, aCore]}>
+        <LinearGradient
+          colors={['#3BD168', '#1FA85A']}
+          start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }}
+          style={{
+            position: 'absolute', width: 100, height: 100, borderRadius: 50,
+            shadowColor: t.accent, shadowOpacity: 0.5, shadowRadius: 24,
+            shadowOffset: { width: 0, height: 12 }, elevation: 10,
+          }}
+        />
+      </Animated.View>
+      {/* centre number */}
+      <View style={{ position: 'absolute', alignItems: 'center' }}>
+        <Text style={{ color: '#fff', fontSize: 80, fontWeight: '200', letterSpacing: -3, lineHeight: 84 }}>
+          {count}
+        </Text>
+        <Text style={{
+          color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 3,
+          textTransform: 'uppercase', opacity: 0.9, marginTop: 2,
+        }}>
+          {lang === 'ru' ? 'дней чисто' : 'days clean'}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function SectionLabel({ text }: { text: string }) {
+  const t = useTheme();
+  return (
+    <Text style={{
+      color: t.textDim, fontSize: 11, fontWeight: '800', letterSpacing: 1.4,
+      textTransform: 'uppercase', marginLeft: 6, marginTop: 8,
+    }}>
+      {text}
+    </Text>
+  );
+}
+
+// Square help card (2-up grid)
+function SquareCard({ icon, title, color, onPress }: { icon: any; title: string; color: string; onPress: () => void }) {
+  const t = useTheme();
+  return (
+    <Pressable onPress={onPress} style={{ flex: 1 }}>
+      <View style={{
+        backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
+        borderRadius: radius.lg, padding: 16, gap: 10, minHeight: 96,
+      }}>
+        <View style={{
+          width: 46, height: 46, borderRadius: 14, backgroundColor: color + '20',
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          {icon}
+        </View>
+        <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{title}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+// Closest locked achievement — "something to look forward to".
 function NearAchievement() {
   const t = useTheme();
   const router = useRouter();
@@ -266,10 +336,10 @@ function NearAchievement() {
   const I = Icon[a.icon];
 
   return (
-    <Pressable onPress={() => router.push('/achievements' as any)}>
+    <Pressable onPress={() => router.push('/(tabs)/awards')}>
       <View style={{
         padding: 14, borderRadius: radius.lg,
-        backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
+        backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
         flexDirection: 'row', alignItems: 'center', gap: 12,
       }}>
         <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: a.color + '20', alignItems: 'center', justifyContent: 'center' }}>
@@ -292,9 +362,8 @@ function NearAchievement() {
   );
 }
 
-// Single prioritised "do this now" card. Days 1–6 = peak-abstinence crisis window
-// (research: days 2–5 are subjectively the hardest, the main retention drop-off).
-function TodayFocus({ secs }: { secs: number }) {
+// Single prioritised "do this now" card.
+function TodayFocus() {
   const t = useTheme();
   const router = useRouter();
   const lang = currentLang();
@@ -304,7 +373,6 @@ function TodayFocus({ secs }: { secs: number }) {
   const today = new Date().toISOString().slice(0, 10);
   const checkDone = !!state.checkIns.find((c) => c.date === today);
 
-  // Medication dose overdue today?
   let medOverdue = false;
   if (state.profile.medication) {
     const { schedule } = todayDoses(state, lang);
@@ -312,25 +380,24 @@ function TodayFocus({ secs }: { secs: number }) {
     medOverdue = schedule.some((d) => (d.hour * 60 + d.minute) <= nowMin && !isDoseTaken(state, today, d.doseNumber));
   }
 
-  // Priority: overdue medication → daily check-in → breathing practice.
   let action: { label: string; sub: string; href: string; color: string; icon: any };
   if (medOverdue) {
     action = {
       label: lang === 'ru' ? 'Приём препарата' : 'Take your medication',
       sub: lang === 'ru' ? 'Есть доза, которую пора принять' : 'A dose is due now',
-      href: '/meds', color: '#0A84FF', icon: Icon.shield,
+      href: '/meds', color: t.info, icon: Icon.shield,
     };
   } else if (!checkDone) {
     action = {
       label: lang === 'ru' ? 'Чек-ин дня' : 'Daily check-in',
-      sub: lang === 'ru' ? 'Один тап — ответь честно' : 'One tap — be honest',
-      href: '/checkin', color: '#34C759', icon: Icon.pulse,
+      sub: lang === 'ru' ? 'Один честный тап' : 'One honest tap',
+      href: '/checkin', color: t.accent, icon: Icon.check,
     };
   } else {
     action = {
       label: lang === 'ru' ? '5 минут дыхания' : '5 minutes of breathing',
       sub: lang === 'ru' ? 'Снизит тягу и стресс прямо сейчас' : 'Lowers craving and stress right now',
-      href: '/practice/cyclic_sigh', color: '#0A84FF', icon: Icon.wind,
+      href: '/practice/cyclic_sigh', color: t.info, icon: Icon.wind,
     };
   }
 
@@ -339,548 +406,155 @@ function TodayFocus({ secs }: { secs: number }) {
     <Pressable onPress={() => { Haptics.selectionAsync(); router.push(action.href as any); }}>
       <View style={{
         padding: 16, borderRadius: radius.lg,
-        backgroundColor: action.color + '14', borderWidth: 1, borderColor: action.color + '50',
+        backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
         flexDirection: 'row', alignItems: 'center', gap: 14,
       }}>
-        <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: action.color + '28', alignItems: 'center', justifyContent: 'center' }}>
-          <I size={28} color={action.color} />
+        <View style={{ width: 50, height: 50, borderRadius: 16, backgroundColor: action.color + '20', alignItems: 'center', justifyContent: 'center' }}>
+          <I size={26} color={action.color} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: action.color, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-            {lang === 'ru' ? 'Сделай сейчас' : 'Do this now'}
-          </Text>
-          <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', marginTop: 2 }}>{action.label}</Text>
+          <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>{action.label}</Text>
           <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>{action.sub}</Text>
         </View>
-        <Text style={{ color: action.color, fontSize: 20 }}>›</Text>
+        <Text style={{ color: t.textDim, fontSize: 20 }}>›</Text>
       </View>
     </Pressable>
   );
 }
 
-// Vaping / IQOS users have a different habit shape: no natural "pack" pacing,
-// constant access, often hidden high nicotine intake. One rotating tip.
-const VAPE_TIPS_RU = [
-  'У вейпа нет «пачки» — нет естественной паузы. Назначь себе чёткие правила: где и когда нельзя парить.',
-  'Скрытая доза часто выше, чем кажется. Если планируешь снижать постепенно — снижай крепость жидкости (мг никотина), а не только число затяжек.',
-  'Убери вейп из зоны лёгкого доступа: из кармана, со стола, от кровати. Каждый лишний шаг до устройства — твой союзник.',
-  'Затяжка «на автомате» — главный враг вейпера. Перед каждой спрашивай себя: это тяга или просто рука потянулась?',
-];
-const VAPE_TIPS_EN = [
-  'A vape has no "pack" — no natural pause. Set yourself clear rules: where and when you will not vape.',
-  'Hidden nicotine intake is often higher than it feels. If tapering, lower the liquid strength (nicotine mg), not just puff count.',
-  'Move the vape out of easy reach — out of your pocket, off the desk, away from the bed. Every extra step is your ally.',
-  'Autopilot puffs are the vaper\'s main enemy. Before each one ask: is this a craving, or just my hand reaching?',
-];
-
-function VapeNote() {
-  const t = useTheme();
-  const lang = currentLang();
-  const [state] = useAppState();
-  const type = state.profile?.type;
-  if (type !== 'vape' && type !== 'iqos') return null;
-  const tips = lang === 'ru' ? VAPE_TIPS_RU : VAPE_TIPS_EN;
-  const idx = Math.floor(Date.now() / 86400_000) % tips.length;
-  return (
-    <View style={{
-      padding: 14, borderRadius: radius.lg,
-      backgroundColor: '#5AC8FA12', borderWidth: 1, borderColor: '#5AC8FA30',
-      gap: 6,
-    }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Icon.wind size={16} color="#5AC8FA" />
-        <Text style={{ color: '#5AC8FA', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-          {type === 'iqos'
-            ? (lang === 'ru' ? 'Трек: IQOS' : 'Track: IQOS')
-            : (lang === 'ru' ? 'Трек: вейпинг' : 'Track: vaping')}
-        </Text>
-      </View>
-      <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>{tips[idx]}</Text>
-    </View>
-  );
-}
-
-// ONE merged card: method (step) + program day + today focus + medication dose
-// + escalation hint. Replaces the old separate Method / Program / Med cards
-// that felt like conflicting plans.
-function PlanCard() {
+// Method / program card → leads to the Path tab.
+function MethodCard() {
   const t = useTheme();
   const router = useRouter();
   const lang = currentLang();
   const [state] = useAppState();
   const stepId = state.profile?.currentStep;
   if (!stepId) return null;
-  // While a method transition is scheduled, the pending banner above IS the
-  // plan — don't show a second, conflicting "current plan" card.
+  // While a transition is scheduled, the pending banner above IS the plan.
   if (state.profile?.pendingMethod && (state.profile?.pendingQuitDate ?? 0) > Date.now()) {
     return null;
   }
   const step = getStep(stepId);
   const prog = programToday(state);
   const sug = escalationSuggestion(state);
-  const med = state.profile?.medication;
-  const medInfo = med ? todayDoses(state, lang) : null;
-  const focus = prog.data ? (lang === 'ru' ? prog.data.focusRu : prog.data.focusEn) : '';
-  const pct = prog.total > 0 ? prog.day / prog.total : 0;
 
   return (
-    <View style={{ gap: 8 }}>
-      <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginLeft: 4 }}>
-        {lang === 'ru' ? 'Твой план' : 'Your plan'}
-      </Text>
-      <Pressable onPress={() => router.push('/program')}>
-        <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, gap: 12 }}>
-          {/* Method + program day */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: step.color + '24', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: step.color, fontWeight: '800', fontSize: 17 }}>{step.index}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }} numberOfLines={1}>
-                {lang === 'ru' ? step.titleRu : step.titleEn}
-              </Text>
-              <Text style={{ color: t.textDim, fontSize: 13, marginTop: 1 }}>
-                {prog.data
-                  ? (lang === 'ru' ? `День ${prog.day} из ${prog.total}` : `Day ${prog.day} of ${prog.total}`)
-                  : (lang === 'ru' ? `Ступень ${step.index} из 5` : `Step ${step.index} of 5`)}
-              </Text>
-            </View>
-            <Text style={{ color: t.textDim, fontSize: 20 }}>›</Text>
+    <Pressable onPress={() => router.push('/(tabs)/path')}>
+      <View style={{
+        padding: 16, borderRadius: radius.lg,
+        backgroundColor: t.card, borderWidth: 1, borderColor: t.border, gap: 10,
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: step.color + '24', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: step.color, fontWeight: '800', fontSize: 17 }}>{step.index}</Text>
           </View>
-
-          {prog.data && (
-            <View style={{ height: 5, backgroundColor: t.border, borderRadius: 5, overflow: 'hidden' }}>
-              <View style={{ width: `${Math.min(100, pct * 100)}%`, height: '100%', backgroundColor: step.color }} />
-            </View>
-          )}
-          {!!focus && (
-            <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>{focus}</Text>
-          )}
-
-          {/* Medication activation CTA — when step expects a med but none activated */}
-          {!med && (() => {
-            const expectedMed = expectedMedForStep(stepId);
-            if (!expectedMed) return null;
-            const medName = lang === 'ru' ? MED_SAFETY[expectedMed].nameRu : MED_SAFETY[expectedMed].nameEn;
-            return (
-              <Pressable onPress={() => router.push({ pathname: '/med-gate', params: { med: expectedMed } } as any)}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.border }}>
-                <Icon.shield size={18} color={step.color} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: step.color, fontSize: 13, fontWeight: '700' }}>
-                    {lang === 'ru' ? `Начать приём: ${medName}` : `Start taking: ${medName}`}
-                  </Text>
-                  <Text style={{ color: t.textDim, fontSize: 11 }}>
-                    {lang === 'ru' ? 'Препарат по плану — активируй расписание' : 'Medication is part of your plan — activate schedule'}
-                  </Text>
-                </View>
-                <Text style={{ color: step.color, fontSize: 16, fontWeight: '700' }}>→</Text>
-              </Pressable>
-            );
-          })()}
-
-          {/* Medication dose — inline, not a separate card */}
-          {medInfo && medInfo.schedule.length > 0 && (
-            <Pressable onPress={() => router.push('/meds')}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.border }}>
-              <Icon.shield size={18} color={step.color} />
-              <Text style={{ color: t.text, fontSize: 13, flex: 1 }}>
-                {lang === 'ru' ? 'Приём препарата сегодня' : 'Medication doses today'}
-              </Text>
-              <Text style={{ color: step.color, fontSize: 14, fontWeight: '800' }}>
-                {medInfo.takenCount}/{medInfo.schedule.length}
-              </Text>
-            </Pressable>
-          )}
-
-          {/* Escalation hint — folded in, not a scary separate card */}
-          {sug.yes && (
-            <Pressable onPress={() => router.push('/transition')}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.border }}>
-              <Icon.bolt size={16} color={t.warn} />
-              <Text style={{ color: t.warn, fontSize: 13, fontWeight: '600', flex: 1 }}>
-                {lang === 'ru' ? 'Метод держит слабовато — обсудим?' : 'Method feels too light — discuss?'}
-              </Text>
-              <Text style={{ color: t.warn, fontSize: 14 }}>→</Text>
-            </Pressable>
-          )}
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }} numberOfLines={1}>
+              {lang === 'ru' ? step.titleRu : step.titleEn}
+            </Text>
+            <Text style={{ color: t.textDim, fontSize: 13, marginTop: 1 }}>
+              {prog.data
+                ? (lang === 'ru' ? `День ${prog.day} из ${prog.total}` : `Day ${prog.day} of ${prog.total}`)
+                : (lang === 'ru' ? `Ступень ${step.index} из 5` : `Step ${step.index} of 5`)}
+            </Text>
+          </View>
+          <Text style={{ color: t.textDim, fontSize: 20 }}>›</Text>
         </View>
-      </Pressable>
-    </View>
+        {prog.data && (
+          <View style={{ height: 5, backgroundColor: t.border, borderRadius: 5, overflow: 'hidden' }}>
+            <View style={{ width: `${Math.min(100, (prog.total > 0 ? prog.day / prog.total : 0) * 100)}%`, height: '100%', backgroundColor: step.color }} />
+          </View>
+        )}
+        {!!prog.data && (
+          <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>
+            {lang === 'ru' ? prog.data.focusRu : prog.data.focusEn}
+          </Text>
+        )}
+        {sug.yes && (
+          <Pressable onPress={() => router.push('/transition')}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: t.border }}>
+            <Icon.bolt size={16} color={t.warn} />
+            <Text style={{ color: t.warn, fontSize: 13, fontWeight: '600', flex: 1 }}>
+              {lang === 'ru' ? 'Метод держит слабовато — обсудим?' : 'Method feels too light — discuss?'}
+            </Text>
+            <Text style={{ color: t.warn, fontSize: 14 }}>→</Text>
+          </Pressable>
+        )}
+      </View>
+    </Pressable>
   );
 }
 
-function MedicationDiary() {
+// Medication card — only when a medication course is active or expected.
+function MedicationCard() {
   const t = useTheme();
   const router = useRouter();
   const lang = currentLang();
   const [state] = useAppState();
-  const med = state.profile?.medication;
   const stepId = state.profile?.currentStep;
-  const trackHasMed = stepId ? getTrack(stepId).hasMedication : false;
+  const med = state.profile?.medication;
+  if (state.profile?.pendingMethod && (state.profile?.pendingQuitDate ?? 0) > Date.now()) {
+    return null;
+  }
 
-  // Track requires a medication but user hasn't chosen one — show CTA
-  if (!med && trackHasMed) {
-    const expected = stepId === 'L2_nrt_light' ? 'Цитизин (Табекс)'
-      : stepId === 'L3_nrt_combo' ? 'Бупропион (Велбутрин)'
-      : 'Варениклин (Чампикс)';
+  // No med activated, but the step expects one → activation CTA.
+  if (!med) {
+    const expectedMed = stepId ? expectedMedForStep(stepId) : null;
+    if (!expectedMed) return null;
+    const medName = lang === 'ru' ? MED_SAFETY[expectedMed].nameRu : MED_SAFETY[expectedMed].nameEn;
     return (
-      <Pressable onPress={() => router.push('/practice/pharma')}>
+      <Pressable onPress={() => router.push({ pathname: '/med-gate', params: { med: expectedMed } } as any)}>
         <View style={{
-          padding: 14, borderRadius: radius.lg,
-          backgroundColor: t.warn + '14', borderWidth: 1, borderStyle: 'dashed', borderColor: t.warn + '60',
+          padding: 16, borderRadius: radius.lg,
+          backgroundColor: t.card, borderWidth: 1, borderStyle: 'dashed', borderColor: t.info + '60',
           flexDirection: 'row', alignItems: 'center', gap: 12,
         }}>
-          <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: t.warn + '24', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon.shield size={20} color={t.warn} />
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: t.info + '20', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon.shield size={22} color={t.info} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: t.warn, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-              {lang === 'ru' ? 'Препарат не активирован' : 'Medication not activated'}
+            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>
+              {lang === 'ru' ? `Начать приём: ${medName}` : `Start: ${medName}`}
             </Text>
-            <Text style={{ color: t.text, fontSize: 14, fontWeight: '700', marginTop: 2 }} numberOfLines={1}>
-              {lang === 'ru' ? `Метод требует: ${expected}` : `Method needs: ${expected}`}
-            </Text>
-            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
-              {lang === 'ru' ? 'Тап → выбери препарат → стартует расписание' : 'Tap → pick med → schedule starts'}
+            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
+              {lang === 'ru' ? 'Препарат по плану — активируй расписание' : 'Medication is part of your plan'}
             </Text>
           </View>
-          <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
+          <Text style={{ color: t.info, fontSize: 18 }}>›</Text>
         </View>
       </Pressable>
     );
   }
-  if (!med) return null;
-  const day = medCourseDay(state);
-  const { schedule, takenCount } = todayDoses(state, lang);
-  if (schedule.length === 0) return null;
-  const today = new Date().toISOString().slice(0, 10);
-  const medColor = med === 'cytisine' ? '#30D158' : med === 'bupropion' ? '#FF9500' : '#0A84FF';
-  const medName = med === 'cytisine' ? 'Цитизин (Табекс)'
-    : med === 'bupropion' ? 'Бупропион'
-    : 'Варениклин';
 
-  const now = new Date();
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-
-  async function toggle(doseNumber: number) {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await update((s) => {
-      const logs = s.doseLogs ?? [];
-      const exists = logs.some((d) => d.date === today && d.doseNumber === doseNumber);
-      return {
-        ...s,
-        doseLogs: exists
-          ? logs.filter((d) => !(d.date === today && d.doseNumber === doseNumber))
-          : [...logs, { date: today, doseNumber, takenAt: Date.now() }],
-      };
-    });
-  }
+  const medInfo = todayDoses(state, lang);
+  if (medInfo.schedule.length === 0) return null;
+  const medColor = med === 'cytisine' ? t.accent : med === 'bupropion' ? t.warn : t.info;
+  const medName = med === 'cytisine' ? 'Цитизин' : med === 'bupropion' ? 'Бупропион' : 'Варениклин';
 
   return (
     <Pressable onPress={() => router.push('/meds')}>
       <View style={{
-        padding: 14, borderRadius: radius.lg,
-        backgroundColor: medColor + '12', borderWidth: 1, borderColor: medColor + '30',
-        gap: 10,
+        padding: 16, borderRadius: radius.lg,
+        backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
+        flexDirection: 'row', alignItems: 'center', gap: 12,
       }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-            <View style={{
-              width: 36, height: 36, borderRadius: 12, backgroundColor: medColor + '24',
-              alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Icon.shield size={20} color={medColor} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: medColor, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-                {lang === 'ru' ? `Дневник приёма · день ${day}` : `Med diary · day ${day}`}
-              </Text>
-              <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', marginTop: 2 }} numberOfLines={1}>
-                {medName}
-              </Text>
-            </View>
-          </View>
-          <Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>
-            {takenCount}/{schedule.length}
+        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: medColor + '20', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon.shield size={22} color={medColor} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>
+            {lang === 'ru' ? `Приём · ${medName}` : `Doses · ${medName}`}
+          </Text>
+          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
+            {lang === 'ru'
+              ? `${medInfo.takenCount} из ${medInfo.schedule.length} принято сегодня`
+              : `${medInfo.takenCount} of ${medInfo.schedule.length} taken today`}
           </Text>
         </View>
-
-        {/* Doses list */}
-        <View style={{ gap: 6 }}>
-          {schedule.map((d) => {
-            const taken = isDoseTaken(state, today, d.doseNumber);
-            const due = (d.hour * 60 + d.minute) <= nowMin;
-            const isMissed = due && !taken;
-            return (
-              <Pressable key={d.doseNumber} onPress={(e) => { e.stopPropagation?.(); toggle(d.doseNumber); }}
-                style={{
-                  flexDirection: 'row', alignItems: 'center', gap: 10,
-                  paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10,
-                  backgroundColor: taken ? medColor + '20' : (isMissed ? '#FF453A14' : 'transparent'),
-                  borderWidth: 1, borderColor: taken ? medColor + '50' : (isMissed ? '#FF453A40' : t.border),
-                }}>
-                <View style={{
-                  width: 22, height: 22, borderRadius: 11, borderWidth: 2,
-                  borderColor: taken ? medColor : (isMissed ? '#FF453A' : t.border),
-                  backgroundColor: taken ? medColor : 'transparent',
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {taken && <Icon.check size={13} color="#fff" />}
-                </View>
-                <Text style={{
-                  color: taken ? medColor : (isMissed ? '#FF453A' : t.text),
-                  fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'],
-                  width: 56,
-                }}>
-                  {String(d.hour).padStart(2, '0')}:{String(d.minute).padStart(2, '0')}
-                </Text>
-                <Text style={{ color: t.textDim, fontSize: 12, flex: 1 }} numberOfLines={1}>
-                  {lang === 'ru' ? d.noteRu : d.noteEn}
-                </Text>
-                {isMissed && !taken && (
-                  <Text style={{ color: '#FF453A', fontSize: 10, fontWeight: '800' }}>
-                    {lang === 'ru' ? 'ПОРА' : 'DUE'}
-                  </Text>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-        <Text style={{ color: t.textDim, fontSize: 11, textAlign: 'center', marginTop: 2 }}>
-          {lang === 'ru' ? 'Тап на карточку — открыть полный дневник' : 'Tap card — open full diary'}
+        <Text style={{ color: medColor, fontSize: 16, fontWeight: '800' }}>
+          {medInfo.takenCount}/{medInfo.schedule.length}
         </Text>
       </View>
     </Pressable>
-  );
-}
-
-function MethodCard({ onPress }: { onPress: () => void }) {
-  const t = useTheme();
-  const lang = currentLang();
-  const [state] = useAppState();
-  const stepId = state.profile?.currentStep;
-  if (!stepId) return null;
-  const step = getStep(stepId);
-  const sug = escalationSuggestion(state);
-  return (
-    <Pressable onPress={onPress}>
-      <View style={{
-        padding: 14, borderRadius: radius.lg,
-        backgroundColor: step.color + '12', borderWidth: 1, borderColor: step.color + '30',
-      }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: step.color + '28', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: step.color, fontWeight: '800', fontSize: 16 }}>{step.index}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: t.textDim, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>
-              {lang === 'ru' ? `Метод · ступень ${step.index} из 5` : `Method · step ${step.index} of 5`}
-            </Text>
-            <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', marginTop: 2 }} numberOfLines={1}>
-              {lang === 'ru' ? step.titleRu : step.titleEn}
-            </Text>
-            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
-              {lang === 'ru' ? step.shortRu : step.shortEn}
-            </Text>
-          </View>
-          <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
-        </View>
-        {sug.yes && (
-          <View style={{ marginTop: 10, padding: 10, borderRadius: 10, backgroundColor: t.warn + '20', borderWidth: 1, borderColor: t.warn + '50' }}>
-            <Text style={{ color: t.warn, fontSize: 12, fontWeight: '700' }}>
-              {lang === 'ru' ? 'Метод не работает достаточно — поднимем сильнее →' : 'Method not enough — let’s step up →'}
-            </Text>
-          </View>
-        )}
-      </View>
-    </Pressable>
-  );
-}
-
-function PressableMini({ onPress, color, label, title, sub, icon: I, progress }: { onPress: () => void; color: string; label: string; title: string; sub?: string; icon: any; progress: number }) {
-  const t = useTheme();
-  return (
-    <Pressable onPress={onPress} style={{ flex: 1 }}>
-      <View style={{
-        backgroundColor: t.bgElev, borderRadius: radius.lg, padding: 14,
-        borderWidth: 1, borderColor: t.border, gap: 8, minHeight: 96,
-      }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{
-            width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
-            backgroundColor: color + '20',
-          }}>
-            <I size={16} color={color} />
-          </View>
-          <Text style={{ color: t.textDim, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</Text>
-        </View>
-        <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', letterSpacing: -0.2 }} numberOfLines={1}>{title}</Text>
-        {sub ? (
-          <Text style={{ color: t.textDim, fontSize: 12 }} numberOfLines={1}>{sub}</Text>
-        ) : null}
-        <View style={{ height: 3, backgroundColor: t.border, borderRadius: 3, overflow: 'hidden' }}>
-          <View style={{ width: `${Math.max(0, Math.min(1, progress)) * 100}%`, height: '100%', backgroundColor: color }} />
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-function ChipStat({ icon, value, label, color, mono }: { icon: any; value: string; label: string; color: string; mono?: boolean }) {
-  const t = useTheme();
-  return (
-    <View style={{
-      flex: 1, padding: 12, borderRadius: radius.md,
-      backgroundColor: color + '14', borderWidth: 1, borderColor: color + '24',
-      alignItems: 'flex-start', gap: 6,
-    }}>
-      {icon}
-      <Text
-        style={{
-          color: t.text, fontSize: mono ? 14 : 16, fontWeight: '700', letterSpacing: -0.3,
-          ...(mono ? { fontVariant: ['tabular-nums'] as any } : {}),
-        }}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-      >{value}</Text>
-      <Text style={{ color: t.textDim, fontSize: 11 }} numberOfLines={1}>{label}</Text>
-    </View>
-  );
-}
-
-function QuickLink({ icon, label, onPress }: { icon: any; label: string; onPress: () => void }) {
-  const t = useTheme();
-  return (
-    <Pressable onPress={onPress}
-      style={{ flex: 1, padding: 14, borderRadius: radius.md, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, alignItems: 'center', gap: 6 }}>
-      {icon}
-      <Text style={{ color: t.text, fontWeight: '600', fontSize: 12 }}>{label}</Text>
-    </Pressable>
-  );
-}
-
-// ─── Streak badge ────────────────────────────────────────────────────────────
-function streakColor(streak: number): string {
-  if (streak >= 14) return '#FF2D55'; // red-gold — longest
-  if (streak >= 7)  return '#FF6B00'; // vivid orange
-  if (streak >= 3)  return '#FF9500'; // orange
-  return '#9AA3AF';                   // grey — not yet warmed up
-}
-
-function StreakBadge({ streak, lang }: { streak: number; lang: 'ru' | 'en' }) {
-  const t = useTheme();
-  const color = streakColor(streak);
-  const showKeepIt = streak >= 3;
-  return (
-    <View style={{
-      flex: 1, padding: 12, borderRadius: radius.md,
-      backgroundColor: color + '18', borderWidth: 1, borderColor: color + '35',
-      flexDirection: 'row', alignItems: 'center', gap: 10,
-    }}>
-      <Icon.fire size={22} color={color} />
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-          <Text style={{ color, fontSize: 22, fontWeight: '800', fontVariant: ['tabular-nums'] as any }}>
-            {streak}
-          </Text>
-          <Text style={{ color: t.textDim, fontSize: 12 }}>
-            {lang === 'ru' ? 'дн.' : 'd.'}
-          </Text>
-        </View>
-        <Text style={{ color: t.textDim, fontSize: 11, marginTop: 1 }} numberOfLines={1}>
-          {showKeepIt
-            ? (lang === 'ru' ? 'не теряй серию' : 'keep the streak')
-            : (lang === 'ru' ? 'серия чек-инов' : 'check-in streak')}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-// ─── Level badge ──────────────────────────────────────────────────────────────
-function LevelBadge({ secs, lang, onPress }: { secs: number; lang: 'ru' | 'en'; onPress: () => void }) {
-  const t = useTheme();
-  const lvl = currentLevel(secs);
-  const nxt = nextLevel(secs);
-  const prog = levelProgress(secs);
-  const LvlIcon = Icon[lvl.icon];
-  return (
-    <Pressable onPress={onPress} style={{ flex: 1 }}>
-      <View style={{
-        padding: 12, borderRadius: radius.md,
-        backgroundColor: lvl.color + '18', borderWidth: 1, borderColor: lvl.color + '35',
-        gap: 6,
-      }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <LvlIcon size={18} color={lvl.color} />
-          <Text style={{ color: lvl.color, fontSize: 13, fontWeight: '700', flex: 1 }} numberOfLines={1}>
-            {lang === 'ru' ? lvl.titleRu : lvl.titleEn}
-          </Text>
-          <Text style={{ color: t.textDim, fontSize: 11 }}>
-            {lvl.index}/{LEVELS.length - 1}
-          </Text>
-        </View>
-        <View style={{ height: 4, borderRadius: 4, backgroundColor: t.border, overflow: 'hidden' }}>
-          <View style={{ width: `${Math.min(100, prog * 100)}%`, height: '100%', backgroundColor: lvl.color }} />
-        </View>
-        {nxt && (
-          <Text style={{ color: t.textDim, fontSize: 10 }} numberOfLines={1}>
-            {lang === 'ru' ? `→ ${nxt.titleRu}` : `→ ${nxt.titleEn}`}
-          </Text>
-        )}
-      </View>
-    </Pressable>
-  );
-}
-
-type Task = { ru: string; en: string; ctaRu: string; ctaEn: string; href: string };
-
-const TASKS: Task[] = [
-  { ru: 'Сделай 3 круга дыхания 4-4-4-4 — прямо сейчас.',
-    en: 'Do 3 rounds of 4-4-4-4 breathing — right now.',
-    ctaRu: 'Открыть дыхание', ctaEn: 'Open breathing', href: '/practice/box_breath' },
-  { ru: 'Запиши тягу или триггер прямо сейчас — даже если ты удержался.',
-    en: 'Log an urge or trigger right now — even if you held on.',
-    ctaRu: 'Добавить запись', ctaEn: 'Add entry', href: '/journal?open=add' },
-  { ru: 'Если предложат курить — что ты ответишь? Сформулируй.',
-    en: 'If offered a cigarette — what will you say? Decide now.',
-    ctaRu: 'Сделать if-then', ctaEn: 'Make if-then', href: '/practice/if_then' },
-  { ru: 'Стакан воды + 4 минуты ожидания. Тяга пройдёт.',
-    en: 'Glass of water + 4 minutes wait. Craving passes.',
-    ctaRu: 'Прокатить волну', ctaEn: 'Surf the wave', href: '/practice/urge_surf' },
-  { ru: 'Скажи одному близкому, что ты бросаешь.',
-    en: 'Tell one close person you are quitting.',
-    ctaRu: 'Контракт', ctaEn: 'Contract', href: '/goal' },
-  { ru: '5 минут cyclic sighing — лучший дыхательный протокол.',
-    en: '5 minutes of cyclic sighing — the strongest breathing protocol.',
-    ctaRu: 'Начать практику', ctaEn: 'Start practice', href: '/practice/cyclic_sigh' },
-  { ru: 'Поставь цель в копилке — на что потратишь сэкономленное.',
-    en: 'Set a goal in the jar — what to spend the savings on.',
-    ctaRu: 'Поставить цель', ctaEn: 'Set goal', href: '/goal' },
-];
-
-function DailyTaskCard({ quitDate, lang, onGo }: { quitDate: number; lang: 'ru' | 'en'; onGo: (href: string) => void }) {
-  const t = useTheme();
-  const { t: tr } = useTranslation();
-  const idx = Math.max(0, Math.floor((Date.now() - quitDate) / 86400_000) % TASKS.length);
-  const task = TASKS[idx];
-  return (
-    <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, gap: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Icon.toolbox size={16} color={t.accent} />
-        <Text style={{ color: t.textDim, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>
-          {tr('home.today_task')}
-        </Text>
-      </View>
-      <Text style={{ color: t.text, fontSize: 16, lineHeight: 23 }}>
-        {lang === 'ru' ? task.ru : task.en}
-      </Text>
-      <Pressable onPress={() => { Haptics.selectionAsync(); onGo(task.href); }}
-        style={{ alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: t.accent, flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{lang === 'ru' ? task.ctaRu : task.ctaEn}</Text>
-        <Icon.arrowRight size={14} color="#fff" />
-      </Pressable>
-    </View>
   );
 }
