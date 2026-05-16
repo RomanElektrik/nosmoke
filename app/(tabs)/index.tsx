@@ -19,7 +19,7 @@ import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped'
 import { todayDoses, isDoseTaken, expectedMedForStep, MED_SAFETY } from '../../lib/medication';
 import { newlyUnlocked, ACHIEVEMENTS, buildContext, achProgress, isAchUnlocked } from '../../lib/achievements';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
-import { ARTICLES, ARTICLE_IMAGES } from '../../lib/articles';
+import { ARTICLES, ARTICLE_IMAGES, articleAspect } from '../../lib/articles';
 
 export default function Home() {
   const t = useTheme();
@@ -342,7 +342,7 @@ function KnowledgeSection() {
               borderRadius: radius.lg, overflow: 'hidden',
             }}>
             {img
-              ? <Image source={img} style={{ width: '100%', aspectRatio: 16 / 9 }} resizeMode="contain" />
+              ? <Image source={img} style={{ width: '100%', aspectRatio: articleAspect(a.id) }} resizeMode="cover" />
               : <View style={{ width: '100%', aspectRatio: 16 / 9, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
                   <I size={44} color={a.color} />
                 </View>}

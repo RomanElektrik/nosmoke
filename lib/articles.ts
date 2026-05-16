@@ -2,6 +2,7 @@
 // Sources: Marlatt RP, CDC, Cochrane reviews, USPSTF, Surgeon General 2020,
 // Brewer "Craving to Quit", Taylor 2007 (exercise & craving), West 2017 (stress).
 
+import { Image } from 'react-native';
 import type { IconKey } from '../components/Icon';
 
 export type ArticleCategory = 'craving' | 'slip' | 'triggers' | 'body' | 'meds' | 'motivation';
@@ -414,3 +415,12 @@ export const ARTICLE_IMAGES: Record<string, any> = {
   'body-vape':     require('../assets/articles/body-vape.png'),
   'meds-overview': require('../assets/articles/meds-overview.png'),
 };
+
+// Natural aspect ratio of an article image — so the card matches the picture
+// exactly: no crop, no letterbox bars, no distortion.
+export function articleAspect(id: string): number {
+  const img = ARTICLE_IMAGES[id];
+  if (!img) return 16 / 9;
+  const s = Image.resolveAssetSource(img);
+  return s && s.height ? s.width / s.height : 16 / 9;
+}

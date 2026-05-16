@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { currentLang } from '../../lib/i18n';
 import { Icon } from '../../components/Icon';
-import { getArticle, ARTICLE_CATEGORY, ARTICLE_IMAGES } from '../../lib/articles';
+import { getArticle, ARTICLE_CATEGORY, ARTICLE_IMAGES, articleAspect } from '../../lib/articles';
 
 export default function ArticleScreen() {
   const t = useTheme();
@@ -42,7 +42,7 @@ export default function ArticleScreen() {
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
         {ARTICLE_IMAGES[a.id]
-          ? <Image source={ARTICLE_IMAGES[a.id]} style={{ width: '100%', aspectRatio: 16 / 9 }} resizeMode="contain" />
+          ? <Image source={ARTICLE_IMAGES[a.id]} style={{ width: '100%', aspectRatio: articleAspect(a.id) }} resizeMode="cover" />
           : <LinearGradient colors={[a.color + '38', a.color + '0A']}
               style={{ width: '100%', aspectRatio: 16 / 9, alignItems: 'center', justifyContent: 'center' }}>
               <I size={64} color={a.color} />

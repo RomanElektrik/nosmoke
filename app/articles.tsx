@@ -6,7 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
 import { Icon } from '../components/Icon';
-import { ARTICLES, ARTICLE_CATEGORY, ARTICLE_IMAGES, type ArticleCategory } from '../lib/articles';
+import { ARTICLES, ARTICLE_CATEGORY, ARTICLE_IMAGES, articleAspect, type ArticleCategory } from '../lib/articles';
 
 const ORDER: ArticleCategory[] = ['craving', 'slip', 'triggers', 'body', 'meds', 'motivation'];
 
@@ -53,7 +53,7 @@ export default function Articles() {
                       borderRadius: radius.lg, overflow: 'hidden',
                     }}>
                     {img
-                      ? <Image source={img} style={{ width: '100%', aspectRatio: 16 / 9 }} resizeMode="contain" />
+                      ? <Image source={img} style={{ width: '100%', aspectRatio: articleAspect(a.id) }} resizeMode="cover" />
                       : <View style={{ width: '100%', aspectRatio: 16 / 9, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
                           <I size={44} color={a.color} />
                         </View>}
