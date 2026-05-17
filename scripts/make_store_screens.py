@@ -93,7 +93,7 @@ def build_phone(raw_path):
     # Keep the real iOS status bar — only erase the TestFlight indicator chip.
     bg = shot.getpixel((shot.width // 2, 6))
     d0 = ImageDraw.Draw(shot)
-    d0.rectangle([0, 32, 210, 96], fill=bg)
+    d0.rectangle([0, 54, 180, 94], fill=bg)
     inner_w = 824
     scale = inner_w / shot.width
     content = shot.resize((inner_w, int(shot.height * scale)), Image.LANCZOS)
