@@ -143,27 +143,31 @@ SLIDES = [
          sub="Достижения, которые ведут до конца"),
 ]
 BOT = (10, 11, 13)
+PHONE_TOP = 560          # phone starts right under the text — no dead space
+PHONE_H = 2150           # phone bottom sits ~90px from the slide bottom
 
 for i, s in enumerate(SLIDES, 1):
     img = gradient(s["top"], BOT)
     d = ImageDraw.Draw(img)
 
-    y = 156
+    y = 150
     for ln in s["head"]:
         bb = d.textbbox((0, 0), ln, font=HEAD)
         d.text(((W - (bb[2] - bb[0])) / 2 - bb[0], y), ln, font=HEAD, fill=(255, 255, 255))
-        y += 124
+        y += 122
     bb = d.textbbox((0, 0), s["sub"], font=SUB)
-    d.text(((W - (bb[2] - bb[0])) / 2 - bb[0], y + 26), s["sub"], font=SUB, fill=(206, 211, 217))
+    d.text(((W - (bb[2] - bb[0])) / 2 - bb[0], y + 20), s["sub"], font=SUB, fill=(206, 211, 217))
 
     phone = build_phone(os.path.join(RAW, s["raw"]))
-    px = (W - phone.width) // 2
-    py = H - phone.height + 150          # phone bottom slightly past the edge
+    rw = int(phone.width * PHONE_H / phone.height)
+    phone = phone.resize((rw, PHONE_H), Image.LANCZOS)
+    px = (W - rw) // 2
+    py = PHONE_TOP
 
     sh = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     ImageDraw.Draw(sh).rounded_rectangle(
-        [px, py + 30, px + phone.width, py + phone.height + 30], 116, fill=(0, 0, 0, 170))
-    img.paste(Image.new("RGB", (W, H), (0, 0, 0)), (0, 0), sh.filter(ImageFilter.GaussianBlur(48)))
+        [px, py + 34, px + rw, py + PHONE_H + 34], 116, fill=(0, 0, 0, 175))
+    img.paste(Image.new("RGB", (W, H), (0, 0, 0)), (0, 0), sh.filter(ImageFilter.GaussianBlur(52)))
     img.paste(phone, (px, py), phone)
 
     out = os.path.join(OUT, f"{i:02d}.png")
