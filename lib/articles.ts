@@ -586,7 +586,7 @@ export const ARTICLES: Article[] = [
     bodyRu: [
       { type: 'h', text: 'Расход, который не замечаешь' },
       { type: 'p', text: 'Пачка сигарет в день по отдельности кажется мелочью — ну, небольшая трата, как чашка кофе, на неё даже не обращаешь внимания. Именно в этом и хитрость. Расход незаметен поштучно, но это ежедневный платёж, который не прекращается ни на один день.' },
-      { type: 'p', text: 'А теперь посмотри на это не как на «пачку», а как на подписку. Ты платишь каждый день, без выходных, год за годом. И если сложить всё, что уходит за год, получается сумма, на которую вполне можно купить что-то крупное и заметное — то, на что ты, возможно, давно «не можешь найти денег».' },
+      { type: 'p', text: 'А теперь посмотри на это не как на «пачку», а как на ежедневный платёж. Ты платишь каждый день, без выходных, год за годом. И если сложить всё, что уходит за год, получается сумма, на которую вполне можно купить что-то крупное и заметное — то, на что ты, возможно, давно «не можешь найти денег».' },
       { type: 'h', text: 'Приложение делает цифру конкретной' },
       { type: 'p', text: 'Приложение считает это за тебя — автоматически, в реальном времени, начиная с первой минуты без сигарет. И это важный момент: цифра экономии перестаёт быть абстракцией из разряда «ну да, наверное, что-то экономлю».' },
       { type: 'p', text: 'Ты видишь конкретные деньги, которые прямо сейчас остаются у тебя в кармане, а не превращаются в дым. Это уже не догадка — это число, которое растёт у тебя на глазах.' },
@@ -603,7 +603,7 @@ export const ARTICLES: Article[] = [
     bodyEn: [
       { type: 'h', text: 'An expense you do not notice' },
       { type: 'p', text: 'A pack of cigarettes a day, taken on its own, seems like a trifle — a small spend, like a cup of coffee, you do not even notice it. That is exactly the trick. The expense is invisible piece by piece, but it is a daily payment that does not stop for a single day.' },
-      { type: 'p', text: 'Now look at it not as a "pack" but as a subscription. You pay every day, no days off, year after year. And if you add up everything that goes out over a year, you get a sum that could quite well buy something large and noticeable — the thing you perhaps "can never find the money for".' },
+      { type: 'p', text: 'Now look at it not as a "pack" but as a daily payment. You pay every day, no days off, year after year. And if you add up everything that goes out over a year, you get a sum that could quite well buy something large and noticeable — the thing you perhaps "can never find the money for".' },
       { type: 'h', text: 'The app makes the figure concrete' },
       { type: 'p', text: 'The app counts this for you — automatically, in real time, starting from the first smoke-free minute. And this is an important point: the savings figure stops being an abstraction of the "well, I suppose I save something" kind.' },
       { type: 'p', text: 'You see concrete money that right now stays in your pocket instead of turning into smoke. It is no longer a guess — it is a number growing before your eyes.' },

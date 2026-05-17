@@ -125,7 +125,6 @@ export type AppState = {
   chatHistory?: { role: 'user' | 'assistant'; content: string; ts: number }[]; // legacy
   chatHistories?: Partial<Record<'support' | 'analyze_slip' | 'daily_task', { role: 'user' | 'assistant'; content: string; ts: number }[]>>;
   doseLogs?: { date: string; doseNumber: number; takenAt: number }[];
-  aiUsage?: { date: string; count: number };  // free-tier daily AI message counter
   achievements?: Record<string, number>;       // achievement id → unlocked-at ms
 };
 

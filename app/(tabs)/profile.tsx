@@ -12,7 +12,8 @@ import { SwipeToHome } from '../../components/SwipeToHome';
 import { scheduleDailyCheckIn } from '../../lib/notifications';
 import { secondsClean } from '../../lib/health';
 import { moneySaved, cigsAvoided, formatMoney } from '../../lib/money';
-import { usePremium } from '../../lib/subscription';
+
+const PRIVACY_URL = 'https://romanelektrik.github.io/nosmoke/privacy-policy.html';
 
 export default function Profile() {
   const t = useTheme();
@@ -43,8 +44,6 @@ export default function Profile() {
             {Math.floor(cigsAvoided(p, secs))} · {formatMoney(moneySaved(p, secs), p.currency, lang === 'ru' ? 'ru-RU' : 'en-US')}
           </Text>
         </GlassCard>
-
-        <PremiumCard />
 
         <Pressable onPress={() => router.push('/achievements' as any)}>
           <GlassCard>
@@ -100,6 +99,18 @@ export default function Profile() {
           )}
         </GlassCard>
 
+        <Pressable onPress={() => Linking.openURL(PRIVACY_URL)}>
+          <GlassCard>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Icon.shield size={22} color={t.textDim} />
+              <Text style={{ color: t.text, fontSize: 16, fontWeight: '600', flex: 1 }}>
+                {lang === 'ru' ? 'Политика конфиденциальности' : 'Privacy policy'}
+              </Text>
+              <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
+            </View>
+          </GlassCard>
+        </Pressable>
+
         <Pressable
           onPress={() =>
             Alert.alert(tr('profile.reset'), tr('profile.reset_confirm'), [
@@ -145,50 +156,6 @@ function MethodCard() {
           <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
         </View>
       </GlassCard>
-    </Pressable>
-  );
-}
-
-function PremiumCard() {
-  const t = useTheme();
-  const router = useRouter();
-  const lang = currentLang();
-  const premium = usePremium();
-  if (premium) {
-    return (
-      <GlassCard>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Icon.crown size={22} color={t.accent} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
-              {lang === 'ru' ? 'Premium активен' : 'Premium active'}
-            </Text>
-            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
-              {lang === 'ru' ? 'Спасибо за поддержку. Все функции открыты.' : 'Thank you. All features unlocked.'}
-            </Text>
-          </View>
-        </View>
-      </GlassCard>
-    );
-  }
-  return (
-    <Pressable onPress={() => router.push('/paywall' as any)}>
-      <View style={{
-        padding: 16, borderRadius: radius.lg,
-        backgroundColor: t.accent + '14', borderWidth: 1, borderColor: t.accent + '50',
-        flexDirection: 'row', alignItems: 'center', gap: 12,
-      }}>
-        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: t.accent + '28', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon.crown size={24} color={t.accent} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>NoSmokeUp Premium</Text>
-          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
-            {lang === 'ru' ? 'Безлимитный ИИ, вся программа и аналитика' : 'Unlimited AI, full program and analytics'}
-          </Text>
-        </View>
-        <Text style={{ color: t.accent, fontSize: 20 }}>›</Text>
-      </View>
     </Pressable>
   );
 }

@@ -42,8 +42,6 @@ export default function Plan() {
     }));
     await scheduleQuitProgram(now, lang, 8, p.checkInHour ?? 21);
     router.replace('/(tabs)');
-    // Soft, dismissible Premium offer once after the plan is built.
-    setTimeout(() => router.push('/paywall' as any), 600);
   }
 
   if (!p) return null;

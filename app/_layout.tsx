@@ -6,7 +6,6 @@ import { StatusBar } from 'expo-status-bar';
 import { loadState, update, useAppState } from '../lib/storage';
 import { useTheme } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
-import { initPurchases } from '../lib/subscription';
 import '../lib/i18n';
 
 export default function Root() {
@@ -17,7 +16,6 @@ export default function Root() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    initPurchases();
     loadState().then(async (s) => {
       // Migration: legacy profile without currentStep → auto-recommend.
       if (s.profile && !s.profile.currentStep) {
@@ -85,7 +83,6 @@ export default function Root() {
         <Stack.Screen name="articles" />
         <Stack.Screen name="article/[id]" />
         <Stack.Screen name="med-gate" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
-        <Stack.Screen name="paywall" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="chat" options={{ fullScreenGestureEnabled: false }} />
         <Stack.Screen name="game" options={{ animation: 'slide_from_bottom', gestureEnabled: false, fullScreenGestureEnabled: false }} />
       </Stack>
