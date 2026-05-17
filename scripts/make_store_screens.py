@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate App Store marketing screenshots from raw app screenshots.
-Each slide: themed gradient background + headline + subtitle + phone mockup.
-Output: store-screens/*.png at 1290x2796 (App Store 6.9" / 6.5" compatible).
+"""App Store marketing screenshots: themed gradient + headline + realistic
+iPhone mockup (bezel, Dynamic Island, clean status bar) holding the app shot.
+Output: store-screens/*.png at 1290x2796 (App Store 6.9").
 """
 import os
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -25,113 +25,148 @@ def font(bold, size):
             return ImageFont.truetype(p, size)
     return ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size, index=1 if bold else 0)
 
-HEAD = font(True, 112)
-SUB = font(False, 46)
-SB = font(True, 34)
+HEAD = font(True, 104)
+SUB = font(False, 44)
+CLOCK = font(True, 40)
 
 def gradient(top, bot):
-    img = Image.new("RGB", (W, H), bot)
-    px = img.load()
+    base = Image.new("RGB", (W, H), bot)
+    px = base.load()
     for y in range(H):
-        f = y / H
-        f = f ** 0.75
-        r = int(top[0] + (bot[0] - top[0]) * f)
-        g = int(top[1] + (bot[1] - top[1]) * f)
-        b = int(top[2] + (bot[2] - top[2]) * f)
+        f = (y / H) ** 0.8
+        px_row = tuple(int(top[i] + (bot[i] - top[i]) * f) for i in range(3))
         for x in range(W):
-            px[x, y] = (r, g, b)
-    return img
+            px[x, y] = px_row
+    # soft radial glow behind the phone
+    glow = Image.new("L", (W, H), 0)
+    gd = ImageDraw.Draw(glow)
+    gd.ellipse([W // 2 - 520, 760, W // 2 + 520, 1900], fill=70)
+    glow = glow.filter(ImageFilter.GaussianBlur(180))
+    light = Image.new("RGB", (W, H), tuple(min(255, c + 60) for c in top))
+    base.paste(light, (0, 0), glow)
+    return base
 
-def rounded_mask(size, radius):
+def rmask(size, radius):
     m = Image.new("L", size, 0)
     ImageDraw.Draw(m).rounded_rectangle([0, 0, size[0] - 1, size[1] - 1], radius, fill=255)
     return m
 
-def centered(draw, lines, font_, y, color, line_gap):
-    for ln in lines:
-        bb = draw.textbbox((0, 0), ln, font=font_)
-        w = bb[2] - bb[0]
-        draw.text(((W - w) / 2, y), ln, font=font_, fill=color)
-        y += (bb[3] - bb[1]) + line_gap
-    return y
+def avg_color(img, y):
+    row = [img.getpixel((x, y)) for x in range(0, img.width, 40)]
+    n = len(row)
+    return tuple(sum(c[i] for c in row) // n for i in range(3))
+
+def status_bar(w, h, bg):
+    """Clean iOS status bar with time + cellular/wifi/battery icons."""
+    bar = Image.new("RGB", (w, h), bg)
+    d = ImageDraw.Draw(bar)
+    white = (255, 255, 255)
+    cy = int(h * 0.56)
+    # time
+    d.text((58, cy), "9:41", font=CLOCK, fill=white, anchor="lm")
+    # right cluster
+    x = w - 52
+    # battery
+    bw, bh = 56, 26
+    bx0 = x - bw
+    d.rounded_rectangle([bx0, cy - bh // 2, bx0 + bw - 6, cy + bh // 2], 7,
+                        outline=(255, 255, 255, 255), width=3)
+    d.rectangle([bx0 + bw - 5, cy - 5, bx0 + bw, cy + 5], fill=white)
+    d.rounded_rectangle([bx0 + 5, cy - bh // 2 + 5, bx0 + bw - 16, cy + bh // 2 - 5], 3, fill=white)
+    # wifi
+    wx = bx0 - 30
+    for i, r in enumerate((26, 17, 8)):
+        d.arc([wx - r, cy - r - 4, wx + r, cy + r - 4], 215, 325, fill=white, width=5)
+    d.ellipse([wx - 4, cy + 6, wx + 4, cy + 14], fill=white)
+    # cellular bars
+    cx = wx - 96
+    for i in range(4):
+        bh2 = 10 + i * 8
+        d.rounded_rectangle([cx + i * 16, cy + 14 - bh2, cx + i * 16 + 10, cy + 14], 2, fill=white)
+    # Dynamic Island
+    iw, ih = 138, 42
+    d.rounded_rectangle([(w - iw) // 2, 18, (w + iw) // 2, 18 + ih], ih // 2, fill=(0, 0, 0))
+    return bar
 
 def build_phone(raw_path):
     shot = Image.open(raw_path).convert("RGB")
-    # crop the real status bar (~88 px on an 828-wide capture)
-    shot = shot.crop((0, 90, shot.width, shot.height))
-    inner_w = 742
+    shot = shot.crop((0, 92, shot.width, shot.height))   # drop real status bar
+    inner_w = 824
     scale = inner_w / shot.width
-    inner_h = int(shot.height * scale)
-    shot = shot.resize((inner_w, inner_h), Image.LANCZOS)
+    shot = shot.resize((inner_w, int(shot.height * scale)), Image.LANCZOS)
 
-    # clean status strip on top of the content
-    strip_h = 66
-    content = Image.new("RGB", (inner_w, inner_h + strip_h), (11, 15, 20))
+    strip_h = 96
+    bg = avg_color(shot, 1)
+    bar = status_bar(inner_w, strip_h, bg)
+
+    content = Image.new("RGB", (inner_w, strip_h + shot.height), bg)
+    content.paste(bar, (0, 0))
     content.paste(shot, (0, strip_h))
-    d = ImageDraw.Draw(content)
-    d.text((34, 16), "9:41", font=SB, fill=(255, 255, 255))
-    # right side: simple battery
-    bx, by = inner_w - 92, 24
-    d.rounded_rectangle([bx, by, bx + 46, by + 22], 5, outline=(255, 255, 255), width=3)
-    d.rounded_rectangle([bx + 3, by + 3, bx + 36, by + 19], 2, fill=(255, 255, 255))
-    d.rectangle([bx + 48, by + 7, bx + 52, by + 15], fill=(255, 255, 255))
 
     cw, ch = content.size
-    border = 18
+    border = 22
     ow, oh = cw + border * 2, ch + border * 2
-    radius = 96
+    radius = 116
 
     phone = Image.new("RGBA", (ow, oh), (0, 0, 0, 0))
-    frame = Image.new("RGBA", (ow, oh), (12, 12, 14, 255))
-    phone.paste(frame, (0, 0), rounded_mask((ow, oh), radius))
-    phone.paste(content, (border, border), rounded_mask((cw, ch), radius - border))
+    # bezel with a faint rim highlight
+    phone.paste(Image.new("RGBA", (ow, oh), (40, 41, 45, 255)), (0, 0), rmask((ow, oh), radius))
+    inset = Image.new("RGBA", (ow - 6, oh - 6), (9, 9, 11, 255))
+    phone.paste(inset, (3, 3), rmask(inset.size, radius - 3))
+    phone.paste(content, (border, border), rmask((cw, ch), radius - border))
     return phone
 
 SLIDES = [
-    dict(raw="IMG_2941.PNG", top=(20, 80, 47),
+    dict(raw="IMG_2941.PNG", top=(22, 86, 50),
          head=["Бросай курить", "пошагово"],
-         sub=["Метод под тебя, прогресс — на виду"]),
-    dict(raw="IMG_2942.PNG", top=(15, 74, 68),
+         sub="Метод под тебя, прогресс — на виду"),
+    dict(raw="IMG_2942.PNG", top=(16, 78, 72),
          head=["План ведёт", "тебя по дням"],
-         sub=["Свой курс — шаг за шагом, день за днём"]),
-    dict(raw="IMG_2948.PNG", top=(18, 58, 102),
+         sub="Свой курс — шаг за шагом, день за днём"),
+    dict(raw="IMG_2946.PNG", top=(26, 92, 56),
+         head=["Препараты —", "по делу"],
+         sub="Справка о цитизине, бупропионе и варениклине"),
+    dict(raw="IMG_2948.PNG", top=(22, 64, 116),
          head=["Поддержка", "без осуждения"],
-         sub=["ИИ-помощник разберёт срыв и поддержит"]),
-    dict(raw="IMG_2943.PNG", top=(42, 53, 80),
+         sub="ИИ-помощник разберёт срыв и поддержит"),
+    dict(raw="IMG_2943.PNG", top=(46, 58, 88),
          head=["Сорвался —", "это не провал"],
-         sub=["Мы не бросаем тебя даже после срыва"]),
-    dict(raw="IMG_2947.PNG", top=(92, 58, 18),
+         sub="Мы не бросаем тебя даже после срыва"),
+    dict(raw="IMG_2947.PNG", top=(104, 64, 22),
          head=["Узнай свои", "триггеры"],
-         sub=["Дневник тяги показывает скрытые паттерны"]),
-    dict(raw="IMG_2944.PNG", top=(58, 32, 96),
+         sub="Дневник тяги показывает скрытые паттерны"),
+    dict(raw="IMG_2945.PNG", top=(96, 52, 30),
+         head=["Знание —", "как справляться"],
+         sub="Короткие статьи о тяге, срыве и триггерах"),
+    dict(raw="IMG_2944.PNG", top=(64, 36, 104),
          head=["Каждый шаг —", "это победа"],
-         sub=["Достижения, которые ведут до конца"]),
+         sub="Достижения, которые ведут до конца"),
 ]
-
 BOT = (10, 11, 13)
 
 for i, s in enumerate(SLIDES, 1):
     img = gradient(s["top"], BOT)
     d = ImageDraw.Draw(img)
 
-    y = centered(d, s["head"], HEAD, 150, (255, 255, 255), 18)
-    y = centered(d, s["sub"], SUB, y + 30, (201, 205, 210), 12)
+    y = 156
+    for ln in s["head"]:
+        bb = d.textbbox((0, 0), ln, font=HEAD)
+        d.text(((W - (bb[2] - bb[0])) / 2 - bb[0], y), ln, font=HEAD, fill=(255, 255, 255))
+        y += 124
+    bb = d.textbbox((0, 0), s["sub"], font=SUB)
+    d.text(((W - (bb[2] - bb[0])) / 2 - bb[0], y + 26), s["sub"], font=SUB, fill=(206, 211, 217))
 
     phone = build_phone(os.path.join(RAW, s["raw"]))
     px = (W - phone.width) // 2
-    py = 1010
+    py = H - phone.height + 150          # phone bottom slightly past the edge
 
-    # soft shadow
     sh = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     ImageDraw.Draw(sh).rounded_rectangle(
-        [px, py + 26, px + phone.width, py + phone.height + 26], 96, fill=(0, 0, 0, 150))
-    sh = sh.filter(ImageFilter.GaussianBlur(40))
-    img.paste(Image.new("RGB", (W, H), (0, 0, 0)), (0, 0), sh)
-
+        [px, py + 30, px + phone.width, py + phone.height + 30], 116, fill=(0, 0, 0, 170))
+    img.paste(Image.new("RGB", (W, H), (0, 0, 0)), (0, 0), sh.filter(ImageFilter.GaussianBlur(48)))
     img.paste(phone, (px, py), phone)
 
     out = os.path.join(OUT, f"{i:02d}.png")
     img.save(out)
     print("saved", out)
-
 print("done")
