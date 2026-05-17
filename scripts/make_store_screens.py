@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 """App Store marketing screenshots: themed gradient + headline + realistic
-iPhone mockup (bezel, Dynamic Island, clean status bar) holding the app shot.
-Output: store-screens/*.png at 1290x2796 (App Store 6.9").
+iPhone mockup (real iOS status bar) holding the app shot.
+Outputs both iPhone 6.5" (1284x2778) and iPad Pro 13" (2064x2752).
 """
 import os
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 RAW = "/Users/romansuzdalcev/Downloads/скрины эпл"
-OUT = os.path.join(os.path.dirname(__file__), "..", "store-screens")
-os.makedirs(OUT, exist_ok=True)
-
-W, H = 1284, 2778
+BASE = os.path.join(os.path.dirname(__file__), "..")
 
 def font(bold, size):
     paths = ([
@@ -25,75 +22,16 @@ def font(bold, size):
             return ImageFont.truetype(p, size)
     return ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size, index=1 if bold else 0)
 
-HEAD = font(True, 104)
-SUB = font(False, 44)
-CLOCK = font(True, 40)
-
-def gradient(top, bot):
-    base = Image.new("RGB", (W, H), bot)
-    px = base.load()
-    for y in range(H):
-        f = (y / H) ** 0.8
-        px_row = tuple(int(top[i] + (bot[i] - top[i]) * f) for i in range(3))
-        for x in range(W):
-            px[x, y] = px_row
-    # soft radial glow behind the phone
-    glow = Image.new("L", (W, H), 0)
-    gd = ImageDraw.Draw(glow)
-    gd.ellipse([W // 2 - 520, 760, W // 2 + 520, 1900], fill=70)
-    glow = glow.filter(ImageFilter.GaussianBlur(180))
-    light = Image.new("RGB", (W, H), tuple(min(255, c + 60) for c in top))
-    base.paste(light, (0, 0), glow)
-    return base
-
 def rmask(size, radius):
     m = Image.new("L", size, 0)
     ImageDraw.Draw(m).rounded_rectangle([0, 0, size[0] - 1, size[1] - 1], radius, fill=255)
     return m
 
-def avg_color(img, y):
-    row = [img.getpixel((x, y)) for x in range(0, img.width, 40)]
-    n = len(row)
-    return tuple(sum(c[i] for c in row) // n for i in range(3))
-
-def status_bar(w, h, bg):
-    """Clean iOS status bar with time + cellular/wifi/battery icons."""
-    bar = Image.new("RGB", (w, h), bg)
-    d = ImageDraw.Draw(bar)
-    white = (255, 255, 255)
-    cy = int(h * 0.56)
-    # time
-    d.text((58, cy), "9:41", font=CLOCK, fill=white, anchor="lm")
-    # right cluster
-    x = w - 52
-    # battery
-    bw, bh = 56, 26
-    bx0 = x - bw
-    d.rounded_rectangle([bx0, cy - bh // 2, bx0 + bw - 6, cy + bh // 2], 7,
-                        outline=(255, 255, 255, 255), width=3)
-    d.rectangle([bx0 + bw - 5, cy - 5, bx0 + bw, cy + 5], fill=white)
-    d.rounded_rectangle([bx0 + 5, cy - bh // 2 + 5, bx0 + bw - 16, cy + bh // 2 - 5], 3, fill=white)
-    # wifi
-    wx = bx0 - 30
-    for i, r in enumerate((26, 17, 8)):
-        d.arc([wx - r, cy - r - 4, wx + r, cy + r - 4], 215, 325, fill=white, width=5)
-    d.ellipse([wx - 4, cy + 6, wx + 4, cy + 14], fill=white)
-    # cellular bars
-    cx = wx - 96
-    for i in range(4):
-        bh2 = 10 + i * 8
-        d.rounded_rectangle([cx + i * 16, cy + 14 - bh2, cx + i * 16 + 10, cy + 14], 2, fill=white)
-    # Dynamic Island
-    iw, ih = 138, 42
-    d.rounded_rectangle([(w - iw) // 2, 18, (w + iw) // 2, 18 + ih], ih // 2, fill=(0, 0, 0))
-    return bar
-
 def build_phone(raw_path):
     shot = Image.open(raw_path).convert("RGB")
     # Keep the real iOS status bar — only erase the TestFlight indicator chip.
     bg = shot.getpixel((shot.width // 2, 6))
-    d0 = ImageDraw.Draw(shot)
-    d0.rectangle([0, 54, 180, 94], fill=bg)
+    ImageDraw.Draw(shot).rectangle([0, 54, 180, 94], fill=bg)
     inner_w = 824
     scale = inner_w / shot.width
     content = shot.resize((inner_w, int(shot.height * scale)), Image.LANCZOS)
@@ -104,7 +42,6 @@ def build_phone(raw_path):
     radius = 116
 
     phone = Image.new("RGBA", (ow, oh), (0, 0, 0, 0))
-    # bezel with a faint rim highlight
     phone.paste(Image.new("RGBA", (ow, oh), (40, 41, 45, 255)), (0, 0), rmask((ow, oh), radius))
     inset = Image.new("RGBA", (ow - 6, oh - 6), (9, 9, 11, 255))
     phone.paste(inset, (3, 3), rmask(inset.size, radius - 3))
@@ -138,34 +75,63 @@ SLIDES = [
          sub="Достижения, которые ведут до конца"),
 ]
 BOT = (10, 11, 13)
-PHONE_TOP = 560          # phone starts right under the text — no dead space
-PHONE_H = 2150           # phone bottom sits ~90px from the slide bottom
 
-for i, s in enumerate(SLIDES, 1):
-    img = gradient(s["top"], BOT)
-    d = ImageDraw.Draw(img)
 
-    y = 150
-    for ln in s["head"]:
-        bb = d.textbbox((0, 0), ln, font=HEAD)
-        d.text(((W - (bb[2] - bb[0])) / 2 - bb[0], y), ln, font=HEAD, fill=(255, 255, 255))
-        y += 122
-    bb = d.textbbox((0, 0), s["sub"], font=SUB)
-    d.text(((W - (bb[2] - bb[0])) / 2 - bb[0], y + 20), s["sub"], font=SUB, fill=(206, 211, 217))
+def gradient(W, H, top, bot):
+    base = Image.new("RGB", (W, H), bot)
+    px = base.load()
+    for y in range(H):
+        f = (y / H) ** 0.8
+        px_row = tuple(int(top[i] + (bot[i] - top[i]) * f) for i in range(3))
+        for x in range(W):
+            px[x, y] = px_row
+    glow = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(glow).ellipse([W // 2 - 520, 760, W // 2 + 520, 1900], fill=70)
+    glow = glow.filter(ImageFilter.GaussianBlur(180))
+    light = Image.new("RGB", (W, H), tuple(min(255, c + 60) for c in top))
+    base.paste(light, (0, 0), glow)
+    return base
 
-    phone = build_phone(os.path.join(RAW, s["raw"]))
-    rw = int(phone.width * PHONE_H / phone.height)
-    phone = phone.resize((rw, PHONE_H), Image.LANCZOS)
-    px = (W - rw) // 2
-    py = PHONE_TOP
 
-    sh = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(sh).rounded_rectangle(
-        [px, py + 34, px + rw, py + PHONE_H + 34], 116, fill=(0, 0, 0, 175))
-    img.paste(Image.new("RGB", (W, H), (0, 0, 0)), (0, 0), sh.filter(ImageFilter.GaussianBlur(52)))
-    img.paste(phone, (px, py), phone)
+def render(out_dir, W, H, head_size, sub_size, y0, line_step, phone_top, phone_h):
+    os.makedirs(out_dir, exist_ok=True)
+    HEAD = font(True, head_size)
+    SUB = font(False, sub_size)
+    for i, s in enumerate(SLIDES, 1):
+        img = gradient(W, H, s["top"], BOT)
+        d = ImageDraw.Draw(img)
+        y = y0
+        for ln in s["head"]:
+            bb = d.textbbox((0, 0), ln, font=HEAD)
+            d.text(((W - (bb[2] - bb[0])) / 2 - bb[0], y), ln, font=HEAD, fill=(255, 255, 255))
+            y += line_step
+        bb = d.textbbox((0, 0), s["sub"], font=SUB)
+        d.text(((W - (bb[2] - bb[0])) / 2 - bb[0], y + 20), s["sub"], font=SUB, fill=(206, 211, 217))
 
-    out = os.path.join(OUT, f"{i:02d}.png")
-    img.save(out)
-    print("saved", out)
+        phone = build_phone(os.path.join(RAW, s["raw"]))
+        rw = int(phone.width * phone_h / phone.height)
+        phone = phone.resize((rw, phone_h), Image.LANCZOS)
+        px = (W - rw) // 2
+
+        sh = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ImageDraw.Draw(sh).rounded_rectangle(
+            [px, phone_top + 34, px + rw, phone_top + phone_h + 34], 116, fill=(0, 0, 0, 175))
+        img.paste(Image.new("RGB", (W, H), (0, 0, 0)), (0, 0), sh.filter(ImageFilter.GaussianBlur(52)))
+        img.paste(phone, (px, phone_top), phone)
+
+        out = os.path.join(out_dir, f"{i:02d}.png")
+        img.save(out)
+        print("saved", out)
+
+
+# iPhone 6.5" — 1284x2778
+render(os.path.join(BASE, "store-screens"),
+       1284, 2778, head_size=104, sub_size=44, y0=150, line_step=122,
+       phone_top=560, phone_h=2150)
+
+# iPad Pro 13" — 2064x2752
+render(os.path.join(BASE, "store-screens-ipad"),
+       2064, 2752, head_size=130, sub_size=58, y0=170, line_step=154,
+       phone_top=700, phone_h=1860)
+
 print("done")
