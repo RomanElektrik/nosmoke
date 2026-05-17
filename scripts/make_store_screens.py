@@ -10,7 +10,7 @@ RAW = "/Users/romansuzdalcev/Downloads/скрины эпл"
 OUT = os.path.join(os.path.dirname(__file__), "..", "store-screens")
 os.makedirs(OUT, exist_ok=True)
 
-W, H = 1290, 2796
+W, H = 1284, 2778
 
 def font(bold, size):
     paths = ([
