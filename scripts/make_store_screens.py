@@ -90,18 +90,13 @@ def status_bar(w, h, bg):
 
 def build_phone(raw_path):
     shot = Image.open(raw_path).convert("RGB")
-    shot = shot.crop((0, 92, shot.width, shot.height))   # drop real status bar
+    # Keep the real iOS status bar — only erase the TestFlight indicator chip.
+    bg = shot.getpixel((shot.width // 2, 6))
+    d0 = ImageDraw.Draw(shot)
+    d0.rectangle([0, 32, 210, 96], fill=bg)
     inner_w = 824
     scale = inner_w / shot.width
-    shot = shot.resize((inner_w, int(shot.height * scale)), Image.LANCZOS)
-
-    strip_h = 96
-    bg = avg_color(shot, 1)
-    bar = status_bar(inner_w, strip_h, bg)
-
-    content = Image.new("RGB", (inner_w, strip_h + shot.height), bg)
-    content.paste(bar, (0, 0))
-    content.paste(shot, (0, strip_h))
+    content = shot.resize((inner_w, int(shot.height * scale)), Image.LANCZOS)
 
     cw, ch = content.size
     border = 22
