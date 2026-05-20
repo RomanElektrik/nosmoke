@@ -11,7 +11,7 @@
 // • Marlatt RP — analyse what failed before changing intervention.
 
 import { useMemo, useState } from 'react';
-import { ScrollView, View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, View, Text, Pressable, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -159,9 +159,9 @@ export default function Transition() {
           {causes.map((c) => {
             const sel = reflect.includes(c.v);
             return (
-              <Pressable
+              <TouchableOpacity
                 key={c.v}
-                unstable_pressDelay={0}
+                activeOpacity={0.7}
                 onPress={() => toggle(c.v)}
                 style={{
                   padding: 14, borderRadius: radius.md,
@@ -169,7 +169,7 @@ export default function Transition() {
                   borderWidth: 1, borderColor: sel ? t.accent : t.border,
                   flexDirection: 'row', alignItems: 'center', gap: 10,
                 }}>
-                <View style={{
+                <View pointerEvents="none" style={{
                   width: 22, height: 22, borderRadius: 6,
                   borderWidth: 2, borderColor: sel ? t.accent : t.border,
                   backgroundColor: sel ? t.accent : 'transparent',
@@ -177,8 +177,8 @@ export default function Transition() {
                 }}>
                   {sel && <Icon.check size={13} color="#fff" />}
                 </View>
-                <Text style={{ color: t.text, fontSize: 14, flex: 1 }}>{lang === 'ru' ? c.ru : c.en}</Text>
-              </Pressable>
+                <Text pointerEvents="none" style={{ color: t.text, fontSize: 14, flex: 1 }}>{lang === 'ru' ? c.ru : c.en}</Text>
+              </TouchableOpacity>
             );
           })}
         </View>
@@ -205,7 +205,7 @@ export default function Transition() {
             const isPicked = pickedMethod === id;
             const isRecommended = recommended === id;
             return (
-              <Pressable key={id} unstable_pressDelay={0} onPress={() => { Haptics.selectionAsync(); setPickedMethod(id); }}>
+              <TouchableOpacity key={id} activeOpacity={0.75} onPress={() => { Haptics.selectionAsync(); setPickedMethod(id); }}>
                 <View style={{
                   padding: 14, borderRadius: radius.lg,
                   backgroundColor: isPicked ? s.color + '14' : t.bgElev,
@@ -242,7 +242,7 @@ export default function Transition() {
                   </Text>
                   <Text style={{ color: t.textDim, fontSize: 11 }}>{s.evidenceRu}</Text>
                 </View>
-              </Pressable>
+              </TouchableOpacity>
             );
           })}
         </View>

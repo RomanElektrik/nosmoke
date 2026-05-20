@@ -133,7 +133,8 @@ export default function Home() {
           </View>
         </Pressable>
 
-        {/* ПОМОЩЬ РЯДОМ — moved up: this is the user's primary navigation. */}
+        {/* ПОМОЩЬ РЯДОМ — moved up: this is the user's primary navigation.
+            «Награды» убраны — есть отдельная вкладка снизу. */}
         <SectionLabel text={lang === 'ru' ? 'Помощь рядом' : 'Help nearby'} />
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <SquareCard
@@ -141,9 +142,9 @@ export default function Home() {
             title={lang === 'ru' ? 'ИИ-помощник' : 'AI coach'}
             onPress={() => router.push('/(tabs)/coach')} />
           <SquareCard
-            color="#BF5AF2" icon={<Icon.star size={22} color="#BF5AF2" />}
-            title={lang === 'ru' ? 'Награды' : 'Awards'}
-            onPress={() => router.push('/(tabs)/awards')} />
+            color={t.warn} icon={<Icon.toolbox size={22} color={t.warn} />}
+            title={tr('tabs.techniques')}
+            onPress={() => router.push('/(tabs)/techniques')} />
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <SquareCard
@@ -151,9 +152,9 @@ export default function Home() {
             title={tr('tabs.health')}
             onPress={() => router.push('/(tabs)/health')} />
           <SquareCard
-            color={t.warn} icon={<Icon.toolbox size={22} color={t.warn} />}
-            title={tr('tabs.techniques')}
-            onPress={() => router.push('/(tabs)/techniques')} />
+            color={t.danger} icon={<Icon.flame size={22} color={t.danger} />}
+            title={lang === 'ru' ? 'Хочу курить (SOS)' : 'I want to smoke (SOS)'}
+            onPress={() => router.push('/craving' as any)} />
         </View>
 
         {/* СЕЙЧАС */}
