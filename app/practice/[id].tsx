@@ -284,46 +284,53 @@ function CyclicSigh({ onDone }: { onDone: () => void }) {
   ] as const;
 
   const TOTAL = 300;
+  const CYCLE_MS = PHASES.reduce((acc, p) => acc + p.dur, 0);
   const [phase, setPhase] = useState(0);
   const [cycle, setCycle] = useState(1);
   const startedAt = useRef(Date.now());
+  const lastPhaseRef = useRef(0);
   const [elapsedSec, setElapsedSec] = useState(0);
   const scale = useSharedValue(0.5);
   const progress = useSharedValue(0);
 
-  // Per-second ticker
+  // One continuous looping breath animation. withSequence chains the three
+  // phases without the start-stop hiccup of restarting withTiming per phase.
   useEffect(() => {
     startedAt.current = Date.now();
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(PHASES[0].scale, { duration: PHASES[0].dur, easing: Easing.out(Easing.quad) }),
+        withTiming(PHASES[1].scale, { duration: PHASES[1].dur, easing: Easing.out(Easing.quad) }),
+        withTiming(PHASES[2].scale, { duration: PHASES[2].dur, easing: Easing.inOut(Easing.cubic) }),
+      ),
+      -1,
+      false,
+    );
     const id = setInterval(() => {
-      const e = Math.min(TOTAL, (Date.now() - startedAt.current) / 1000);
-      setElapsedSec(Math.floor(e));
-      progress.value = e / TOTAL;
-      if (e >= TOTAL) {
+      const elapsed = (Date.now() - startedAt.current) / 1000;
+      setElapsedSec(Math.floor(elapsed));
+      progress.value = Math.min(1, elapsed / TOTAL);
+      if (elapsed >= TOTAL) {
         clearInterval(id);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onDone();
+        return;
       }
-    }, 200);
+      // Decide which phase we're in by ms mod cycle.
+      const ms = (Date.now() - startedAt.current) % CYCLE_MS;
+      let next = 0;
+      if (ms < PHASES[0].dur) next = 0;
+      else if (ms < PHASES[0].dur + PHASES[1].dur) next = 1;
+      else next = 2;
+      if (next !== lastPhaseRef.current) {
+        lastPhaseRef.current = next;
+        setPhase(next);
+        if (next === 0) setCycle((c) => c + 1);
+        Haptics.selectionAsync();
+      }
+    }, 80);
     return () => clearInterval(id);
   }, []);
-
-  // Smooth ease curve
-  const ease = Easing.inOut(Easing.cubic);
-
-  // Phase animation
-  useEffect(() => {
-    const p = PHASES[phase];
-    Haptics.selectionAsync();
-    scale.value = withTiming(p.scale, { duration: p.dur, easing: ease });
-    const id = setTimeout(() => {
-      setPhase((i) => {
-        const n = (i + 1) % PHASES.length;
-        if (n === 0) setCycle((c) => c + 1);
-        return n;
-      });
-    }, p.dur);
-    return () => clearTimeout(id);
-  }, [phase]);
 
   const cur = PHASES[phase];
   const remaining = Math.max(0, TOTAL - elapsedSec);
