@@ -7,6 +7,7 @@ import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
 import { Icon } from '../components/Icon';
 import { ARTICLES, ARTICLE_CATEGORY, ARTICLE_IMAGES, articleAspect, type ArticleCategory } from '../lib/articles';
+import { FREE_ARTICLE_COUNT, usePremium } from '../lib/subscription';
 
 const ORDER: ArticleCategory[] = ['craving', 'slip', 'triggers', 'body', 'meds', 'motivation'];
 
@@ -14,6 +15,8 @@ export default function Articles() {
   const t = useTheme();
   const router = useRouter();
   const ru = currentLang() === 'ru';
+  const premium = usePremium();
+  const freeIds = new Set(ARTICLES.slice(0, FREE_ARTICLE_COUNT).map((a) => a.id));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
@@ -46,21 +49,33 @@ export default function Articles() {
               {items.map((a) => {
                 const I = Icon[a.icon];
                 const img = ARTICLE_IMAGES[a.id];
+                const locked = !premium && !freeIds.has(a.id);
                 return (
-                  <Pressable key={a.id} onPress={() => router.push(`/article/${a.id}` as any)}
+                  <Pressable key={a.id} onPress={() => router.push((locked ? '/paywall' : `/article/${a.id}`) as any)}
                     style={{
                       backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
                       borderRadius: radius.lg, overflow: 'hidden',
                     }}>
                     {img
-                      ? <Image source={img} style={{ width: '100%', height: 168 }} resizeMode="cover" />
+                      ? <Image source={img} style={{ width: '100%', height: 168, opacity: locked ? 0.55 : 1 }} resizeMode="cover" />
                       : <View style={{ width: '100%', height: 168, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
                           <I size={44} color={a.color} />
                         </View>}
                     <View style={{ padding: 14 }}>
-                      <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.3 }} numberOfLines={2}>
-                        {ru ? a.titleRu : a.titleEn}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.3, flex: 1 }} numberOfLines={2}>
+                          {ru ? a.titleRu : a.titleEn}
+                        </Text>
+                        {locked && (
+                          <View style={{
+                            paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+                            backgroundColor: t.warn + '24', flexDirection: 'row', alignItems: 'center', gap: 4,
+                          }}>
+                            <Icon.star size={11} color={t.warn} />
+                            <Text style={{ color: t.warn, fontSize: 10, fontWeight: '800' }}>PRO</Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={{ color: t.textDim, fontSize: 13, marginTop: 4, lineHeight: 19 }} numberOfLines={2}>
                         {ru ? a.leadRu : a.leadEn}
                       </Text>

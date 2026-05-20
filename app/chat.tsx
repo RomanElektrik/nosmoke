@@ -11,6 +11,7 @@ import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
 import { chat, ChatMessage, CoachMode } from '../lib/ai';
 import { Icon, type IconKey } from '../components/Icon';
+import { FREE_AI_DAILY_LIMIT, aiRemainingToday, todayKey, usePremium } from '../lib/subscription';
 
 const MODE_META: Record<CoachMode, { icon: IconKey; color: string; ru: string; en: string }> = {
   support:      { icon: 'wave2',   color: '#0A84FF', ru: 'Поддержи сейчас', en: 'Support now' },
@@ -103,9 +104,16 @@ export default function ChatScreen() {
     }));
   }
 
+  const premium = usePremium();
+  const remaining = aiRemainingToday(state, premium);
+
   async function send() {
     const text = input.trim();
     if (!text || loading) return;
+    if (!premium && (remaining ?? 0) <= 0) {
+      router.push('/paywall' as any);
+      return;
+    }
     const next: ChatMessage[] = [...history, { role: 'user', content: text }];
     setHistory(next);
     setInput('');
@@ -115,6 +123,13 @@ export default function ChatScreen() {
       const final = [...next, { role: 'assistant' as const, content: reply || '…' }];
       setHistory(final);
       await persist(final);
+      if (!premium) {
+        await update((s) => {
+          const day = todayKey();
+          const cur = s.aiUsage && s.aiUsage.date === day ? s.aiUsage.count : 0;
+          return { ...s, aiUsage: { date: day, count: cur + 1 } };
+        });
+      }
     } catch (e: any) {
       const errMsg = e?.message ?? (lang === 'ru' ? 'Ошибка соединения' : 'Connection error');
       setHistory([...next, { role: 'assistant' as const, content: errMsg }]);
@@ -188,6 +203,27 @@ export default function ChatScreen() {
             </View>
           )}
         </ScrollView>
+
+        {!premium && remaining !== null && (
+          <Pressable onPress={() => router.push('/paywall' as any)}>
+            <View style={{
+              marginHorizontal: spacing.md, marginBottom: 8, paddingVertical: 8, paddingHorizontal: 12,
+              borderRadius: 12, backgroundColor: remaining <= 2 ? t.warn + '18' : t.bgElev,
+              borderWidth: 1, borderColor: remaining <= 2 ? t.warn + '50' : t.border,
+              flexDirection: 'row', alignItems: 'center', gap: 8,
+            }}>
+              <Icon.star size={14} color={remaining <= 2 ? t.warn : t.textDim} />
+              <Text style={{ color: remaining <= 2 ? t.warn : t.textDim, fontSize: 12, fontWeight: '600', flex: 1 }}>
+                {lang === 'ru'
+                  ? (remaining > 0 ? `Осталось ${remaining} из ${FREE_AI_DAILY_LIMIT} бесплатных сообщений` : 'Лимит на сегодня исчерпан — открой Премиум')
+                  : (remaining > 0 ? `${remaining} of ${FREE_AI_DAILY_LIMIT} free messages left today` : 'Daily limit reached — unlock Premium')}
+              </Text>
+              <Text style={{ color: t.accent, fontSize: 12, fontWeight: '700' }}>
+                {lang === 'ru' ? 'Премиум →' : 'Premium →'}
+              </Text>
+            </View>
+          </Pressable>
+        )}
 
         <View style={{ flexDirection: 'row', gap: 8, padding: spacing.md, paddingTop: 0 }}>
           <TextInput

@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, currentLang } from '../../lib/i18n';
 import { TECHNIQUES, Technique } from '../../lib/techniques';
+import { isTechniquePremium, usePremium } from '../../lib/subscription';
 import { Icon, IconKey } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
 
@@ -35,6 +36,7 @@ export default function Techniques() {
   const router = useRouter();
   const lang = currentLang();
   const [open, setOpen] = useState<Technique | null>(null);
+  const premium = usePremium();
 
   const sorted = TECHNIQUES
     .filter((te) => !HIDDEN.has(te.id))
@@ -43,6 +45,10 @@ export default function Techniques() {
   function go(te: Technique) {
     if (!te.practice) return;
     Haptics.selectionAsync();
+    if (!premium && isTechniquePremium(te.id)) {
+      router.push('/paywall' as any);
+      return;
+    }
     if (te.practice === 'money') router.push('/goal');
     else if (te.practice === 'ema') router.push('/journal');
     else router.push(`/practice/${te.practice}` as any);
@@ -95,6 +101,7 @@ export default function Techniques() {
               <View style={{ paddingHorizontal: spacing.lg, gap: 10 }}>
                 {items.map((te) => (
                   <TechCard key={te.id} te={te} lang={lang} tr={tr}
+                    locked={!premium && isTechniquePremium(te.id)}
                     onOpen={() => setOpen(te)} onGo={() => go(te)} />
                 ))}
               </View>
@@ -117,8 +124,8 @@ export default function Techniques() {
   );
 }
 
-function TechCard({ te, lang, tr, onOpen, onGo }: {
-  te: Technique; lang: 'ru' | 'en'; tr: any; onOpen: () => void; onGo: () => void;
+function TechCard({ te, lang, tr, onOpen, onGo, locked }: {
+  te: Technique; lang: 'ru' | 'en'; tr: any; onOpen: () => void; onGo: () => void; locked?: boolean;
 }) {
   const t = useTheme();
   const IconComp = Icon[te.icon];
@@ -167,6 +174,17 @@ function TechCard({ te, lang, tr, onOpen, onGo }: {
           </Text>
         </View>
       </View>
+
+      {/* Lock badge for premium-only techniques */}
+      {locked && (
+        <View style={{
+          paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
+          backgroundColor: t.warn + '24', flexDirection: 'row', alignItems: 'center', gap: 4,
+        }}>
+          <Icon.star size={11} color={t.warn} />
+          <Text style={{ color: t.warn, fontSize: 10, fontWeight: '800' }}>PRO</Text>
+        </View>
+      )}
 
       {/* Info / open detail */}
       <Pressable onPress={(e) => { e.stopPropagation(); onOpen(); }} hitSlop={10}

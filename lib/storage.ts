@@ -70,6 +70,9 @@ export type Profile = {
   // Taper method: gradual reduction over N weeks to a full-quit target date
   taperWeeks?: number;
   taperTargetDate?: number; // ms epoch — planned full-quit day
+  // Premium / subscription — local dev flag for testing premium states.
+  // Real IAP entitlement (RevenueCat) will OR with this when wired.
+  devPremium?: boolean;
 };
 
 export type HealthFlag =
@@ -126,6 +129,7 @@ export type AppState = {
   chatHistories?: Partial<Record<'support' | 'analyze_slip' | 'daily_task', { role: 'user' | 'assistant'; content: string; ts: number }[]>>;
   doseLogs?: { date: string; doseNumber: number; takenAt: number }[];
   achievements?: Record<string, number>;       // achievement id → unlocked-at ms
+  aiUsage?: { date: string; count: number };   // free-tier AI counter — resets daily
 };
 
 const KEY = 'qs:state:v1';

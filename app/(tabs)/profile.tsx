@@ -12,6 +12,7 @@ import { SwipeToHome } from '../../components/SwipeToHome';
 import { scheduleDailyCheckIn } from '../../lib/notifications';
 import { secondsClean } from '../../lib/health';
 import { moneySaved, cigsAvoided, formatMoney } from '../../lib/money';
+import { usePremium } from '../../lib/subscription';
 
 const PRIVACY_URL = 'https://romanelektrik.github.io/nosmoke/privacy-policy.html';
 
@@ -56,6 +57,8 @@ export default function Profile() {
             </View>
           </GlassCard>
         </Pressable>
+
+        <PremiumCard />
 
         <HabitCard />
 
@@ -237,6 +240,43 @@ function QuickActionsCard() {
         })}
       </View>
     </GlassCard>
+  );
+}
+
+function PremiumCard() {
+  const t = useTheme();
+  const router = useRouter();
+  const lang = currentLang();
+  const premium = usePremium();
+  return (
+    <Pressable onPress={() => router.push('/paywall' as any)}>
+      <View style={{
+        padding: 16, borderRadius: radius.lg,
+        backgroundColor: premium ? t.accent + '14' : t.card,
+        borderWidth: 1, borderColor: premium ? t.accent + '60' : t.border,
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+      }}>
+        <View style={{
+          width: 46, height: 46, borderRadius: 14,
+          backgroundColor: t.accent + '20', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon.star size={22} color={t.accent} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
+            {premium
+              ? (lang === 'ru' ? 'Премиум активен' : 'Premium active')
+              : (lang === 'ru' ? 'Открой Премиум' : 'Unlock Premium')}
+          </Text>
+          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
+            {premium
+              ? (lang === 'ru' ? 'Все функции доступны' : 'All features unlocked')
+              : (lang === 'ru' ? 'Безлимит ИИ, все программы, статьи и техники' : 'Unlimited AI, all programs, articles and techniques')}
+          </Text>
+        </View>
+        <Text style={{ color: t.textDim, fontSize: 20 }}>›</Text>
+      </View>
+    </Pressable>
   );
 }
 
