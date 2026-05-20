@@ -118,64 +118,77 @@ function BreathOrb({
   }));
 
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center', height: SIZE }}>
-      {/* far + mid soft glow */}
-      <Animated.View style={[
-        { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aGlowFar,
-      ]} />
-      <Animated.View style={[
-        { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aGlowMid,
-      ]} />
+    <View style={{ alignItems: 'center' }}>
+      {/* Phase label sits ABOVE the orb so it doesn't shrink with the
+          animation and stays centered no matter how small the orb gets. */}
+      <Text style={{
+        color: t.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.4,
+        textAlign: 'center', width: '100%',
+      }}>
+        {phaseLabel}
+      </Text>
+      <Text style={{
+        color: t.textDim, fontSize: 14, marginTop: 4, fontWeight: '500',
+        textAlign: 'center', width: '100%',
+      }}>
+        {subLabel}
+      </Text>
 
-      {/* SVG progress ring — fills over the whole session */}
-      <Animated.View style={[{ position: 'absolute', width: SIZE, height: SIZE }, aRing]}>
-        <Svg width={SIZE} height={SIZE}>
-          <Circle
-            cx={SIZE / 2} cy={SIZE / 2} r={R}
-            stroke={t.border} strokeWidth={3} fill="none"
-          />
-          <AnimatedCircle
-            cx={SIZE / 2} cy={SIZE / 2} r={R}
-            stroke={color} strokeWidth={4} fill="none"
-            strokeLinecap="round"
-            strokeDasharray={CIRC}
-            animatedProps={ringProps}
-            transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
-          />
-        </Svg>
-      </Animated.View>
+      <View style={{ alignItems: 'center', justifyContent: 'center', height: SIZE, marginTop: 6 }}>
+        {/* far + mid soft glow */}
+        <Animated.View style={[
+          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aGlowFar,
+        ]} />
+        <Animated.View style={[
+          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aGlowMid,
+        ]} />
 
-      {/* main orb with radial-gradient fill */}
-      <Animated.View style={[
-        {
-          width: ORB, height: ORB, borderRadius: ORB / 2,
-          alignItems: 'center', justifyContent: 'center',
-          borderWidth: 1.5, borderColor: color + '88',
-        }, aCore,
-      ]}>
-        <Svg width={ORB} height={ORB} style={{ position: 'absolute' }}>
-          <Defs>
-            <SvgRadialGradient id="orbFill" cx="50%" cy="42%" r="62%">
-              <Stop offset="0%" stopColor={color} stopOpacity={0.42} />
-              <Stop offset="62%" stopColor={color} stopOpacity={0.20} />
-              <Stop offset="100%" stopColor={color} stopOpacity={0.10} />
-            </SvgRadialGradient>
-          </Defs>
-          <Circle cx={ORB / 2} cy={ORB / 2} r={ORB / 2} fill="url(#orbFill)" />
-        </Svg>
-        <Text style={{ color: t.text, fontSize: 23, fontWeight: '700', letterSpacing: -0.3 }}>
-          {phaseLabel}
-        </Text>
-        <Text style={{ color: t.textDim, fontSize: 13, marginTop: 4, fontWeight: '500' }}>
-          {subLabel}
-        </Text>
-        <Text style={{
-          color: color, fontSize: 13, marginTop: 10, fontWeight: '700',
-          fontVariant: ['tabular-nums'] as any, letterSpacing: 1,
-        }}>
-          {timeLabel}
-        </Text>
-      </Animated.View>
+        {/* SVG progress ring — fills over the whole session */}
+        <Animated.View style={[{ position: 'absolute', width: SIZE, height: SIZE }, aRing]}>
+          <Svg width={SIZE} height={SIZE}>
+            <Circle
+              cx={SIZE / 2} cy={SIZE / 2} r={R}
+              stroke={t.border} strokeWidth={3} fill="none"
+            />
+            <AnimatedCircle
+              cx={SIZE / 2} cy={SIZE / 2} r={R}
+              stroke={color} strokeWidth={4} fill="none"
+              strokeLinecap="round"
+              strokeDasharray={CIRC}
+              animatedProps={ringProps}
+              transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+            />
+          </Svg>
+        </Animated.View>
+
+        {/* main orb — purely visual, no text inside */}
+        <Animated.View style={[
+          {
+            width: ORB, height: ORB, borderRadius: ORB / 2,
+            alignItems: 'center', justifyContent: 'center',
+            borderWidth: 1.5, borderColor: color + '88',
+            overflow: 'hidden',
+          }, aCore,
+        ]}>
+          <Svg width={ORB} height={ORB} style={{ position: 'absolute' }}>
+            <Defs>
+              <SvgRadialGradient id="orbFill" cx="50%" cy="42%" r="62%">
+                <Stop offset="0%" stopColor={color} stopOpacity={0.42} />
+                <Stop offset="62%" stopColor={color} stopOpacity={0.20} />
+                <Stop offset="100%" stopColor={color} stopOpacity={0.10} />
+              </SvgRadialGradient>
+            </Defs>
+            <Circle cx={ORB / 2} cy={ORB / 2} r={ORB / 2} fill="url(#orbFill)" />
+          </Svg>
+        </Animated.View>
+      </View>
+
+      <Text style={{
+        color: color, fontSize: 14, marginTop: 6, fontWeight: '700',
+        fontVariant: ['tabular-nums'] as any, letterSpacing: 1, textAlign: 'center',
+      }}>
+        {timeLabel}
+      </Text>
     </View>
   );
 }
