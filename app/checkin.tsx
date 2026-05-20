@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update, loadState } from '../lib/storage';
+import { localDateKey } from '../lib/dates';
 import type { Trigger } from '../lib/storage';
 import { escalationSuggestion, getStep } from '../lib/stepped';
 import { Icon } from '../components/Icon';
@@ -29,7 +30,7 @@ export default function CheckIn() {
   const [note, setNote] = useState('');
   const [escalationData, setEscalationData] = useState<ReturnType<typeof escalationSuggestion> | null>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
 
   async function logNoSmoking() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

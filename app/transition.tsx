@@ -161,6 +161,7 @@ export default function Transition() {
             return (
               <Pressable
                 key={c.v}
+                unstable_pressDelay={0}
                 onPress={() => toggle(c.v)}
                 style={{
                   padding: 14, borderRadius: radius.md,
@@ -204,7 +205,7 @@ export default function Transition() {
             const isPicked = pickedMethod === id;
             const isRecommended = recommended === id;
             return (
-              <Pressable key={id} onPress={() => { Haptics.selectionAsync(); setPickedMethod(id); }}>
+              <Pressable key={id} unstable_pressDelay={0} onPress={() => { Haptics.selectionAsync(); setPickedMethod(id); }}>
                 <View style={{
                   padding: 14, borderRadius: radius.lg,
                   backgroundColor: isPicked ? s.color + '14' : t.bgElev,
@@ -569,11 +570,11 @@ function Footer({ onBack, onNext, disabled }: { onBack: () => void; onNext: () =
   const t = useTheme();
   return (
     <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
-      <Pressable onPress={onBack}
+      <Pressable onPress={onBack} unstable_pressDelay={0}
         style={{ paddingHorizontal: 18, paddingVertical: 16, borderRadius: radius.xl, borderWidth: 1, borderColor: t.border }}>
         <Text style={{ color: t.text, fontSize: 16 }}>{tt('Назад', 'Back')}</Text>
       </Pressable>
-      <Pressable onPress={onNext} disabled={disabled}
+      <Pressable onPress={onNext} disabled={disabled} unstable_pressDelay={0}
         style={{ flex: 1, paddingVertical: 18, borderRadius: radius.xl, backgroundColor: disabled ? t.border : t.accent, alignItems: 'center' }}>
         <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }}>{tt('Дальше', 'Next')}</Text>
       </Pressable>

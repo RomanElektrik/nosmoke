@@ -20,6 +20,7 @@ import { todayDoses, isDoseTaken, expectedMedForStep, MED_SAFETY } from '../../l
 import { newlyUnlocked, ACHIEVEMENTS, buildContext, achProgress, isAchUnlocked } from '../../lib/achievements';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
 import { ARTICLES, ARTICLE_IMAGES, articleAspect } from '../../lib/articles';
+import { localDateKey } from '../../lib/dates';
 
 export default function Home() {
   const t = useTheme();
@@ -132,9 +133,33 @@ export default function Home() {
           </View>
         </Pressable>
 
+        {/* ПОМОЩЬ РЯДОМ — moved up: this is the user's primary navigation. */}
+        <SectionLabel text={lang === 'ru' ? 'Помощь рядом' : 'Help nearby'} />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <SquareCard
+            color={t.info} icon={<Icon.chat size={22} color={t.info} />}
+            title={lang === 'ru' ? 'ИИ-помощник' : 'AI coach'}
+            onPress={() => router.push('/(tabs)/coach')} />
+          <SquareCard
+            color="#BF5AF2" icon={<Icon.star size={22} color="#BF5AF2" />}
+            title={lang === 'ru' ? 'Награды' : 'Awards'}
+            onPress={() => router.push('/(tabs)/awards')} />
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <SquareCard
+            color={t.accent} icon={<Icon.pulse size={22} color={t.accent} />}
+            title={tr('tabs.health')}
+            onPress={() => router.push('/(tabs)/health')} />
+          <SquareCard
+            color={t.warn} icon={<Icon.toolbox size={22} color={t.warn} />}
+            title={tr('tabs.techniques')}
+            onPress={() => router.push('/(tabs)/techniques')} />
+        </View>
+
         {/* СЕЙЧАС */}
         <SectionLabel text={lang === 'ru' ? 'Сейчас' : 'Now'} />
         <TodayFocus />
+        <GoalCard />
 
         {/* Closest achievement */}
         <NearAchievement />
@@ -178,29 +203,6 @@ export default function Home() {
 
         <MethodCard />
         <MedicationCard />
-
-        {/* ПОМОЩЬ РЯДОМ */}
-        <SectionLabel text={lang === 'ru' ? 'Помощь рядом' : 'Help nearby'} />
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <SquareCard
-            color={t.info} icon={<Icon.chat size={22} color={t.info} />}
-            title={lang === 'ru' ? 'ИИ-помощник' : 'AI coach'}
-            onPress={() => router.push('/(tabs)/coach')} />
-          <SquareCard
-            color="#BF5AF2" icon={<Icon.star size={22} color="#BF5AF2" />}
-            title={lang === 'ru' ? 'Награды' : 'Awards'}
-            onPress={() => router.push('/(tabs)/awards')} />
-        </View>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <SquareCard
-            color={t.accent} icon={<Icon.pulse size={22} color={t.accent} />}
-            title={tr('tabs.health')}
-            onPress={() => router.push('/(tabs)/health')} />
-          <SquareCard
-            color={t.warn} icon={<Icon.toolbox size={22} color={t.warn} />}
-            title={tr('tabs.techniques')}
-            onPress={() => router.push('/(tabs)/techniques')} />
-        </View>
 
         {/* Knowledge — coping articles */}
         <KnowledgeSection />
@@ -394,6 +396,56 @@ function SquareCard({ icon, title, color, onPress }: { icon: any; title: string;
   );
 }
 
+// Active savings goal — surfaces /goal contents on home so the user
+// actually sees the jar they set up.
+function GoalCard() {
+  const t = useTheme();
+  const router = useRouter();
+  const lang = currentLang();
+  const [state] = useAppState();
+  const [, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const p = state.profile;
+  if (!p?.goalAmount || !p.goalLabel) return null;
+  const secs = secondsClean(p.quitDate);
+  const saved = moneySaved(p, secs);
+  const pct = Math.min(1, saved / p.goalAmount);
+  return (
+    <Pressable onPress={() => router.push('/goal' as any)}>
+      <View style={{
+        padding: 16, borderRadius: radius.lg,
+        backgroundColor: t.card, borderWidth: 1, borderColor: t.border, gap: 10,
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: t.accent + '22', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon.star size={22} color={t.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+              {lang === 'ru' ? 'Цель' : 'Goal'}
+            </Text>
+            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', marginTop: 2 }} numberOfLines={1}>
+              {p.goalLabel}
+            </Text>
+          </View>
+          <Text style={{ color: t.accent, fontSize: 13, fontWeight: '800' }}>
+            {Math.round(pct * 100)}%
+          </Text>
+        </View>
+        <View style={{ height: 6, borderRadius: 6, backgroundColor: t.border, overflow: 'hidden' }}>
+          <View style={{ width: `${pct * 100}%`, height: '100%', backgroundColor: t.accent }} />
+        </View>
+        <Text style={{ color: t.textDim, fontSize: 12 }}>
+          {Math.round(saved).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')} / {p.goalAmount.toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')} {p.currency}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 // Closest locked achievement — "something to look forward to".
 function NearAchievement() {
   const t = useTheme();
@@ -447,7 +499,7 @@ function TodayFocus() {
   const [state] = useAppState();
   if (!state.profile) return null;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   const checkDone = !!state.checkIns.find((c) => c.date === today);
 
   // NOTE: medication reminder lives in the MedicationCard below — don't

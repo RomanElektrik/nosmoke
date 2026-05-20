@@ -36,17 +36,28 @@ export default function PathTab() {
         style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 360 }}
       />
       <ScrollView contentContainerStyle={{ padding: spacing.md, gap: 14, paddingBottom: 140 }}>
-        <View style={{ marginTop: 8 }}>
-          <Text style={{ color: t.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.7 }}>
-            {lang === 'ru' ? 'Твой путь' : 'Your path'}
-          </Text>
-          {step && (
-            <Text style={{ color: t.textDim, fontSize: 14, marginTop: 2 }}>
-              {lang === 'ru'
-                ? `${step.titleRu} · день ${today.day} из ${total}`
-                : `${step.titleEn} · day ${today.day} of ${total}`}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.7 }}>
+              {lang === 'ru' ? 'Твой путь' : 'Your path'}
             </Text>
-          )}
+            {step && (
+              <Text style={{ color: t.textDim, fontSize: 14, marginTop: 2 }}>
+                {lang === 'ru'
+                  ? `${step.titleRu} · день ${today.day} из ${total}`
+                  : `${step.titleEn} · day ${today.day} of ${total}`}
+              </Text>
+            )}
+          </View>
+          <Pressable onPress={() => router.push('/transition')} unstable_pressDelay={0}
+            style={{
+              paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
+              borderWidth: 1, borderColor: t.border, backgroundColor: t.card,
+            }}>
+            <Text style={{ color: t.text, fontSize: 12, fontWeight: '700' }}>
+              {lang === 'ru' ? 'Сменить' : 'Switch'}
+            </Text>
+          </Pressable>
         </View>
 
         {/* TODAY card */}

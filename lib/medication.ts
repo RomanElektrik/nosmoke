@@ -5,6 +5,7 @@
 // • Varenicline — FDA Chantix label.
 
 import type { AppState, StepLevel } from './storage';
+import { localDateKey } from './dates';
 
 export type Medication = 'cytisine' | 'bupropion' | 'varenicline';
 
@@ -221,7 +222,7 @@ export function todayDoses(state: AppState, lang: 'ru' | 'en' = 'ru'): { schedul
   if (!med) return { schedule: [], takenCount: 0 };
   const day = medCourseDay(state);
   const schedule = dosesForDay(med, day);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   const takenCount = schedule.filter((d) => isDoseTaken(state, today, d.doseNumber)).length;
   return { schedule, takenCount };
 }
@@ -235,7 +236,7 @@ export function adherenceLast7(state: AppState): { date: string; total: number; 
   const today = new Date(); today.setHours(0, 0, 0, 0);
   for (let i = 6; i >= 0; i--) {
     const d = new Date(today); d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateKey(d);
     const courseDay = Math.floor((d.getTime() - new Date(startMs).setHours(0, 0, 0, 0)) / 86400_000) + 1;
     if (courseDay < 1) { out.push({ date: key, total: 0, taken: 0 }); continue; }
     const sched = dosesForDay(med, courseDay);

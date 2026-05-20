@@ -13,6 +13,7 @@ import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, currentLang } from '../../lib/i18n';
 import { Icon } from '../../components/Icon';
 import { update, useAppState } from '../../lib/storage';
+import { localDateKey } from '../../lib/dates';
 import { FAGERSTROM_RU, FAGERSTROM_EN, fagerstromBand, nrtRecommendation, taperPlan, REPLACE_ACTIONS_RU, REPLACE_ACTIONS_EN } from '../../lib/clinical';
 
 export default function Practice() {
@@ -386,7 +387,7 @@ function Pharma({ onDone }: { onDone: () => void }) {
   const today = new Date(); today.setHours(0,0,0,0);
   const adherence: { date: string; taken: boolean | null }[] = Array.from({ length: 14 }).map((_, i) => {
     const d = new Date(today); d.setDate(d.getDate() - (13 - i));
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateKey(d);
     const entry = state.checkIns.find((c) => c.date === key);
     return { date: key, taken: entry?.medTaken ?? null };
   });

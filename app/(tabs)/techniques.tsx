@@ -13,21 +13,25 @@ import { Icon, IconKey } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
 
 const ORDER = [
-  'pharma', 'nrt', 'taper',
-  'ema', 'money', 'contract',
-  'reframe', 'if_then', 'cbt',
-  'mindfulness',
-  'replace', 'faith',
+  'cyclic_sigh', 'box_breath',
+  'urge_surf', 'halt_check', 'replace',
+  'faith',
 ];
 
-const HIDDEN = new Set(['cyclic_sigh', 'box_breath', 'urge_surf', 'halt', 'grounding', 'fagerstrom']);
+// Everything not in the ORDER list above is hidden. Cognitive/pharma/
+// reference items removed — they were справка, not practices.
+const HIDDEN = new Set<string>([
+  'pharma', 'nrt', 'taper', 'fagerstrom',
+  'ema', 'money', 'contract',
+  'reframe', 'if_then', 'cbt',
+  'mindfulness', 'grounding',
+]);
 
 // Group labels for visual sectioning
 const GROUPS: { ids: string[]; labelRu: string; labelEn: string }[] = [
-  { ids: ['pharma', 'nrt', 'taper'],          labelRu: 'Доказанная фармакология',   labelEn: 'Evidence-based pharmacology' },
-  { ids: ['ema', 'money', 'contract'],         labelRu: 'Инструменты поддержки',     labelEn: 'Support tools' },
-  { ids: ['reframe', 'if_then', 'cbt'],        labelRu: 'Когнитивные техники',       labelEn: 'Cognitive techniques' },
-  { ids: ['mindfulness', 'replace', 'faith'],  labelRu: 'Практики и поддержка',      labelEn: 'Practice & support' },
+  { ids: ['cyclic_sigh', 'box_breath'],         labelRu: 'Дыхание',           labelEn: 'Breathing' },
+  { ids: ['urge_surf', 'halt_check', 'replace'], labelRu: 'В момент тяги',     labelEn: 'When the urge hits' },
+  { ids: ['faith'],                              labelRu: 'Поддержка',         labelEn: 'Support' },
 ];
 
 export default function Techniques() {

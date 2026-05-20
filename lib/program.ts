@@ -4,6 +4,7 @@
 
 import type { AppState } from './storage';
 import { secondsClean } from './health';
+import { localDateKey } from './dates';
 import type { IconKey } from '../components/Icon';
 
 export type Level = {
@@ -288,7 +289,7 @@ export function checkInStreak(state: AppState): number {
   let streak = 0;
   for (let i = 0; i < 365; i++) {
     const d = new Date(today); d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateKey(d);
     const entry = checkIns.find((c) => c.date === key);
     if (!entry) {
       // missing day — only allowed for today (haven't checked in yet)

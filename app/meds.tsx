@@ -9,6 +9,7 @@ import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
 import { Icon } from '../components/Icon';
 import { dosesForDay, isDoseTaken, todayDoses, medCourseDay } from '../lib/medication';
+import { localDateKey } from '../lib/dates';
 
 export default function Meds() {
   const t = useTheme();
@@ -59,7 +60,7 @@ export default function Meds() {
   const startMidnight = new Date(startedAt); startMidnight.setHours(0, 0, 0, 0);
   for (let i = 6; i >= 0; i--) {
     const d = new Date(today); d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateKey(d);
     const cd = Math.floor((d.getTime() - startMidnight.getTime()) / 86400_000) + 1;
     if (cd < 1) continue;
     const doses = dosesForDay(med, cd);
@@ -68,7 +69,7 @@ export default function Meds() {
     days.push({ date: key, dateLabel, courseDay: cd, doses, taken });
   }
 
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = localDateKey();
   async function toggle(date: string, doseNumber: number) {
     Haptics.selectionAsync();
     await update((s) => {

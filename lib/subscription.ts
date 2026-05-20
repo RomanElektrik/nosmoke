@@ -33,8 +33,9 @@ export function usePremium(): boolean {
 }
 
 /** AI usage helpers — count messages sent today (free tier). */
+import { localDateKey } from './dates';
 export function todayKey(d = new Date()): string {
-  return d.toISOString().slice(0, 10);
+  return localDateKey(d);
 }
 
 export function aiUsedToday(state: { aiUsage?: { date: string; count: number } }): number {
