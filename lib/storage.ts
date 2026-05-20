@@ -130,6 +130,19 @@ export type AppState = {
   doseLogs?: { date: string; doseNumber: number; takenAt: number }[];
   achievements?: Record<string, number>;       // achievement id → unlocked-at ms
   aiUsage?: { date: string; count: number };   // free-tier AI counter — resets daily
+  symptoms?: SymptomLog[];                     // weekly body-recovery survey
+};
+
+// 6-axis weekly body recovery survey — visible proof that quitting works.
+export type SymptomLog = {
+  date: string;        // YYYY-MM-DD (local)
+  ts: number;          // ms when submitted
+  cough: number;       // 1 (плохо) … 5 (отлично) — кашель
+  breath: number;      // дыхание
+  taste: number;       // вкус
+  smell: number;       // запах
+  sleep: number;       // сон
+  energy: number;      // энергия
 };
 
 const KEY = 'qs:state:v1';

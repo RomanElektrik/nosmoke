@@ -152,9 +152,9 @@ export default function Home() {
             title={tr('tabs.health')}
             onPress={() => router.push('/(tabs)/health')} />
           <SquareCard
-            color={t.danger} icon={<Icon.flame size={22} color={t.danger} />}
-            title={lang === 'ru' ? 'Хочу курить (SOS)' : 'I want to smoke (SOS)'}
-            onPress={() => router.push('/craving' as any)} />
+            color="#FF9F0A" icon={<Icon.pulse size={22} color="#FF9F0A" />}
+            title={lang === 'ru' ? 'Симптомы' : 'Symptoms'}
+            onPress={() => router.push('/symptoms' as any)} />
         </View>
 
         {/* СЕЙЧАС */}
