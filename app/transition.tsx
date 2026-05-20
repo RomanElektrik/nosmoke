@@ -128,19 +128,6 @@ export default function Transition() {
 
   // ---------- 2. REFLECT — what didn't work ----------
   if (phase === 'reflect') {
-    const causes = [
-      { v: 'no_tech',     ru: 'Не делал техники из приложения',          en: "Didn't do app techniques" },
-      { v: 'tech_weak',   ru: 'Делал, но в момент тяги не помогло',     en: 'Did them, but they failed at peak' },
-      { v: 'trigger',     ru: 'Триггер был сильнее меня',                en: 'The trigger was stronger than me' },
-      { v: 'env',         ru: 'Окружение мешало (друзья/работа/дом)',    en: 'Environment got in the way' },
-      { v: 'belief',      ru: 'Не верил, что метод сработает',           en: "Didn't believe the method would work" },
-      { v: 'too_hard',    ru: 'Слишком тяжело физически',                en: 'Too physically hard' },
-      { v: 'stress',      ru: 'Сильный стресс / ситуация в жизни',       en: 'Major stress / life event' },
-    ];
-    function toggle(v: string) {
-      Haptics.selectionAsync();
-      setReflect((r) => (r.includes(v) ? r.filter((x) => x !== v) : [...r, v]));
-    }
     return (
       <Wrap onClose={close}>
         <Header step={2} total={6} title={tt('Что не сработало', 'What did not work')} />
@@ -155,34 +142,12 @@ export default function Transition() {
           {tt('Отметь всё что сработало против тебя. Это поможет подобрать правильный следующий шаг.',
               'Tick everything that worked against you. Helps pick the right next step.')}
         </Text>
-        <View style={{ gap: 8 }}>
-          {causes.map((c) => {
-            const sel = reflect.includes(c.v);
-            return (
-              <TouchableOpacity
-                key={c.v}
-                activeOpacity={0.7}
-                onPress={() => toggle(c.v)}
-                style={{
-                  padding: 14, borderRadius: radius.md,
-                  backgroundColor: sel ? t.accentSoft : t.bgElev,
-                  borderWidth: 1, borderColor: sel ? t.accent : t.border,
-                  flexDirection: 'row', alignItems: 'center', gap: 10,
-                }}>
-                <View pointerEvents="none" style={{
-                  width: 22, height: 22, borderRadius: 6,
-                  borderWidth: 2, borderColor: sel ? t.accent : t.border,
-                  backgroundColor: sel ? t.accent : 'transparent',
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {sel && <Icon.check size={13} color="#fff" />}
-                </View>
-                <Text pointerEvents="none" style={{ color: t.text, fontSize: 14, flex: 1 }}>{lang === 'ru' ? c.ru : c.en}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        <Footer onBack={() => setPhase('reality')} onNext={() => setPhase('choose')} />
+        <ReflectStep
+          initial={reflect}
+          lang={lang}
+          onBack={() => setPhase('reality')}
+          onNext={(picked) => { setReflect(picked); setPhase('choose'); }}
+        />
       </Wrap>
     );
   }
@@ -526,6 +491,80 @@ export default function Transition() {
 }
 
 /* ---- shared UI ---- */
+
+// Isolated step-2 component. Owns its own state so parent re-renders
+// (e.g. useAppState ticking when something else updates) cannot reset
+// the selection mid-flow. Passes the final pick to the parent on Next.
+function ReflectStep({ initial, lang, onBack, onNext }: {
+  initial: string[];
+  lang: 'ru' | 'en';
+  onBack: () => void;
+  onNext: (picked: string[]) => void;
+}) {
+  const t = useTheme();
+  const [picked, setPicked] = useState<string[]>(initial);
+  const causes = [
+    { v: 'no_tech',   ru: 'Не делал техники из приложения',       en: "Didn't do app techniques" },
+    { v: 'tech_weak', ru: 'Делал, но в момент тяги не помогло',   en: 'Did them, but they failed at peak' },
+    { v: 'trigger',   ru: 'Триггер был сильнее меня',              en: 'The trigger was stronger than me' },
+    { v: 'env',       ru: 'Окружение мешало (друзья/работа/дом)',  en: 'Environment got in the way' },
+    { v: 'belief',    ru: 'Не верил, что метод сработает',         en: "Didn't believe the method would work" },
+    { v: 'too_hard',  ru: 'Слишком тяжело физически',              en: 'Too physically hard' },
+    { v: 'stress',    ru: 'Сильный стресс / ситуация в жизни',     en: 'Major stress / life event' },
+  ];
+  const toggle = (v: string) => {
+    Haptics.selectionAsync();
+    setPicked((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v]));
+  };
+  return (
+    <>
+      <View style={{ gap: 8 }}>
+        {causes.map((c) => {
+          const sel = picked.includes(c.v);
+          return (
+            <TouchableOpacity
+              key={c.v}
+              activeOpacity={0.7}
+              onPress={() => toggle(c.v)}
+              style={{
+                padding: 14, borderRadius: radius.md,
+                backgroundColor: sel ? t.accent : t.bgElev,
+                borderWidth: 2, borderColor: sel ? t.accent : t.border,
+                flexDirection: 'row', alignItems: 'center', gap: 10,
+              }}>
+              <View pointerEvents="none" style={{
+                width: 22, height: 22, borderRadius: 6,
+                borderWidth: 2, borderColor: sel ? '#fff' : t.border,
+                backgroundColor: sel ? '#fff' : 'transparent',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                {sel && <Icon.check size={13} color={t.accent} />}
+              </View>
+              <Text pointerEvents="none" style={{ color: sel ? '#fff' : t.text, fontSize: 14, fontWeight: sel ? '700' : '400', flex: 1 }}>
+                {lang === 'ru' ? c.ru : c.en}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      <Text style={{ color: t.textDim, fontSize: 12, marginTop: 6 }}>
+        {lang === 'ru' ? `Выбрано: ${picked.length}` : `Selected: ${picked.length}`}
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+        <Pressable onPress={onBack} unstable_pressDelay={0}
+          style={{ paddingHorizontal: 18, paddingVertical: 16, borderRadius: radius.xl, borderWidth: 1, borderColor: t.border }}>
+          <Text style={{ color: t.text, fontSize: 16 }}>{tt('Назад', 'Back')}</Text>
+        </Pressable>
+        <Pressable onPress={() => onNext(picked)} unstable_pressDelay={0}
+          style={{ flex: 1, paddingVertical: 18, borderRadius: radius.xl, backgroundColor: t.accent, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }}>
+            {tt('Дальше', 'Next')}
+          </Text>
+        </Pressable>
+      </View>
+    </>
+  );
+}
 
 function Wrap({ children, onClose }: { children: any; onClose: () => void }) {
   const t = useTheme();
