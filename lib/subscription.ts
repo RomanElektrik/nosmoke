@@ -20,7 +20,9 @@ export function isStepPremium(stepId: string | undefined): boolean {
   return stepId !== 'L1_behavioral';
 }
 
-export function isTechniquePremium(techId: string): boolean {
+export function isTechniquePremium(techId: string, tags?: readonly string[]): boolean {
+  // Spiritual / faith techniques are always free for everyone.
+  if (tags && tags.includes('spiritual')) return false;
   return !FREE_TECHNIQUE_IDS.has(techId);
 }
 

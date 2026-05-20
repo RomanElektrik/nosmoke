@@ -59,8 +59,13 @@ function extractLinks(text: string) {
 
 function stripLinks(text: string): string {
   return text
-    .replace(/\[\[[a-z_]+\]\]/gi, '')
+    // Strip ANY [[...]] / {{...}} / [[ ... ]] markers, even unknown keys.
+    .replace(/\[\[[^\]\n]+\]\]/g, '')
+    .replace(/\{\{[^}\n]+\}\}/g, '')
     .replace(/\s*\/(practice\/[a-z_]+|journal|goal|checkin|method|transition|meds)\b/gi, '')
+    // Tidy doubled spaces / stray empty lines left after stripping.
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 

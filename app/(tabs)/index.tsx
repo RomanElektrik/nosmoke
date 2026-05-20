@@ -450,21 +450,10 @@ function TodayFocus() {
   const today = new Date().toISOString().slice(0, 10);
   const checkDone = !!state.checkIns.find((c) => c.date === today);
 
-  let medOverdue = false;
-  if (state.profile.medication) {
-    const { schedule } = todayDoses(state, lang);
-    const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-    medOverdue = schedule.some((d) => (d.hour * 60 + d.minute) <= nowMin && !isDoseTaken(state, today, d.doseNumber));
-  }
-
+  // NOTE: medication reminder lives in the MedicationCard below — don't
+  // duplicate it here. TodayFocus picks between check-in and breathing.
   let action: { label: string; sub: string; href: string; color: string; icon: any };
-  if (medOverdue) {
-    action = {
-      label: lang === 'ru' ? 'Приём препарата' : 'Take your medication',
-      sub: lang === 'ru' ? 'Есть доза, которую пора принять' : 'A dose is due now',
-      href: '/meds', color: t.info, icon: Icon.shield,
-    };
-  } else if (!checkDone) {
+  if (!checkDone) {
     action = {
       label: lang === 'ru' ? 'Чек-ин дня' : 'Daily check-in',
       sub: lang === 'ru' ? 'Один честный тап' : 'One honest tap',

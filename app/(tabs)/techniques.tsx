@@ -45,7 +45,7 @@ export default function Techniques() {
   function go(te: Technique) {
     if (!te.practice) return;
     Haptics.selectionAsync();
-    if (!premium && isTechniquePremium(te.id)) {
+    if (!premium && isTechniquePremium(te.id, te.tags)) {
       router.push('/paywall' as any);
       return;
     }
@@ -101,7 +101,7 @@ export default function Techniques() {
               <View style={{ paddingHorizontal: spacing.lg, gap: 10 }}>
                 {items.map((te) => (
                   <TechCard key={te.id} te={te} lang={lang} tr={tr}
-                    locked={!premium && isTechniquePremium(te.id)}
+                    locked={!premium && isTechniquePremium(te.id, te.tags)}
                     onOpen={() => setOpen(te)} onGo={() => go(te)} />
                 ))}
               </View>
