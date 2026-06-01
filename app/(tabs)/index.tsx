@@ -500,25 +500,13 @@ function TodayFocus() {
   const [state] = useAppState();
   if (!state.profile) return null;
 
-  const today = localDateKey();
-  const checkDone = !!state.checkIns.find((c) => c.date === today);
-
-  // NOTE: medication reminder lives in the MedicationCard below — don't
-  // duplicate it here. TodayFocus picks between check-in and breathing.
-  let action: { label: string; sub: string; href: string; color: string; icon: any };
-  if (!checkDone) {
-    action = {
-      label: lang === 'ru' ? 'Чек-ин дня' : 'Daily check-in',
-      sub: lang === 'ru' ? 'Один честный тап' : 'One honest tap',
-      href: '/checkin', color: t.accent, icon: Icon.check,
-    };
-  } else {
-    action = {
-      label: lang === 'ru' ? '5 минут дыхания' : '5 minutes of breathing',
-      sub: lang === 'ru' ? 'Снизит тягу и стресс прямо сейчас' : 'Lowers craving and stress right now',
-      href: '/practice/cyclic_sigh', color: t.info, icon: Icon.wind,
-    };
-  }
+  // No more daily "did you smoke today?" check-in — it was annoying.
+  // Default action is always a 5-minute breathing practice.
+  const action = {
+    label: lang === 'ru' ? '5 минут дыхания' : '5 minutes of breathing',
+    sub: lang === 'ru' ? 'Снизит тягу и стресс прямо сейчас' : 'Lowers craving and stress right now',
+    href: '/practice/cyclic_sigh', color: t.info, icon: Icon.wind,
+  };
 
   const I = action.icon;
   return (

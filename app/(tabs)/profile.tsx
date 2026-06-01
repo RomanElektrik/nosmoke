@@ -52,7 +52,7 @@ export default function Profile() {
 
         <MethodCard />
 
-        <CheckInTimeCard />
+        {/* CheckInTimeCard removed — daily "did you smoke today" check-in dropped. */}
 
         <QuickActionsCard />
 

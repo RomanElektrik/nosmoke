@@ -105,8 +105,8 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
     );
   }
 
-  // ---------- DAILY CHECK-IN at checkInHour --------------
-  await scheduleDailyCheckIn(locale, checkInHour);
+  // Daily "did you smoke today?" check-in removed — pestering users
+  // every evening was the #1 complaint.
 }
 
 // Schedule per-dose medication reminders for next 7 days.
