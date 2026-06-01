@@ -13,7 +13,8 @@ import {
   moneySaved, cigsAvoided,
   formatMoneyLive, formatDurationLive, formatCigs, formatDuration,
 } from '../../lib/money';
-import { identityHeadline, archetypeIdentity, plural } from '../../lib/identity';
+import { identityHeadline, archetypeIdentity, plural, triggerLabel } from '../../lib/identity';
+import type { Trigger } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
 import { programToday } from '../../lib/program';
 import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped';
@@ -173,7 +174,9 @@ export default function Home() {
 
         {/* СЕЙЧАС */}
         <SectionLabel text={lang === 'ru' ? 'Сейчас' : 'Now'} />
+        <IdentityRitualCard />
         <TodayFocus />
+        <IfThenCard />
         <GoalCard />
 
         {/* Closest achievement */}
@@ -401,6 +404,122 @@ function SquareCard({ icon, title, color, onPress }: { icon: any; title: string;
           {icon}
         </View>
         <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{title}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+// Identity ritual — the signature feature. A once-a-day affirmation of the
+// new self. NEVER punishes: a missed day doesn't reset anything; we count
+// unique affirmed days. Reinforces quitter-identity (the #1 success predictor).
+function IdentityRitualCard() {
+  const t = useTheme();
+  const lang = currentLang();
+  const [state] = useAppState();
+  const log = state.identityLog ?? [];
+  const today = localDateKey();
+  const doneToday = log.includes(today);
+  const count = new Set(log).size;
+  const statement = state.profile?.identityStatement?.trim();
+
+  async function affirm() {
+    if (doneToday) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await update((s) => {
+      const cur = s.identityLog ?? [];
+      return cur.includes(today) ? s : { ...s, identityLog: [...cur, today] };
+    });
+  }
+
+  return (
+    <Pressable onPress={affirm} disabled={doneToday}>
+      <View style={{
+        padding: 16, borderRadius: radius.lg,
+        backgroundColor: doneToday ? t.accentSoft : t.accent + '14',
+        borderWidth: 1, borderColor: t.accent + (doneToday ? '55' : '40'),
+        flexDirection: 'row', alignItems: 'center', gap: 14,
+      }}>
+        <View style={{ width: 50, height: 50, borderRadius: 16, backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon.check size={26} color={t.accent} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
+            {doneToday
+              ? (lang === 'ru' ? 'Сегодня подтверждено' : 'Affirmed today')
+              : (lang === 'ru' ? 'Скажи: «Я не курю»' : 'Say: "I don\'t smoke"')}
+          </Text>
+          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
+            {statement
+              ? (lang === 'ru' ? `Я становлюсь ${statement}` : `I'm becoming ${statement}`)
+              : count > 0
+                ? (lang === 'ru' ? `${count} ${plural(count, ['день', 'дня', 'дней'])} подтверждаю` : `${count} ${count === 1 ? 'day' : 'days'} affirmed`)
+                : (lang === 'ru' ? 'Один тап в день — закрепи, кто ты' : 'One tap a day — anchor who you are')}
+          </Text>
+        </View>
+        {!doneToday && <Text style={{ color: t.accent, fontSize: 22, fontWeight: '700' }}>→</Text>}
+      </View>
+    </Pressable>
+  );
+}
+
+// If-then plan surfacing — shows the most relevant plan one tap away, or a
+// CTA to build the first one. Matches by the user's most frequent recent trigger.
+function IfThenCard() {
+  const t = useTheme();
+  const router = useRouter();
+  const lang = currentLang();
+  const [state] = useAppState();
+  const plans = state.ifThens ?? [];
+
+  if (plans.length === 0) {
+    return (
+      <Pressable onPress={() => router.push('/plans' as any)}>
+        <View style={{
+          padding: 16, borderRadius: radius.lg,
+          backgroundColor: t.card, borderWidth: 1, borderStyle: 'dashed', borderColor: t.accent + '60',
+          flexDirection: 'row', alignItems: 'center', gap: 12,
+        }}>
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: t.accent + '20', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon.target size={22} color={t.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>
+              {lang === 'ru' ? 'Создай план «если — то»' : 'Build an if-then plan'}
+            </Text>
+            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
+              {lang === 'ru' ? 'Готовый ответ на тягу — заранее' : 'A ready answer to cravings — in advance'}
+            </Text>
+          </View>
+          <Text style={{ color: t.accent, fontSize: 18 }}>›</Text>
+        </View>
+      </Pressable>
+    );
+  }
+
+  // Most frequent recent trigger → matching plan, else the latest plan.
+  const recent = state.cravings.slice(-12).map((c) => c.trigger).filter(Boolean) as Trigger[];
+  const freq: Partial<Record<Trigger, number>> = {};
+  for (const tg of recent) freq[tg] = (freq[tg] ?? 0) + 1;
+  const topTrigger = (Object.keys(freq) as Trigger[]).sort((a, b) => (freq[b]! - freq[a]!))[0];
+  const matched = topTrigger ? [...plans].reverse().find((p) => p.category === topTrigger) : undefined;
+  const plan = matched ?? plans[plans.length - 1];
+
+  return (
+    <Pressable onPress={() => router.push('/plans' as any)}>
+      <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Icon.target size={16} color={t.accent} />
+          <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, flex: 1 }}>
+            {lang === 'ru' ? 'Твой план' : 'Your plan'}{plan.category ? ` · ${triggerLabel(plan.category, lang)}` : ''}
+          </Text>
+          <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
+        </View>
+        <Text style={{ color: t.text, fontSize: 14, lineHeight: 21 }}>
+          <Text style={{ color: t.accent, fontWeight: '700' }}>{lang === 'ru' ? 'Если ' : 'If '}</Text>
+          {plan.trigger}
+          <Text style={{ color: t.warn, fontWeight: '700' }}>{lang === 'ru' ? ' → то ' : ' → then '}</Text>
+          {plan.action}
+        </Text>
       </View>
     </Pressable>
   );

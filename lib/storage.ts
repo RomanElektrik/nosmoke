@@ -73,6 +73,9 @@ export type Profile = {
   // Premium / subscription — local dev flag for testing premium states.
   // Real IAP entitlement (RevenueCat) will OR with this when wired.
   devPremium?: boolean;
+  // Identity ritual: a short personal statement of who you're becoming
+  // (e.g. «свободным», «здоровым отцом»). Shown in the hero / ritual.
+  identityStatement?: string;
 };
 
 export type HealthFlag =
@@ -83,7 +86,7 @@ export type HealthFlag =
   | 'psychiatric'     // психическое расстройство в анамнезе
   | 'kidney';         // тяжёлые болезни почек
 
-export type IfThenPlan = { id: string; ts: number; trigger: string; action: string };
+export type IfThenPlan = { id: string; ts: number; trigger: string; action: string; category?: Trigger };
 export type ReframeEntry = { id: string; ts: number; thought: string; counter: string; replacement: string };
 
 export type StepLevel = 'L1_behavioral' | 'L2_nrt_light' | 'L3_nrt_combo' | 'L4_pharma' | 'L5_intensive';
@@ -131,6 +134,7 @@ export type AppState = {
   achievements?: Record<string, number>;       // achievement id → unlocked-at ms
   aiUsage?: { date: string; count: number };   // free-tier AI counter — resets daily
   symptoms?: SymptomLog[];                     // weekly body-recovery survey
+  identityLog?: string[];                      // localDateKey[] of identity affirmations — never punishes
 };
 
 // 6-axis weekly body recovery survey — visible proof that quitting works.
