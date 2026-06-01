@@ -361,38 +361,3 @@ function StepReadiness({ importance, confidence, onImportance, onConfidence, sub
   );
 }
 
-function StepCheckInTime({ hour, onChange, sub, accent }: { hour: number; onChange: (h: number) => void; sub: string; accent: string }) {
-  const t = useTheme();
-  const presets = [9, 12, 18, 20, 21, 22];
-  return (
-    <View style={{ gap: 16 }}>
-      <H1 sub={sub} accent={accent}>{tt('Ежедневный чек-ин', 'Daily check-in')}</H1>
-      <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 20 }}>
-        {tt(
-          'Раз в день мы спросим: «Сегодня курил?» Один тап. Это один из самых сильных поведенческих приёмов.',
-          'Once a day we ask: "Did you smoke today?" One tap. One of the strongest behavioural tools.',
-        )}
-      </Text>
-      <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 6 }}>
-        {tt('В какое время', 'At what time')}
-      </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {presets.map((h) => {
-          const sel = hour === h;
-          return (
-            <Pressable key={h} onPress={() => { Haptics.selectionAsync(); onChange(h); }}
-              style={{
-                paddingHorizontal: 20, paddingVertical: 14, borderRadius: 999,
-                backgroundColor: sel ? accent : t.bgElev,
-                borderWidth: 1.5, borderColor: sel ? accent : t.border,
-              }}>
-              <Text style={{ color: sel ? '#fff' : t.text, fontWeight: '700', fontSize: 16 }}>
-                {String(h).padStart(2, '0')}:00
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}

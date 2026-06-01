@@ -3,7 +3,7 @@
 // These pure helpers turn `secondsClean` + archetype into identity copy,
 // read by home, the slip screen, the plan result and the identity ritual.
 
-import type { Archetype, Trigger } from './storage';
+import type { Archetype, Trigger, IfThenPlan, CravingLog } from './storage';
 
 export type Lang = 'ru' | 'en';
 
@@ -90,3 +90,16 @@ export function triggerLabel(tg: Trigger, lang: Lang): string {
 export const ALL_TRIGGERS: Trigger[] = [
   'stress', 'coffee', 'alcohol', 'after_meal', 'driving', 'social', 'boredom',
 ];
+
+// Pick the most relevant if-then plan: the most recent plan whose category
+// matches the user's most frequent recent trigger, else the latest plan.
+// Shared by home and the SOS/craving screen so both surface the same plan.
+export function relevantPlan(plans: IfThenPlan[], cravings: CravingLog[]): IfThenPlan | undefined {
+  if (!plans.length) return undefined;
+  const recent = cravings.slice(-12).map((c) => c.trigger).filter(Boolean) as Trigger[];
+  const freq: Partial<Record<Trigger, number>> = {};
+  for (const tg of recent) freq[tg] = (freq[tg] ?? 0) + 1;
+  const top = (Object.keys(freq) as Trigger[]).sort((a, b) => (freq[b]! - freq[a]!))[0];
+  const matched = top ? [...plans].reverse().find((p) => p.category === top) : undefined;
+  return matched ?? plans[plans.length - 1];
+}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -10,7 +10,7 @@ import { Icon } from '../components/Icon';
 import { update, useAppState } from '../lib/storage';
 import type { Trigger } from '../lib/storage';
 import { nextDueDose, MED_SAFETY } from '../lib/medication';
-import { triggerLabel } from '../lib/identity';
+import { triggerLabel, relevantPlan } from '../lib/identity';
 
 type Phase = 'breath' | 'choose' | 'log' | 'win';
 
@@ -69,8 +69,7 @@ export default function Craving() {
             }] : []),
           ];
           // Surface the most relevant if-then plan + a due medication dose.
-          const plans = state.ifThens ?? [];
-          const planForNow = plans.length ? plans[plans.length - 1] : undefined;
+          const planForNow = relevantPlan(state.ifThens ?? [], state.cravings);
           const due = nextDueDose(state);
           const med = state.profile?.medication;
           const medName = med ? (ru ? MED_SAFETY[med].nameRu : MED_SAFETY[med].nameEn) : '';

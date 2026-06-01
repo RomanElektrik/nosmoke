@@ -13,8 +13,7 @@ import {
   moneySaved, cigsAvoided,
   formatMoneyLive, formatDurationLive, formatCigs, formatDuration,
 } from '../../lib/money';
-import { identityHeadline, archetypeIdentity, plural, triggerLabel } from '../../lib/identity';
-import type { Trigger } from '../../lib/storage';
+import { identityHeadline, archetypeIdentity, plural, triggerLabel, relevantPlan } from '../../lib/identity';
 import { Icon } from '../../components/Icon';
 import { programToday } from '../../lib/program';
 import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped';
@@ -137,7 +136,7 @@ export default function Home() {
               <Text style={{ color: t.accent, fontSize: 18, fontWeight: '800' }}>
                 {formatMoneyLive(moneySaved(p, secs), p.currency, localeStr)}
               </Text>
-              <Text style={{ color: t.textDim, fontSize: 11, marginTop: 2 }}>{lang === 'ru' ? 'сэкономлено' : 'reclaimed'}</Text>
+              <Text style={{ color: t.textDim, fontSize: 11, marginTop: 2 }}>{lang === 'ru' ? 'сэкономлено' : 'saved'}</Text>
             </View>
             <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: t.border }} />
             <View style={{ alignItems: 'center', flex: 1 }}>
@@ -495,13 +494,7 @@ function IfThenCard() {
     );
   }
 
-  // Most frequent recent trigger → matching plan, else the latest plan.
-  const recent = state.cravings.slice(-12).map((c) => c.trigger).filter(Boolean) as Trigger[];
-  const freq: Partial<Record<Trigger, number>> = {};
-  for (const tg of recent) freq[tg] = (freq[tg] ?? 0) + 1;
-  const topTrigger = (Object.keys(freq) as Trigger[]).sort((a, b) => (freq[b]! - freq[a]!))[0];
-  const matched = topTrigger ? [...plans].reverse().find((p) => p.category === topTrigger) : undefined;
-  const plan = matched ?? plans[plans.length - 1];
+  const plan = relevantPlan(plans, state.cravings)!;
 
   return (
     <Pressable onPress={() => router.push('/plans' as any)}>

@@ -9,7 +9,6 @@ import { GlassCard } from '../../components/GlassCard';
 import { getStep } from '../../lib/stepped';
 import { Icon } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
-import { scheduleDailyCheckIn } from '../../lib/notifications';
 import { secondsClean } from '../../lib/health';
 import { moneySaved, cigsAvoided, formatMoney } from '../../lib/money';
 import { usePremium } from '../../lib/subscription';
@@ -152,52 +151,6 @@ function MethodCard() {
         </View>
       </GlassCard>
     </Pressable>
-  );
-}
-
-function CheckInTimeCard() {
-  const t = useTheme();
-  const lang = currentLang();
-  const [state] = useAppState();
-  const p = state.profile;
-  if (!p) return null;
-  const cur = p.checkInHour ?? 21;
-  const presets = [9, 12, 18, 20, 21, 22];
-
-  async function setHour(h: number) {
-    await update((s) => ({
-      ...s,
-      profile: s.profile ? { ...s.profile, checkInHour: h } : s.profile,
-    }));
-    await scheduleDailyCheckIn(lang, h);
-  }
-
-  return (
-    <GlassCard>
-      <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>
-        {lang === 'ru' ? 'Время чек-ина' : 'Check-in time'}
-      </Text>
-      <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4 }}>
-        {lang === 'ru' ? 'Когда мы тебя спросим: «Курил сегодня?»' : 'When we ask: "Did you smoke today?"'}
-      </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-        {presets.map((h) => {
-          const sel = cur === h;
-          return (
-            <Pressable key={h} onPress={() => setHour(h)}
-              style={{
-                paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999,
-                backgroundColor: sel ? t.accent : t.bgElev,
-                borderWidth: 1, borderColor: sel ? t.accent : t.border,
-              }}>
-              <Text style={{ color: sel ? '#fff' : t.text, fontWeight: '700' }}>
-                {String(h).padStart(2, '0')}:00
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </GlassCard>
   );
 }
 
