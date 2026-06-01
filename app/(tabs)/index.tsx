@@ -126,25 +126,24 @@ export default function Home() {
           </Text>
         )}
 
-        {/* Live stats — identity lead, concrete wins below. No scare-stat. */}
+        {/* Concrete wins — identity is already the hero above. No scare-stat. */}
         <Pressable onPress={() => router.push('/journal')}>
           <View style={{
             backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
-            borderRadius: radius.lg, padding: 16, marginTop: 4, gap: 6,
+            borderRadius: radius.lg, padding: 16, marginTop: 4,
+            flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
           }}>
-            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', lineHeight: 21, textAlign: 'center' }}>
-              {lang === 'ru'
-                ? `${days} ${plural(days, ['день', 'дня', 'дней'])} ты — человек, который не курит.`
-                : `${days} ${days === 1 ? 'day' : 'days'} you've been someone who doesn't smoke.`}
-            </Text>
-            <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 19, textAlign: 'center' }}>
-              {lang === 'ru' ? 'Вернул ' : 'Reclaimed '}
-              <Text style={{ color: t.accent, fontWeight: '800' }}>
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={{ color: t.accent, fontSize: 18, fontWeight: '800' }}>
                 {formatMoneyLive(moneySaved(p, secs), p.currency, localeStr)}
               </Text>
-              {lang === 'ru' ? ' · не выкурил ' : ' · avoided '}
-              <Text style={{ color: t.warn, fontWeight: '800' }}>{formatCigs(cigsAvoided(p, secs))}</Text>
-            </Text>
+              <Text style={{ color: t.textDim, fontSize: 11, marginTop: 2 }}>{lang === 'ru' ? 'сэкономлено' : 'reclaimed'}</Text>
+            </View>
+            <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: t.border }} />
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={{ color: t.warn, fontSize: 18, fontWeight: '800' }}>{formatCigs(cigsAvoided(p, secs))}</Text>
+              <Text style={{ color: t.textDim, fontSize: 11, marginTop: 2 }}>{lang === 'ru' ? 'не выкурено' : 'avoided'}</Text>
+            </View>
           </View>
         </Pressable>
 
