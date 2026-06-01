@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -9,6 +9,7 @@ import { Icon } from '../../components/Icon';
 import { update, useAppState } from '../../lib/storage';
 import { requestPermissions, scheduleQuitProgram } from '../../lib/notifications';
 import { recommendStep, getStep } from '../../lib/stepped';
+import { archetypeIdentity } from '../../lib/identity';
 
 export default function Plan() {
   const t = useTheme();
@@ -21,6 +22,7 @@ export default function Plan() {
   const step = getStep(recommended);
   const isTaper = p?.method === 'taper';
   const [taperWeeks, setTaperWeeks] = useState(4);
+  const [identityStatement, setIdentityStatement] = useState(p?.identityStatement ?? '');
 
   async function start() {
     if (!p) return;
@@ -36,6 +38,7 @@ export default function Plan() {
         onboardingComplete: true,
         currentStep: recommended,
         stepEnteredAt: now,
+        identityStatement: identityStatement.trim() || undefined,
         taperWeeks: isTaper ? taperWeeks : undefined,
         taperTargetDate,
       } : s.profile,
@@ -46,8 +49,7 @@ export default function Plan() {
 
   if (!p) return null;
   const cigsPerYear = p.cigsPerDay * 365;
-  const yearMoneyLost = (cigsPerYear / p.cigsInPack) * p.packPrice;
-  const lifeLostHours = (cigsPerYear * 11) / 60; // CDC: 11 min/cig
+  const yearMoneySaved = (cigsPerYear / p.cigsInPack) * p.packPrice;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
@@ -76,21 +78,30 @@ export default function Plan() {
           <Text style={{ color: t.textDim, fontSize: 11, marginTop: 8 }}>{step.evidenceRu}</Text>
         </View>
 
-        {/* Personal risk feedback (Kotz 2009 lung-age style) */}
-        <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, gap: 8 }}>
-          <Text style={{ color: t.textDim, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>
-            {lang === 'ru' ? 'Что курение стоит лично тебе в год' : 'What smoking costs you per year'}
+        {/* Identity — who you're becoming (replaces the old scare-stat). */}
+        <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.accent + '12', borderWidth: 1, borderColor: t.accent + '40', gap: 10 }}>
+          <Text style={{ color: t.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+            {lang === 'ru' ? 'Кем ты становишься' : 'Who you become'}
           </Text>
-          <Text style={{ color: t.text, fontSize: 14, lineHeight: 21 }}>
+          {!!archetypeIdentity(p.archetype, lang) && (
+            <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', lineHeight: 23 }}>
+              {archetypeIdentity(p.archetype, lang)}
+            </Text>
+          )}
+          <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 19 }}>
             {lang === 'ru'
-              ? `Ты выкуриваешь около ${cigsPerYear.toLocaleString('ru-RU')} сигарет в год.`
-              : `You smoke ~${cigsPerYear.toLocaleString('en-US')} cigarettes per year.`}
+              ? `За год ты оставишь себе около ${Math.round(yearMoneySaved).toLocaleString('ru-RU')} ${p.currency} — и лёгкие, сон и кожу без никотина.`
+              : `In a year you'll keep ~${Math.round(yearMoneySaved).toLocaleString('en-US')} ${p.currency} — plus lungs, sleep and skin off nicotine.`}
           </Text>
-          <Text style={{ color: t.text, fontSize: 14, lineHeight: 21 }}>
-            {lang === 'ru'
-              ? `Это ~${Math.round(yearMoneyLost).toLocaleString('ru-RU')} ${p.currency} и ~${Math.round(lifeLostHours)} часов жизни (CDC: 11 минут на сигарету).`
-              : `That's ~${Math.round(yearMoneyLost).toLocaleString('en-US')} ${p.currency} and ~${Math.round(lifeLostHours)} hours of life (CDC: 11 min per cigarette).`}
+          <Text style={{ color: t.text, fontSize: 13, fontWeight: '600', marginTop: 2 }}>
+            {lang === 'ru' ? 'Я становлюсь…' : "I'm becoming…"}
           </Text>
+          <TextInput
+            value={identityStatement} onChangeText={setIdentityStatement}
+            placeholder={lang === 'ru' ? 'свободным / здоровым отцом / хозяином себя' : 'free / a healthy parent / my own master'}
+            placeholderTextColor={t.textDim}
+            style={{ backgroundColor: t.bgElev, color: t.text, padding: 12, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, fontSize: 15 }}
+          />
         </View>
 
         {/* Commitment summary */}
@@ -99,7 +110,7 @@ export default function Plan() {
             {lang === 'ru' ? 'Твой контракт' : 'Your contract'}
           </Text>
           <Text style={{ color: t.text, fontSize: 14, lineHeight: 21 }}>
-            • {lang === 'ru' ? 'Чек-ин каждый день в' : 'Daily check-in at'}: <Text style={{ fontWeight: '700' }}>{String(p.checkInHour ?? 21).padStart(2, '0')}:00</Text>
+            • {lang === 'ru' ? 'Каждый день подтверждаешь: «я не курю»' : 'Each day you affirm: "I don\'t smoke"'}
           </Text>
           <Text style={{ color: t.text, fontSize: 14, lineHeight: 21 }}>
             • {lang === 'ru' ? 'Срыв не обнуляет прогресс — разбираем причину и идём дальше' : 'A slip never resets progress — we analyse the cause and move on'}

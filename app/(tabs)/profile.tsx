@@ -13,6 +13,8 @@ import { scheduleDailyCheckIn } from '../../lib/notifications';
 import { secondsClean } from '../../lib/health';
 import { moneySaved, cigsAvoided, formatMoney } from '../../lib/money';
 import { usePremium } from '../../lib/subscription';
+import { archetypeIdentity } from '../../lib/identity';
+import { ARCHETYPE_META } from '../../lib/personality';
 
 const PRIVACY_URL = 'https://romanelektrik.github.io/nosmoke/privacy-policy.html';
 
@@ -45,6 +47,8 @@ export default function Profile() {
             {Math.floor(cigsAvoided(p, secs))} · {formatMoney(moneySaved(p, secs), p.currency, lang === 'ru' ? 'ru-RU' : 'en-US')}
           </Text>
         </GlassCard>
+
+        <IdentityCard />
 
         <PremiumCard />
 
@@ -226,6 +230,67 @@ function QuickActionsCard() {
             </Pressable>
           );
         })}
+      </View>
+    </GlassCard>
+  );
+}
+
+function IdentityCard() {
+  const t = useTheme();
+  const router = useRouter();
+  const { t: tr } = useTranslation();
+  const lang = currentLang();
+  const [state] = useAppState();
+  const p = state.profile;
+  const [stmt, setStmt] = useState(p?.identityStatement ?? '');
+  const [savedAt, setSavedAt] = useState(0);
+  if (!p) return null;
+  const arch = p.archetype;
+  const meta = arch ? ARCHETYPE_META[arch] : null;
+  const ArchIcon = meta ? Icon[meta.icon] : null;
+
+  async function saveStmt() {
+    await update((s) => ({ ...s, profile: s.profile ? { ...s.profile, identityStatement: stmt.trim() || undefined } : s.profile }));
+    setSavedAt(Date.now());
+  }
+
+  return (
+    <GlassCard>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        {meta && ArchIcon && (
+          <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: meta.color + '22', alignItems: 'center', justifyContent: 'center' }}>
+            <ArchIcon size={22} color={meta.color} />
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+            {lang === 'ru' ? 'Кто ты' : 'Who you are'}
+          </Text>
+          <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', marginTop: 2 }}>
+            {meta ? tr(meta.titleKey) : (lang === 'ru' ? 'Тот, кто не курит' : 'Someone who doesn\'t smoke')}
+          </Text>
+        </View>
+        <Pressable onPress={() => router.push('/(onboarding)/personality' as any)} hitSlop={8}>
+          <Text style={{ color: t.accent, fontSize: 12, fontWeight: '600' }}>{lang === 'ru' ? 'Тест' : 'Retake'}</Text>
+        </Pressable>
+      </View>
+      {!!archetypeIdentity(arch, lang) && (
+        <Text style={{ color: t.textDim, fontSize: 13, marginTop: 8, lineHeight: 19 }}>
+          {archetypeIdentity(arch, lang)}
+        </Text>
+      )}
+      <Text style={{ color: t.text, fontSize: 12, fontWeight: '600', marginTop: 10 }}>
+        {lang === 'ru' ? 'Я становлюсь…' : "I'm becoming…"}
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+        <TextInput value={stmt} onChangeText={setStmt}
+          placeholder={lang === 'ru' ? 'свободным…' : 'free…'} placeholderTextColor={t.textDim}
+          style={{ flex: 1, backgroundColor: t.bgElev, color: t.text, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: t.border, fontSize: 14 }} />
+        <Pressable onPress={saveStmt} style={{ paddingHorizontal: 14, justifyContent: 'center', borderRadius: 10, backgroundColor: t.accent }}>
+          <Text style={{ color: '#fff', fontWeight: '700' }}>
+            {savedAt && Date.now() - savedAt < 2000 ? '✓' : (lang === 'ru' ? 'OK' : 'OK')}
+          </Text>
+        </Pressable>
       </View>
     </GlassCard>
   );

@@ -17,7 +17,7 @@ import { Icon, type IconKey } from '../../components/Icon';
 
 const tt = (ru: string, en: string) => (currentLang() === 'ru' ? ru : en);
 
-type Step = 0 | 1 | 2 | 3 | 4;
+type Step = 0 | 1 | 2 | 3;
 
 // Per-step visual identity
 const STEP_META_FIXED: { icon: IconKey; color: string; subRu: string; subEn: string }[] = [
@@ -25,7 +25,6 @@ const STEP_META_FIXED: { icon: IconKey; color: string; subRu: string; subEn: str
   { icon: 'book',   color: '#0A84FF', subRu: 'То, что не сработало раньше, не сработает снова.', subEn: "What didn't work before won't work again." },
   { icon: 'brain',  color: '#BF5AF2', subRu: 'Оправдания одинаковы у миллионов — мы их знаем.', subEn: 'Excuses are universal — we know them all.' },
   { icon: 'target', color: '#30D158', subRu: 'Честный ответ помогает говорить с тобой по делу.', subEn: 'An honest answer helps us talk to you directly.' },
-  { icon: 'pulse',  color: '#FF9F0A', subRu: 'Один тап в день. Лучший поведенческий приём.',    subEn: 'One tap a day. Strongest behavioural tool.' },
 ];
 
 export default function Depth() {
@@ -45,13 +44,13 @@ export default function Depth() {
   // Step 3 — readiness sliders 0-10
   const [importance, setImportance] = useState<number>(7);
   const [confidence, setConfidence] = useState<number>(5);
-  // Step 4 — daily check-in time
-  const [checkInHour, setCheckInHour] = useState<number>(21);
+  // Daily check-in step removed; keep a sane default for the evening reminder.
+  const checkInHour = 21;
 
-  const TOTAL_STEPS = 5;
+  const TOTAL_STEPS = 4;
   const meta = STEP_META_FIXED[step];
 
-  function next() { Haptics.selectionAsync(); if (step < 4) setStep((step + 1) as Step); else finish(); }
+  function next() { Haptics.selectionAsync(); if (step < 3) setStep((step + 1) as Step); else finish(); }
   function back() { Haptics.selectionAsync(); if (step > 0) setStep((step - 1) as Step); else router.back(); }
 
   async function finish() {
@@ -115,7 +114,6 @@ export default function Depth() {
             />}
             {step === 2 && <StepExcuses value={excuses} onChange={setExcuses} sub={tt(meta.subRu, meta.subEn)} accent={meta.color} />}
             {step === 3 && <StepReadiness importance={importance} confidence={confidence} onImportance={setImportance} onConfidence={setConfidence} sub={tt(meta.subRu, meta.subEn)} accent={meta.color} />}
-            {step === 4 && <StepCheckInTime hour={checkInHour} onChange={setCheckInHour} sub={tt(meta.subRu, meta.subEn)} accent={meta.color} />}
           </Animated.View>
         </ScrollView>
 
@@ -129,9 +127,9 @@ export default function Depth() {
           <Pressable onPress={next}
             style={{ flex: 1, paddingVertical: 18, borderRadius: radius.xl, backgroundColor: meta.color, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
             <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>
-              {step === 4 ? tr('common.done') : tr('common.continue')}
+              {step === 3 ? tr('common.done') : tr('common.continue')}
             </Text>
-            {step < 4 && <Icon.arrowRight size={18} color="#fff" />}
+            {step < 3 && <Icon.arrowRight size={18} color="#fff" />}
           </Pressable>
         </View>
       </KeyboardAvoidingView>
