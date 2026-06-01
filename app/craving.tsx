@@ -9,6 +9,8 @@ import { BreathingOrb } from '../components/BreathingOrb';
 import { Icon } from '../components/Icon';
 import { update, useAppState } from '../lib/storage';
 import type { Trigger } from '../lib/storage';
+import { nextDueDose, MED_SAFETY } from '../lib/medication';
+import { triggerLabel } from '../lib/identity';
 
 type Phase = 'breath' | 'choose' | 'log' | 'win';
 
@@ -66,9 +68,45 @@ export default function Craving() {
               onPress: () => router.replace('/faith'),
             }] : []),
           ];
+          // Surface the most relevant if-then plan + a due medication dose.
+          const plans = state.ifThens ?? [];
+          const planForNow = plans.length ? plans[plans.length - 1] : undefined;
+          const due = nextDueDose(state);
+          const med = state.profile?.medication;
+          const medName = med ? (ru ? MED_SAFETY[med].nameRu : MED_SAFETY[med].nameEn) : '';
           return (
             <>
               <Text style={{ color: t.text, fontSize: 18, fontWeight: '600' }}>{tr('sos.next')}</Text>
+
+              {/* Your own if-then plan — the plan IS the intervention */}
+              {planForNow && (
+                <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.accent + '14', borderWidth: 1, borderColor: t.accent + '50', gap: 6 }}>
+                  <Text style={{ color: t.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+                    {ru ? 'Твой план' : 'Your plan'}{planForNow.category ? ` · ${triggerLabel(planForNow.category, ru ? 'ru' : 'en')}` : ''}
+                  </Text>
+                  <Text style={{ color: t.text, fontSize: 15, lineHeight: 21 }}>
+                    <Text style={{ color: t.accent, fontWeight: '700' }}>{ru ? 'Если ' : 'If '}</Text>
+                    {planForNow.trigger}
+                    <Text style={{ color: t.warn, fontWeight: '700' }}>{ru ? ' → то ' : ' → then '}</Text>
+                    {planForNow.action}
+                  </Text>
+                </View>
+              )}
+
+              {/* Due medication dose shortcut */}
+              {due && (
+                <Pressable onPress={() => router.push('/meds')}
+                  style={{ padding: 14, borderRadius: radius.lg, backgroundColor: t.info + '14', borderWidth: 1, borderColor: t.info + '50', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: t.info + '24', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon.shield size={22} color={t.info} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{ru ? `Прими дозу · ${medName}` : `Take your dose · ${medName}`}</Text>
+                    <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>{ru ? 'Доза по расписанию уже наступила' : 'A scheduled dose is due'}</Text>
+                  </View>
+                  <Text style={{ color: t.info, fontSize: 18 }}>›</Text>
+                </Pressable>
+              )}
 
               {/* Primary recommended action */}
               <Pressable onPress={() => router.push('/practice/urge_surf')}

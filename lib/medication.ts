@@ -227,6 +227,21 @@ export function todayDoses(state: AppState, lang: 'ru' | 'en' = 'ru'): { schedul
   return { schedule, takenCount };
 }
 
+// The first dose due today (scheduled time passed, not yet taken), or null.
+// Used by the SOS/craving screen to offer a "take your dose" shortcut.
+export function nextDueDose(state: AppState): ScheduledDose | null {
+  const med = state.profile?.medication;
+  if (!med) return null;
+  const today = localDateKey();
+  const schedule = dosesForDay(med, medCourseDay(state));
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  for (const d of schedule) {
+    if (d.hour * 60 + d.minute <= nowMin && !isDoseTaken(state, today, d.doseNumber)) return d;
+  }
+  return null;
+}
+
 // Adherence over last N days (for diary view).
 export function adherenceLast7(state: AppState): { date: string; total: number; taken: number }[] {
   const out: { date: string; total: number; taken: number }[] = [];
