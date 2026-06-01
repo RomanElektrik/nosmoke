@@ -10,9 +10,10 @@ import { useTranslation, currentLang } from '../../lib/i18n';
 import { useAppState, update } from '../../lib/storage';
 import { secondsClean, nextMilestone, progressFor } from '../../lib/health';
 import {
-  moneySaved, cigsAvoided, lifeRegainedSeconds,
+  moneySaved, cigsAvoided,
   formatMoneyLive, formatDurationLive, formatCigs, formatDuration,
 } from '../../lib/money';
+import { identityHeadline, archetypeIdentity, plural } from '../../lib/identity';
 import { Icon } from '../../components/Icon';
 import { programToday } from '../../lib/program';
 import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped';
@@ -98,6 +99,19 @@ export default function Home() {
         {/* Breathing drop */}
         <BreathingDrop secs={secs} lang={lang} />
 
+        {/* Identity hero — the heart of the positioning. Evolves with days. */}
+        <Text style={{
+          color: t.text, fontSize: 17, fontWeight: '700', textAlign: 'center',
+          lineHeight: 24, marginTop: 6, paddingHorizontal: 12, letterSpacing: -0.3,
+        }}>
+          {identityHeadline(secs, lang)}
+        </Text>
+        {!!archetypeIdentity(p.archetype, lang) && (
+          <Text style={{ color: t.textDim, fontSize: 13, textAlign: 'center', marginTop: -6 }}>
+            {archetypeIdentity(p.archetype, lang)}
+          </Text>
+        )}
+
         {/* Live timer */}
         <Text style={{
           color: t.textDim, fontSize: 14, textAlign: 'center', marginTop: 4,
@@ -111,24 +125,24 @@ export default function Home() {
           </Text>
         )}
 
-        {/* Live stats sentence */}
+        {/* Live stats — identity lead, concrete wins below. No scare-stat. */}
         <Pressable onPress={() => router.push('/journal')}>
           <View style={{
             backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
-            borderRadius: radius.lg, padding: 16, marginTop: 4,
+            borderRadius: radius.lg, padding: 16, marginTop: 4, gap: 6,
           }}>
-            <Text style={{ color: t.text, fontSize: 14, lineHeight: 22, textAlign: 'center' }}>
-              {lang === 'ru' ? 'Ты вернул себе ' : 'You reclaimed '}
+            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', lineHeight: 21, textAlign: 'center' }}>
+              {lang === 'ru'
+                ? `${days} ${plural(days, ['день', 'дня', 'дней'])} ты — человек, который не курит.`
+                : `${days} ${days === 1 ? 'day' : 'days'} you've been someone who doesn't smoke.`}
+            </Text>
+            <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 19, textAlign: 'center' }}>
+              {lang === 'ru' ? 'Вернул ' : 'Reclaimed '}
               <Text style={{ color: t.accent, fontWeight: '800' }}>
                 {formatMoneyLive(moneySaved(p, secs), p.currency, localeStr)}
               </Text>
-              {lang === 'ru' ? ', не выкурил ' : ', avoided '}
+              {lang === 'ru' ? ' · не выкурил ' : ' · avoided '}
               <Text style={{ color: t.warn, fontWeight: '800' }}>{formatCigs(cigsAvoided(p, secs))}</Text>
-              {lang === 'ru' ? ' и отыграл ' : ' and won back '}
-              <Text style={{ color: t.danger, fontWeight: '800' }}>
-                {formatDuration(lifeRegainedSeconds(p, secs), lang)}
-              </Text>
-              {lang === 'ru' ? ' жизни.' : ' of life.'}
             </Text>
           </View>
         </Pressable>
@@ -235,29 +249,24 @@ function greeting(lang: 'ru' | 'en'): string {
 
 // ─── Breathing drop ───────────────────────────────────────────────────────────
 // Layered radial glows + a central circle with a slow breathing pulse.
-// Russian plural: pick form by number.
-function plural(n: number, forms: [string, string, string]): string {
-  const m10 = n % 10, m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return forms[0];
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return forms[1];
-  return forms[2];
-}
+// `plural` is imported from lib/identity.ts (shared with identity copy).
 
-// Headline number for the orb — always meaningful, never a bare "0".
+// Headline number for the orb — the streak number that NEVER resets.
+// Identity meaning lives in the line below the orb, not in the unit.
 function dropHeadline(secs: number, lang: 'ru' | 'en'): { big: string; unit: string } {
   const days = Math.floor(secs / 86400);
   const hours = Math.floor(secs / 3600);
   const mins = Math.floor(secs / 60);
   if (days >= 1) {
-    return { big: String(days), unit: lang === 'ru' ? plural(days, ['день', 'дня', 'дней']) + ' чисто' : (days === 1 ? 'day clean' : 'days clean') };
+    return { big: String(days), unit: lang === 'ru' ? plural(days, ['день', 'дня', 'дней']) : (days === 1 ? 'day' : 'days') };
   }
   if (hours >= 1) {
-    return { big: String(hours), unit: lang === 'ru' ? plural(hours, ['час', 'часа', 'часов']) + ' чисто' : (hours === 1 ? 'hour clean' : 'hours clean') };
+    return { big: String(hours), unit: lang === 'ru' ? plural(hours, ['час', 'часа', 'часов']) : (hours === 1 ? 'hour' : 'hours') };
   }
   if (mins >= 1) {
-    return { big: String(mins), unit: lang === 'ru' ? plural(mins, ['минута', 'минуты', 'минут']) + ' чисто' : (mins === 1 ? 'minute clean' : 'minutes clean') };
+    return { big: String(mins), unit: lang === 'ru' ? plural(mins, ['минута', 'минуты', 'минут']) : (mins === 1 ? 'minute' : 'minutes') };
   }
-  return { big: lang === 'ru' ? 'Старт' : 'Start', unit: lang === 'ru' ? 'путь начался' : 'the journey begins' };
+  return { big: lang === 'ru' ? 'Старт' : 'Start', unit: lang === 'ru' ? 'ты начал' : 'you began' };
 }
 
 function BreathingDrop({ secs, lang }: { secs: number; lang: 'ru' | 'en' }) {
