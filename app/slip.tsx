@@ -42,14 +42,12 @@ export default function Slip() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
   }, []);
 
-  async function finish(opts?: { resetStreak?: boolean }) {
+  async function finish() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // The streak is NEVER reset — a slip is data, not a verdict. We only
+    // attach the trigger + next-step note to the just-logged slip.
     await update((s) => ({
       ...s,
-      // Optionally reset the clean-streak (user explicitly chose to restart).
-      profile: opts?.resetStreak && s.profile
-        ? { ...s.profile, quitDate: Date.now() }
-        : s.profile,
       cravings: (trigger || nextStep) && s.cravings.length > 0
         && s.cravings[s.cravings.length - 1].outcome === 'smoked'
         ? s.cravings.map((c, i) =>
@@ -88,6 +86,11 @@ export default function Slip() {
           </LinearGradient>
           <Text style={{ color: t.text, fontSize: 30, fontWeight: '700', letterSpacing: -0.6 }}>
             {lang === 'ru' ? 'Это срыв, не возврат.' : 'A lapse, not a relapse.'}
+          </Text>
+          <Text style={{ color: t.accent, fontSize: 17, fontWeight: '700', lineHeight: 24 }}>
+            {lang === 'ru'
+              ? 'Ты всё ещё тот, кто не курит. Один момент этого не отменяет.'
+              : "You're still someone who doesn't smoke. One moment doesn't undo that."}
           </Text>
           <Text style={{ color: t.text, fontSize: 16, lineHeight: 23 }}>
             {lang === 'ru'
@@ -268,16 +271,10 @@ export default function Slip() {
             : 'The slip is logged in the journal. Program, jar and levels keep going.'}
         </Text>
 
-        <Pressable onPress={() => finish()}
+        <Pressable onPress={finish}
           style={{ marginTop: 4, padding: 18, borderRadius: radius.xl, backgroundColor: '#30D158', alignItems: 'center' }}>
           <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>
-            {lang === 'ru' ? 'Сохранить стрик и продолжить' : 'Keep streak and continue'}
-          </Text>
-        </Pressable>
-        <Pressable onPress={() => finish({ resetStreak: true })}
-          style={{ marginTop: 4, padding: 14, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, alignItems: 'center' }}>
-          <Text style={{ color: t.textDim, fontSize: 14, fontWeight: '600' }}>
-            {lang === 'ru' ? 'Начать счёт дней заново' : 'Restart day counter'}
+            {lang === 'ru' ? 'Я продолжаю' : 'I continue'}
           </Text>
         </Pressable>
       </ScrollView>
