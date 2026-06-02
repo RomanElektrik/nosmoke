@@ -7,8 +7,10 @@
 // system voice, then captions. The call NEVER breaks.
 
 const OR_KEY = process.env.EXPO_PUBLIC_OPENROUTER_KEY || '';
-const TTS_MODEL = process.env.EXPO_PUBLIC_TTS_MODEL || 'openai/gpt-4o-mini-tts';
+const TTS_MODEL = process.env.EXPO_PUBLIC_TTS_MODEL || 'openai/gpt-4o-mini-tts-2025-12-15';
 const TTS_VOICE = process.env.EXPO_PUBLIC_TTS_VOICE || 'alloy';
+// Tone steering (supported by gpt-4o-mini-tts) — a warm, calm coach.
+const TTS_INSTRUCTIONS = 'Speak in a warm, calm, caring tone — like a close friend talking someone through a hard moment. Unhurried, grounded, reassuring.';
 
 export const hasVoice = !!OR_KEY;
 
@@ -59,6 +61,7 @@ export async function synthLine(text: string, _lang: 'ru' | 'en'): Promise<strin
         model: TTS_MODEL,
         input: text,
         voice: TTS_VOICE,
+        instructions: TTS_INSTRUCTIONS,
         response_format: 'mp3',
       }),
     });
