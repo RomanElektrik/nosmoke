@@ -13,14 +13,13 @@ import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Eas
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
-import { usePremium } from '../lib/subscription';
 import { Icon } from '../components/Icon';
 import { callOpening, callChoices, callReply, callClosing, type CallChoice } from '../lib/call';
-import { synthLine, hasElevenVoice } from '../lib/voice';
+import { synthLine, hasVoice } from '../lib/voice';
 
 // Native voice modules may not be in the current build yet — load them safely
 // so the call still works (captions) until the app is rebuilt. Voice tiers:
-// Premium → ElevenLabs (expo-audio) · free → system voice (expo-speech) · else captions.
+// OpenRouter TTS (expo-audio) · system voice (expo-speech) · captions.
 let Speech: any = null;
 try { Speech = require('expo-speech'); } catch {}
 let Audio: any = null;
@@ -34,7 +33,6 @@ export default function Call() {
   const lang = currentLang();
   const [state] = useAppState();
 
-  const premium = usePremium();
   const [phase, setPhase] = useState<'ringing' | 'talking'>('ringing');
   const [lines, setLines] = useState<string[]>([]);
   const [idx, setIdx] = useState(0);
@@ -72,8 +70,8 @@ export default function Call() {
     const advance = () => { if (!cancelled) setIdx((i) => (i === idx ? i + 1 : i)); };
 
     (async () => {
-      // 1) Premium: ElevenLabs cinematic voice
-      if (premium && hasElevenVoice && Audio?.createAudioPlayer) {
+      // 1) Real voice via OpenRouter TTS (cheap — available to everyone)
+      if (hasVoice && Audio?.createAudioPlayer) {
         const uri = await synthLine(line, lang === 'ru' ? 'ru' : 'en');
         if (cancelled) return;
         if (uri) {
@@ -108,7 +106,7 @@ export default function Call() {
       try { playerRef.current?.remove?.(); } catch {}
       try { Speech?.stop?.(); } catch {}
     };
-  }, [phase, idx, lines, stage, premium]);
+  }, [phase, idx, lines, stage]);
 
   useEffect(() => () => { try { Speech?.stop?.(); } catch {} try { playerRef.current?.remove?.(); } catch {} }, []);
 

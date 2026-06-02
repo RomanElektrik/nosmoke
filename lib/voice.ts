@@ -1,18 +1,16 @@
-// Premium voice via ElevenLabs TTS (turn-based). Each line is synthesized to
-// a cached mp3 and played by the call screen. Everything degrades gracefully:
-// no key / error / missing native module → returns null and the caller falls
-// back to the free system voice, then to captions. The call NEVER breaks.
+// Voice for the call — routed through OpenRouter TTS (no ElevenLabs payment
+// problem: uses the SAME OpenRouter key the AI chat already uses).
+// Default model GPT-4o Mini TTS (~$0.0005/call, supports Russian). Override via
+// EXPO_PUBLIC_TTS_MODEL / EXPO_PUBLIC_TTS_VOICE to use Grok/Gemini/etc.
 //
-// Setup: put your key in eas.json production env as EXPO_PUBLIC_ELEVENLABS_KEY
-// (free tier at elevenlabs.io). Optional EXPO_PUBLIC_ELEVENLABS_VOICE to pick
-// a voice id. Only premium users trigger this (free = system voice) — so the
-// per-call cost is only ever spent on paying users.
+// Everything degrades gracefully (returns null) → caller falls back to the
+// system voice, then captions. The call NEVER breaks.
 
-const ELEVEN_KEY = process.env.EXPO_PUBLIC_ELEVENLABS_KEY || '';
-// Default: a warm, calm multilingual voice (eleven_multilingual_v2 speaks RU).
-const VOICE_ID = process.env.EXPO_PUBLIC_ELEVENLABS_VOICE || 'XrExE9yKIg1WjnnlVkGX';
+const OR_KEY = process.env.EXPO_PUBLIC_OPENROUTER_KEY || '';
+const TTS_MODEL = process.env.EXPO_PUBLIC_TTS_MODEL || 'openai/gpt-4o-mini-tts';
+const TTS_VOICE = process.env.EXPO_PUBLIC_TTS_VOICE || 'alloy';
 
-export const hasElevenVoice = !!ELEVEN_KEY;
+export const hasVoice = !!OR_KEY;
 
 // Legacy file API is the battle-tested path for writing binary → file.
 let FS: any = null;
@@ -46,24 +44,27 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 // Synthesize one line → local mp3 file uri, or null if unavailable.
-export async function synthLine(text: string, lang: 'ru' | 'en'): Promise<string | null> {
-  if (!ELEVEN_KEY || !FS?.writeAsStringAsync || !FS?.cacheDirectory) return null;
+export async function synthLine(text: string, _lang: 'ru' | 'en'): Promise<string | null> {
+  if (!OR_KEY || !FS?.writeAsStringAsync || !FS?.cacheDirectory) return null;
   try {
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+    const res = await fetch('https://openrouter.ai/api/v1/audio/speech', {
       method: 'POST',
       headers: {
-        'xi-api-key': ELEVEN_KEY,
+        Authorization: `Bearer ${OR_KEY}`,
         'Content-Type': 'application/json',
-        Accept: 'audio/mpeg',
+        'HTTP-Referer': 'https://breeze.app',
+        'X-Title': 'Breeze',
       },
       body: JSON.stringify({
-        text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.2, use_speaker_boost: true },
+        model: TTS_MODEL,
+        input: text,
+        voice: TTS_VOICE,
+        response_format: 'mp3',
       }),
     });
     if (!res.ok) return null;
     const buf = await res.arrayBuffer();
+    if (!buf || buf.byteLength < 64) return null;
     const b64 = bytesToBase64(new Uint8Array(buf));
     const uri = `${FS.cacheDirectory}breeze_voice_${counter++}.mp3`;
     await FS.writeAsStringAsync(uri, b64, { encoding: FS.EncodingType?.Base64 ?? 'base64' });
