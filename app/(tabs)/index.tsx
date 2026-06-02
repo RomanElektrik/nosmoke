@@ -11,9 +11,9 @@ import { useAppState, update } from '../../lib/storage';
 import { secondsClean, nextMilestone, progressFor } from '../../lib/health';
 import {
   moneySaved, cigsAvoided,
-  formatMoneyLive, formatDurationLive, formatCigs, formatDuration,
+  formatMoneyLive, formatCigs, formatDuration,
 } from '../../lib/money';
-import { identityHeadline, archetypeIdentity, plural, triggerLabel, relevantPlan } from '../../lib/identity';
+import { identityHeadline, plural, triggerLabel, relevantPlan } from '../../lib/identity';
 import { Icon } from '../../components/Icon';
 import { programToday } from '../../lib/program';
 import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped';
@@ -99,28 +99,16 @@ export default function Home() {
         {/* Breathing drop */}
         <BreathingDrop secs={secs} lang={lang} />
 
-        {/* Identity hero — the heart of the positioning. Evolves with days. */}
+        {/* Identity hero — the heart of the positioning. Evolves with days.
+            One line only: the orb already shows the number, no second timer. */}
         <Text style={{
-          color: t.text, fontSize: 17, fontWeight: '700', textAlign: 'center',
-          lineHeight: 24, marginTop: 6, paddingHorizontal: 12, letterSpacing: -0.3,
+          color: t.text, fontSize: 18, fontWeight: '700', textAlign: 'center',
+          lineHeight: 25, marginTop: 8, paddingHorizontal: 14, letterSpacing: -0.3,
         }}>
           {identityHeadline(secs, lang)}
         </Text>
-        {!!archetypeIdentity(p.archetype, lang) && (
-          <Text style={{ color: t.textDim, fontSize: 13, textAlign: 'center', marginTop: -6 }}>
-            {archetypeIdentity(p.archetype, lang)}
-          </Text>
-        )}
-
-        {/* Live timer */}
-        <Text style={{
-          color: t.textDim, fontSize: 14, textAlign: 'center', marginTop: 4,
-          fontVariant: ['tabular-nums'] as any,
-        }}>
-          {formatDurationLive(secs, lang)}
-        </Text>
         {next && (
-          <Text style={{ color: t.textDim, fontSize: 12, textAlign: 'center', marginTop: -8 }}>
+          <Text style={{ color: t.textDim, fontSize: 12, textAlign: 'center', marginTop: 6 }}>
             {lang === 'ru' ? 'до вехи' : 'to milestone'} «{tr(next.titleKey)}» — {formatDuration(next.at - secs, lang)}
           </Text>
         )}

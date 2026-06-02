@@ -106,8 +106,9 @@ function BreathOrb({
     transform: [{ scale: scale.value * 1.16 }],
     opacity: 0.10 + scale.value * 0.14,
   }));
+  // Core follows the breath ONLY — no shimmer multiply (it fought the rhythm).
   const aCore = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value * shimmer.value }],
+    transform: [{ scale: scale.value }],
   }));
   const aRing = useAnimatedStyle(() => ({
     transform: [{ scale: 0.92 + scale.value * 0.10 }],
@@ -290,10 +291,11 @@ function CyclicSigh({ onDone }: { onDone: () => void }) {
   const lang = currentLang();
   const COLOR = '#0A84FF';
   // Pattern (Balban 2023): inhale 1.5s + small top-off 0.8s + exhale 4.5s.
+  // Gentle scale range (0.64–1.0) + sine easing everywhere = calm, no jerk.
   const PHASES = [
-    { key: 'in1', ru: 'Вдох',          en: 'Inhale',      hint: { ru: 'спокойно через нос',  en: 'calmly through the nose' }, dur: 1500, scale: 0.92 },
-    { key: 'in2', ru: 'Добор воздуха', en: 'Top off',     hint: { ru: 'наполни лёгкие',      en: 'fill the lungs' },          dur: 800,  scale: 1.14 },
-    { key: 'out', ru: 'Длинный выдох', en: 'Long exhale', hint: { ru: 'медленно через рот',  en: 'slowly through the mouth' }, dur: 4500, scale: 0.5 },
+    { key: 'in1', ru: 'Вдох',          en: 'Inhale',      hint: { ru: 'спокойно через нос',  en: 'calmly through the nose' }, dur: 1500, scale: 0.86 },
+    { key: 'in2', ru: 'Добор воздуха', en: 'Top off',     hint: { ru: 'наполни лёгкие',      en: 'fill the lungs' },          dur: 800,  scale: 1.0 },
+    { key: 'out', ru: 'Длинный выдох', en: 'Long exhale', hint: { ru: 'медленно через рот',  en: 'slowly through the mouth' }, dur: 4500, scale: 0.64 },
   ] as const;
 
   const TOTAL = 300;
@@ -310,11 +312,12 @@ function CyclicSigh({ onDone }: { onDone: () => void }) {
   // phases without the start-stop hiccup of restarting withTiming per phase.
   useEffect(() => {
     startedAt.current = Date.now();
+    const sine = Easing.inOut(Easing.sin);
     scale.value = withRepeat(
       withSequence(
-        withTiming(PHASES[0].scale, { duration: PHASES[0].dur, easing: Easing.out(Easing.quad) }),
-        withTiming(PHASES[1].scale, { duration: PHASES[1].dur, easing: Easing.out(Easing.quad) }),
-        withTiming(PHASES[2].scale, { duration: PHASES[2].dur, easing: Easing.inOut(Easing.cubic) }),
+        withTiming(PHASES[0].scale, { duration: PHASES[0].dur, easing: sine }),
+        withTiming(PHASES[1].scale, { duration: PHASES[1].dur, easing: sine }),
+        withTiming(PHASES[2].scale, { duration: PHASES[2].dur, easing: sine }),
       ),
       -1,
       false,
