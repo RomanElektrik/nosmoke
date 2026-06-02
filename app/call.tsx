@@ -62,23 +62,26 @@ export default function Call() {
 
   useEffect(() => () => { try { Speech?.stop?.(); } catch {} try { playerRef.current?.remove?.(); } catch {} }, []);
 
-  // Play a synthesized audio file. Returns true if it actually played.
+  // Play a synthesized audio file. Returns true only if it actually played;
+  // if it doesn't start within 3.5s, give up so the caller falls back to the
+  // system voice (no long silence).
   function playUri(uri: string): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
-      let done = false;
+      let done = false, started = false, everPlayed = false;
       const fin = (ok: boolean) => { if (done) return; done = true; resolve(ok); };
       try {
         const player = createAudioPlayer({ uri });
         playerRef.current = player;
         try { player.volume = 1.0; } catch {}
-        let started = false;
         const sub = player.addListener('playbackStatusUpdate', (st: any) => {
           console.log('[PLAY]', JSON.stringify({ loaded: st?.isLoaded, playing: st?.playing, fin: st?.didJustFinish, dur: st?.duration, pos: st?.currentTime, err: st?.error ?? null }));
-          if (st?.isLoaded && !started) { started = true; try { player.seekTo(0); } catch {} try { player.play(); } catch {} }
-          if (st?.didJustFinish || st?.error) { try { sub?.remove?.(); } catch {} try { player.remove?.(); } catch {} fin(!st?.error); }
+          if (st?.isLoaded && !started) { started = true; try { player.play(); } catch {} }
+          if (st?.playing) everPlayed = true;
+          if (st?.didJustFinish || st?.error) { try { sub?.remove?.(); } catch {} try { player.remove?.(); } catch {} fin(everPlayed && !st?.error); }
         });
         try { player.play(); } catch {}
-        setTimeout(() => fin(true), 60000);
+        setTimeout(() => { if (!everPlayed) { try { player.remove?.(); } catch {} fin(false); } }, 3500);
+        setTimeout(() => fin(everPlayed), 60000);
       } catch (e: any) { console.warn('[PLAY] error', e?.message); fin(false); }
     });
   }
