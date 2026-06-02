@@ -66,9 +66,9 @@ export async function synthLine(text: string, _lang: 'ru' | 'en'): Promise<strin
         response_format: 'mp3',
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) { try { console.warn('[TTS] HTTP', res.status, (await res.text()).slice(0, 200)); } catch {} return null; }
     const buf = await res.arrayBuffer();
-    if (!buf || buf.byteLength < 64) return null;
+    if (!buf || buf.byteLength < 64) { console.warn('[TTS] tiny/empty audio', buf?.byteLength); return null; }
     const b64 = bytesToBase64(new Uint8Array(buf));
     const uri = `${FS.cacheDirectory}breeze_voice_${counter++}.mp3`;
     await FS.writeAsStringAsync(uri, b64, { encoding: FS.EncodingType?.Base64 ?? 'base64' });
@@ -96,11 +96,13 @@ export async function transcribe(fileUri: string, lang: 'ru' | 'en'): Promise<st
         language: lang,
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) { try { console.warn('[STT] HTTP', res.status, (await res.text()).slice(0, 300)); } catch {} return null; }
     const data = await res.json();
     const text = (data?.text ?? data?.transcript ?? data?.transcription ?? '').trim();
+    if (!text) console.warn('[STT] empty result, keys:', Object.keys(data || {}).join(','));
     return text || null;
-  } catch {
+  } catch (e: any) {
+    console.warn('[STT] error', e?.message);
     return null;
   }
 }
