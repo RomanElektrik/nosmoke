@@ -49,7 +49,7 @@ function bytesToBase64(bytes: Uint8Array): string {
 
 // Wrap raw 16-bit PCM (Gemini outputs 24kHz mono) in a WAV container so the
 // audio player can play it.
-function pcmToWav(pcm: Uint8Array, sampleRate = 24000, channels = 1, bits = 16): Uint8Array {
+function pcmToWav(pcm: Uint8Array, sampleRate = 24000, channels = 1, bits = 16): Uint8Array<ArrayBuffer> {
   const blockAlign = (channels * bits) / 8;
   const byteRate = sampleRate * blockAlign;
   const dataLen = pcm.length;
@@ -90,12 +90,12 @@ export async function synthLine(text: string, _lang: 'ru' | 'en'): Promise<strin
     });
     if (!res.ok) { try { console.warn('[TTS] HTTP', res.status, (await res.text()).slice(0, 300)); } catch {} return null; }
     const ct = (res.headers.get('content-type') || '').toLowerCase();
-    let bytes = new Uint8Array(await res.arrayBuffer());
+    let bytes: Uint8Array = new Uint8Array(await res.arrayBuffer());
     if (bytes.byteLength < 64) { console.warn('[TTS] tiny/empty audio', bytes.byteLength, ct); return null; }
     let ext = 'mp3';
     if (ct.includes('wav')) ext = 'wav';
     else if (ct.includes('mpeg') || ct.includes('mp3')) ext = 'mp3';
-    else if (ct.includes('pcm') || ct.includes('l16') || ct.includes('raw')) { bytes = pcmToWav(bytes); ext = 'wav'; }
+    else if (ct.includes('pcm') || ct.includes('l16') || ct.includes('raw')) { bytes = pcmToWav(bytes) as Uint8Array; ext = 'wav'; }
     console.log('[TTS] ok', ct, bytes.byteLength, ext);
     const b64 = bytesToBase64(bytes);
     const uri = `${FS.cacheDirectory}breeze_voice_${counter++}.${ext}`;
