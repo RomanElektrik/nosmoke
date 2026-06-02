@@ -40,6 +40,8 @@ export default function Call() {
   const [ended, setEnded] = useState(false);
   const historyRef = useRef<ChatMessage[]>([]);
   const playerRef = useRef<any>(null);
+  const openingUriRef = useRef<string | null>(null);
+  const openingTextRef = useRef<string>('');
   const pulse = useSharedValue(1);
 
   useEffect(() => {
@@ -50,31 +52,42 @@ export default function Call() {
     return () => clearInterval(id);
   }, [phase]);
 
+  // Pre-synthesize the opening WHILE the phone rings → instant playback on answer.
+  useEffect(() => {
+    if (!hasVoice) return;
+    const text = callOpening(state, lang).join(' ');
+    openingTextRef.current = text;
+    synthLine(text, lang === 'ru' ? 'ru' : 'en').then((uri) => { openingUriRef.current = uri; }).catch(() => {});
+  }, []);
+
   useEffect(() => () => { try { Speech?.stop?.(); } catch {} try { playerRef.current?.remove?.(); } catch {} }, []);
 
-  // Speak one chunk of text — one TTS request → smooth, no inter-line gaps.
-  async function say(text: string) {
+  // Play a synthesized audio file. Returns true if it actually played.
+  function playUri(uri: string): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      let done = false;
+      const fin = (ok: boolean) => { if (done) return; done = true; resolve(ok); };
+      try {
+        const player = createAudioPlayer({ uri });
+        playerRef.current = player;
+        try { player.volume = 1.0; } catch {}
+        const sub = player.addListener('playbackStatusUpdate', (st: any) => {
+          console.log('[PLAY]', JSON.stringify({ loaded: st?.isLoaded, playing: st?.playing, fin: st?.didJustFinish, dur: st?.duration, pos: st?.currentTime, err: st?.error ?? null }));
+          if (st?.didJustFinish || st?.error) { try { sub?.remove?.(); } catch {} try { player.remove?.(); } catch {} fin(!st?.error); }
+        });
+        player.play();
+        setTimeout(() => fin(true), 60000);
+      } catch (e: any) { console.warn('[PLAY] error', e?.message); fin(false); }
+    });
+  }
+
+  // Speak text — uses a pre-synthesized uri if given (instant), else synthesizes.
+  async function say(text: string, preUri?: string | null) {
     setCaption(text);
     setConvo('speaking');
-    if (hasVoice) {
-      const uri = await synthLine(text, lang === 'ru' ? 'ru' : 'en');
-      if (uri) {
-        await new Promise<void>((resolve) => {
-          let done = false;
-          const fin = () => { if (done) return; done = true; resolve(); };
-          try {
-            const player = createAudioPlayer({ uri });
-            playerRef.current = player;
-            const sub = player.addListener('playbackStatusUpdate', (st: any) => {
-              if (st?.didJustFinish) { try { sub?.remove?.(); } catch {} try { player.remove?.(); } catch {} fin(); }
-            });
-            player.play();
-            setTimeout(fin, 45000);
-          } catch { fin(); }
-        });
-        return;
-      }
-    }
+    let uri = preUri ?? null;
+    if (!uri && hasVoice) uri = await synthLine(text, lang === 'ru' ? 'ru' : 'en');
+    if (uri) { const ok = await playUri(uri); if (ok) return; }
     if (Speech?.speak) {
       await new Promise<void>((resolve) => {
         let done = false; const fin = () => { if (done) return; done = true; resolve(); };
@@ -96,9 +109,9 @@ export default function Call() {
     try { await AudioModule.requestRecordingPermissionsAsync(); } catch {}
     await speakerMode();
     setPhase('live');
-    const opening = callOpening(state, lang).join(' ');
+    const opening = openingTextRef.current || callOpening(state, lang).join(' ');
     historyRef.current = [{ role: 'assistant', content: opening }];
-    await say(opening);
+    await say(opening, openingUriRef.current);
     setConvo('idle');
   }
 
