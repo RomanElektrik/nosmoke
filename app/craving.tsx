@@ -20,7 +20,9 @@ export default function Craving() {
   const router = useRouter();
   const { t: tr } = useTranslation();
   const [state] = useAppState();
-  const [phase, setPhase] = useState<Phase>('breath');
+  // Open straight to the choice menu — don't gate a person in crisis behind
+  // a forced 60s breathing timer. Breathing is one prominent option below.
+  const [phase, setPhase] = useState<Phase>('choose');
   const [intensity, setIntensity] = useState(6);
   const [trigger, setTrigger] = useState<Trigger | undefined>();
   const [outcome, setOutcome] = useState<'resisted' | 'smoked' | null>(null);
@@ -46,15 +48,18 @@ export default function Craving() {
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: 18 }}>
         <Text style={{ color: t.text, fontSize: 28, fontWeight: '700', letterSpacing: -0.6 }}>{tr('sos.title')}</Text>
 
-        {phase === 'breath' && (
-          <>
-            <Text style={{ color: t.textDim, fontSize: 16 }}>{tr('sos.step_breath')}</Text>
-            <BreathingOrb totalSeconds={60} onDone={() => setPhase('choose')} />
-            <Pressable onPress={() => setPhase('choose')}>
-              <Text style={{ color: t.textDim, textAlign: 'center' }}>{tr('common.skip')} →</Text>
-            </Pressable>
-          </>
-        )}
+        {phase === 'breath' && (() => {
+          const ru = (state.profile?.language ?? 'ru') === 'ru';
+          return (
+            <>
+              <Text style={{ color: t.textDim, fontSize: 16 }}>{tr('sos.step_breath')}</Text>
+              <BreathingOrb totalSeconds={60} onDone={() => setPhase('choose')} />
+              <Pressable onPress={() => setPhase('choose')}>
+                <Text style={{ color: t.textDim, textAlign: 'center' }}>← {ru ? 'Назад к вариантам' : 'Back to options'}</Text>
+              </Pressable>
+            </>
+          );
+        })()}
 
         {phase === 'choose' && (() => {
           const ru = (state.profile?.language ?? 'ru') === 'ru';
@@ -89,6 +94,19 @@ export default function Craving() {
                     <Text style={{ color: '#ffffffcc', fontSize: 13, marginTop: 2 }}>{ru ? 'Голос проведёт тебя через тягу — 1 минута' : 'A voice walks you through the urge — 1 min'}</Text>
                   </View>
                 </LinearGradient>
+              </Pressable>
+
+              {/* Breathe — an option now, not a forced gate */}
+              <Pressable onPress={() => { Haptics.selectionAsync(); setPhase('breath'); }}
+                style={{ padding: 16, borderRadius: radius.lg, backgroundColor: '#5AC8FA14', borderWidth: 1, borderColor: '#5AC8FA50', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#5AC8FA24', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon.wind size={22} color="#5AC8FA" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>{ru ? 'Подышать минуту' : 'Breathe for a minute'}</Text>
+                  <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>{ru ? 'Самый быстрый способ сбить тягу' : 'The fastest way to cut the urge'}</Text>
+                </View>
+                <Text style={{ color: '#5AC8FA', fontSize: 18 }}>›</Text>
               </Pressable>
 
               <Text style={{ color: t.text, fontSize: 18, fontWeight: '600' }}>{tr('sos.next')}</Text>
