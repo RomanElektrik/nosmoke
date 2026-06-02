@@ -127,7 +127,7 @@ export default function Call() {
     setConvo('thinking');
     historyRef.current.push({ role: 'user', content: text.trim() });
     let reply = '';
-    try { reply = strip(await chat(state, lang, 'support', historyRef.current)); } catch {}
+    try { reply = strip(await chat(state, lang, 'call', historyRef.current)); } catch {}
     if (!reply) reply = lang === 'ru' ? 'Я рядом. Дыши со мной — вдох на четыре, выдох на шесть.' : "I'm here. Breathe with me — in for four, out for six.";
     historyRef.current.push({ role: 'assistant', content: reply });
     await say(reply);

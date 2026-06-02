@@ -5,7 +5,7 @@ import { cravingsSurvived, currentLevel, programToday } from './program';
 import { getStep } from './stepped';
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
-export type CoachMode = 'support' | 'analyze_slip' | 'daily_task';
+export type CoachMode = 'support' | 'analyze_slip' | 'daily_task' | 'call';
 
 const PROXY_URL = process.env.EXPO_PUBLIC_AI_PROXY_URL || '';
 const PROXY_KEY = process.env.EXPO_PUBLIC_AI_PROXY_KEY || '';
@@ -20,6 +20,27 @@ export function buildSystemPrompt(state: AppState, locale: 'ru' | 'en', mode: Co
   if (!p) return `You are an empathic, evidence-based smoking cessation coach. Reply in ${lang}.`;
 
   const secs = secondsClean(p.quitDate);
+
+  // Dedicated voice-call prompt — conversational, short, NOT a technique
+  // dispenser (fixes the "always suggests breathing" loop) + faster replies.
+  if (mode === 'call') {
+    const d = Math.floor(secs / 86400);
+    const mots = (p.motivations ?? []).join(', ') || '—';
+    const trigs = (p.triggers ?? []).join(', ') || '—';
+    const stmt = p.identityStatement?.trim();
+    return `You are Бриз — a warm, real friend on a PHONE CALL with someone fighting a cigarette craving right now. This is a SPOKEN conversation, not a chat. Reply ONLY in ${lang}.
+
+HARD RULES:
+- 1–2 SHORT spoken sentences. Never long, never a list. This is talking, not writing.
+- Sound like a close friend, not a coach or a script. Warm, calm, human.
+- VARY every reply. Do NOT repeat advice. Do NOT suggest breathing more than ONCE in the whole call — usually just listen, reflect, reassure.
+- Mostly: reflect what they feel, reassure, remind them who they're becoming, and ask one short question back.
+- Offer a tiny concrete action only occasionally and NEVER the same one twice (a sip of water, step outside, hold something cold, text someone, name the trigger out loud).
+- No markers, no links, no emoji, no markdown. A slip is never shame.
+
+Them: ${d} days smoke-free. Quitting for: ${mots}. Triggers: ${trigs}.${stmt ? ` Becoming: "${stmt}".` : ''}`;
+  }
+
   const cigs = cigsAvoided(p, secs);
   const money = moneySaved(p, secs);
   const slips7 = state.slips.filter((t) => t > Date.now() - 7 * 86400_000).length;

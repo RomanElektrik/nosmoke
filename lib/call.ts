@@ -39,30 +39,20 @@ export function callOpening(state: AppState, lang: Lang): string[] {
   const ru = lang === 'ru';
 
   const lines: string[] = [];
-  lines.push(ru ? 'Привет. Это Бриз. Ты нажал, что тянет закурить — поэтому я звоню.'
-                : "Hey. It's Breeze. You said the urge is here — so I'm calling.");
+  // Short and warm — a snappy opening, not a monologue.
+  lines.push(ru ? 'Привет, это Бриз. Я рядом.' : "Hey, it's Breeze. I'm right here.");
 
   if (d >= 1) {
     lines.push(ru
-      ? `Слушай меня. Ты держишься уже ${d} ${plural(d, ['день', 'дня', 'дней'])}. Это не случайность — это ты.`
-      : `Listen to me. You've held on for ${d} ${d === 1 ? 'day' : 'days'}. That's not luck — that's you.`);
+      ? `Ты держишься уже ${d} ${plural(d, ['день', 'дня', 'дней'])} — и это ты, не случайность.`
+      : `You've held on ${d} ${d === 1 ? 'day' : 'days'} — and that's you, not luck.`);
   } else {
     lines.push(ru
-      ? 'Ты только что решил начать. Прямо сейчас — самый важный момент.'
-      : 'You just chose to begin. Right now is the most important moment.');
+      ? 'Ты только что решил начать — и это уже сила.'
+      : "You just chose to begin — and that's already strength.");
   }
 
-  lines.push(ru
-    ? 'Сейчас тяга кажется огромной. Но она спадёт за три-четыре минуты, даже если ничего не делать. Переждём её вместе.'
-    : 'The craving feels huge right now. But it fades in three or four minutes on its own. We ride it out together.');
-
-  if (stmt) {
-    lines.push(ru
-      ? `Ты говорил, что становишься ${stmt}. Тот человек сейчас не закурит.`
-      : `You said you're becoming ${stmt}. That person doesn't smoke right now.`);
-  }
-
-  lines.push(ru ? 'Скажи мне — как ты сейчас?' : 'Tell me — how are you right now?');
+  lines.push(ru ? 'Скажи, как ты сейчас?' : 'Tell me — how are you right now?');
   return lines;
 }
 
