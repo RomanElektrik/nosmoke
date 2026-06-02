@@ -5,7 +5,9 @@ import { cravingsSurvived, currentLevel, programToday } from './program';
 import { getStep } from './stepped';
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
-export type CoachMode = 'support' | 'analyze_slip' | 'daily_task' | 'call';
+export type CoachMode = 'support' | 'analyze_slip' | 'daily_task';
+// 'call' is an internal voice-call prompt, not a coach tab mode.
+export type PromptMode = CoachMode | 'call';
 
 const PROXY_URL = process.env.EXPO_PUBLIC_AI_PROXY_URL || '';
 const PROXY_KEY = process.env.EXPO_PUBLIC_AI_PROXY_KEY || '';
@@ -14,7 +16,7 @@ const ENV_MODEL = process.env.EXPO_PUBLIC_OPENROUTER_MODEL || '';
 const DEFAULT_MODEL = 'anthropic/claude-sonnet-4.5';
 const FALLBACK = 'openai/gpt-4o-mini';
 
-export function buildSystemPrompt(state: AppState, locale: 'ru' | 'en', mode: CoachMode): string {
+export function buildSystemPrompt(state: AppState, locale: 'ru' | 'en', mode: PromptMode): string {
   const p = state.profile;
   const lang = locale === 'ru' ? 'Russian' : 'English';
   if (!p) return `You are an empathic, evidence-based smoking cessation coach. Reply in ${lang}.`;
@@ -179,7 +181,7 @@ async function callProxy(messages: ChatMessage[], locale: string): Promise<strin
   return data.content ?? data.message ?? '';
 }
 
-export async function chat(state: AppState, locale: 'ru' | 'en', mode: CoachMode, history: ChatMessage[]): Promise<string> {
+export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMode, history: ChatMessage[]): Promise<string> {
   const userKey = state.profile?.openrouterKey?.trim();
   const userModel = state.profile?.openrouterModel?.trim();
   const key = userKey || ENV_KEY;
