@@ -13,13 +13,18 @@ import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Eas
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
+import { usePremium } from '../lib/subscription';
 import { Icon } from '../components/Icon';
 import { callOpening, callChoices, callReply, callClosing, type CallChoice } from '../lib/call';
+import { synthLine, hasElevenVoice } from '../lib/voice';
 
-// expo-speech may not be in the current native build yet — load it safely so
-// the call still works (captions-only) until the app is rebuilt with voice.
+// Native voice modules may not be in the current build yet — load them safely
+// so the call still works (captions) until the app is rebuilt. Voice tiers:
+// Premium → ElevenLabs (expo-audio) · free → system voice (expo-speech) · else captions.
 let Speech: any = null;
 try { Speech = require('expo-speech'); } catch {}
+let Audio: any = null;
+try { Audio = require('expo-audio'); } catch {}
 
 type Stage = 'opening' | 'reply' | 'closing';
 
@@ -29,6 +34,7 @@ export default function Call() {
   const lang = currentLang();
   const [state] = useAppState();
 
+  const premium = usePremium();
   const [phase, setPhase] = useState<'ringing' | 'talking'>('ringing');
   const [lines, setLines] = useState<string[]>([]);
   const [idx, setIdx] = useState(0);
@@ -36,6 +42,7 @@ export default function Call() {
   const [showChoices, setShowChoices] = useState(false);
   const [ended, setEnded] = useState(false);
   const spokeRef = useRef(-1);
+  const playerRef = useRef<any>(null);
 
   const pulse = useSharedValue(1);
 
@@ -48,7 +55,7 @@ export default function Call() {
     return () => clearInterval(id);
   }, [phase]);
 
-  // Speak / advance through the current line queue.
+  // Speak / advance through the current line queue (tiered voice).
   useEffect(() => {
     if (phase !== 'talking') return;
     if (idx >= lines.length) {
@@ -60,30 +67,60 @@ export default function Call() {
     if (spokeRef.current === idx) return;
     spokeRef.current = idx;
     const line = lines[idx];
-    const advance = () => setIdx((i) => (i === idx ? i + 1 : i));
-    if (Speech?.speak) {
-      // Voice when the native module exists; the timer is a safety net so
-      // captions always advance even if onDone never fires (or voice is absent).
-      try {
-        Speech.stop();
-        Speech.speak(line, { language: lang === 'ru' ? 'ru-RU' : 'en-US', rate: 0.96, pitch: 1.02, onDone: advance, onError: advance });
-      } catch {}
-      const tm = setTimeout(advance, 2600 + line.length * 55);
-      return () => clearTimeout(tm);
-    }
-    const tm = setTimeout(advance, 2200 + line.length * 45);
-    return () => clearTimeout(tm);
-  }, [phase, idx, lines, stage]);
+    let cancelled = false;
+    let timer: any = null;
+    const advance = () => { if (!cancelled) setIdx((i) => (i === idx ? i + 1 : i)); };
 
-  useEffect(() => () => { try { Speech?.stop?.(); } catch {} }, []);
+    (async () => {
+      // 1) Premium: ElevenLabs cinematic voice
+      if (premium && hasElevenVoice && Audio?.createAudioPlayer) {
+        const uri = await synthLine(line, lang === 'ru' ? 'ru' : 'en');
+        if (cancelled) return;
+        if (uri) {
+          try {
+            const player = Audio.createAudioPlayer({ uri });
+            playerRef.current = player;
+            const sub = player.addListener('playbackStatusUpdate', (st: any) => {
+              if (st?.didJustFinish) { try { sub?.remove?.(); } catch {} try { player.remove?.(); } catch {} advance(); }
+            });
+            player.play();
+            timer = setTimeout(advance, 14000); // hard backstop
+            return;
+          } catch {}
+        }
+      }
+      // 2) Free: system voice
+      if (Speech?.speak) {
+        try {
+          Speech.stop();
+          Speech.speak(line, { language: lang === 'ru' ? 'ru-RU' : 'en-US', rate: 0.96, pitch: 1.02, onDone: advance, onError: advance });
+        } catch {}
+        timer = setTimeout(advance, 2600 + line.length * 55);
+        return;
+      }
+      // 3) Captions only
+      timer = setTimeout(advance, 2200 + line.length * 45);
+    })();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      try { playerRef.current?.remove?.(); } catch {}
+      try { Speech?.stop?.(); } catch {}
+    };
+  }, [phase, idx, lines, stage, premium]);
+
+  useEffect(() => () => { try { Speech?.stop?.(); } catch {} try { playerRef.current?.remove?.(); } catch {} }, []);
 
   function answer() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try { Audio?.setAudioModeAsync?.({ playsInSilentMode: true }); } catch {}
     setLines(callOpening(state, lang)); setIdx(0); setStage('opening'); spokeRef.current = -1;
     setPhase('talking');
   }
   function hangUp() {
     try { Speech?.stop?.(); } catch {}
+    try { playerRef.current?.remove?.(); } catch {}
     Haptics.selectionAsync();
     router.canGoBack() ? router.back() : router.replace('/(tabs)');
   }
@@ -94,6 +131,7 @@ export default function Call() {
   }
   async function resisted() {
     try { Speech?.stop?.(); } catch {}
+    try { playerRef.current?.remove?.(); } catch {}
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await update((s) => ({ ...s, cravings: [...s.cravings, { ts: Date.now(), intensity: 6, outcome: 'resisted' as const }] }));
     router.replace('/(tabs)');
