@@ -16,6 +16,9 @@ const TTS_INSTRUCTIONS = 'Speak in a warm, calm, caring tone — like a close fr
 
 export const hasVoice = !!OR_KEY;
 
+// Gemini TTS returns raw PCM and only accepts response_format="pcm".
+const isPcmModel = /gemini/i.test(TTS_MODEL);
+
 // Legacy file API is the battle-tested path for writing binary → file.
 let FS: any = null;
 try { FS = require('expo-file-system/legacy'); } catch {}
@@ -80,22 +83,19 @@ export async function synthLine(text: string, _lang: 'ru' | 'en'): Promise<strin
         'HTTP-Referer': 'https://breeze.app',
         'X-Title': 'Breeze',
       },
-      body: JSON.stringify({
-        model: TTS_MODEL,
-        input: text,
-        voice: TTS_VOICE,
-        instructions: TTS_INSTRUCTIONS,
-        response_format: 'mp3',
-      }),
+      body: JSON.stringify(
+        isPcmModel
+          ? { model: TTS_MODEL, input: text, voice: TTS_VOICE, response_format: 'pcm' }
+          : { model: TTS_MODEL, input: text, voice: TTS_VOICE, instructions: TTS_INSTRUCTIONS, response_format: 'mp3' }
+      ),
     });
     if (!res.ok) { try { console.warn('[TTS] HTTP', res.status, (await res.text()).slice(0, 300)); } catch {} return null; }
     const ct = (res.headers.get('content-type') || '').toLowerCase();
     let bytes: Uint8Array = new Uint8Array(await res.arrayBuffer());
     if (bytes.byteLength < 64) { console.warn('[TTS] tiny/empty audio', bytes.byteLength, ct); return null; }
     let ext = 'mp3';
-    if (ct.includes('wav')) ext = 'wav';
-    else if (ct.includes('mpeg') || ct.includes('mp3')) ext = 'mp3';
-    else if (ct.includes('pcm') || ct.includes('l16') || ct.includes('raw')) { bytes = pcmToWav(bytes) as Uint8Array; ext = 'wav'; }
+    if (isPcmModel || ct.includes('pcm') || ct.includes('l16') || ct.includes('raw')) { bytes = pcmToWav(bytes) as Uint8Array; ext = 'wav'; }
+    else if (ct.includes('wav')) ext = 'wav';
     console.log('[TTS] ok', ct, bytes.byteLength, ext);
     const b64 = bytesToBase64(bytes);
     const uri = `${FS.cacheDirectory}breeze_voice_${counter++}.${ext}`;
