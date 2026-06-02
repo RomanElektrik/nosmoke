@@ -8,7 +8,8 @@
 
 const OR_KEY = process.env.EXPO_PUBLIC_OPENROUTER_KEY || '';
 const TTS_MODEL = process.env.EXPO_PUBLIC_TTS_MODEL || 'openai/gpt-4o-mini-tts-2025-12-15';
-const TTS_VOICE = process.env.EXPO_PUBLIC_TTS_VOICE || 'alloy';
+const TTS_VOICE = process.env.EXPO_PUBLIC_TTS_VOICE || 'nova';
+const STT_MODEL = process.env.EXPO_PUBLIC_STT_MODEL || 'openai/gpt-4o-mini-transcribe';
 // Tone steering (supported by gpt-4o-mini-tts) — a warm, calm coach.
 const TTS_INSTRUCTIONS = 'Speak in a warm, calm, caring tone — like a close friend talking someone through a hard moment. Unhurried, grounded, reassuring.';
 
@@ -72,6 +73,28 @@ export async function synthLine(text: string, _lang: 'ru' | 'en'): Promise<strin
     const uri = `${FS.cacheDirectory}breeze_voice_${counter++}.mp3`;
     await FS.writeAsStringAsync(uri, b64, { encoding: FS.EncodingType?.Base64 ?? 'base64' });
     return uri;
+  } catch {
+    return null;
+  }
+}
+
+// Speech-to-text: transcribe a recorded audio file → text (or null).
+export async function transcribe(fileUri: string, lang: 'ru' | 'en'): Promise<string | null> {
+  if (!OR_KEY || !fileUri) return null;
+  try {
+    const form = new FormData();
+    form.append('file', { uri: fileUri, name: 'speech.m4a', type: 'audio/m4a' } as any);
+    form.append('model', STT_MODEL);
+    form.append('language', lang);
+    const res = await fetch('https://openrouter.ai/api/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${OR_KEY}` }, // no Content-Type → fetch sets multipart boundary
+      body: form as any,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = (data?.text ?? '').trim();
+    return text || null;
   } catch {
     return null;
   }
