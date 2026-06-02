@@ -71,11 +71,13 @@ export default function Call() {
         const player = createAudioPlayer({ uri });
         playerRef.current = player;
         try { player.volume = 1.0; } catch {}
+        let started = false;
         const sub = player.addListener('playbackStatusUpdate', (st: any) => {
           console.log('[PLAY]', JSON.stringify({ loaded: st?.isLoaded, playing: st?.playing, fin: st?.didJustFinish, dur: st?.duration, pos: st?.currentTime, err: st?.error ?? null }));
+          if (st?.isLoaded && !started) { started = true; try { player.seekTo(0); } catch {} try { player.play(); } catch {} }
           if (st?.didJustFinish || st?.error) { try { sub?.remove?.(); } catch {} try { player.remove?.(); } catch {} fin(!st?.error); }
         });
-        player.play();
+        try { player.play(); } catch {}
         setTimeout(() => fin(true), 60000);
       } catch (e: any) { console.warn('[PLAY] error', e?.message); fin(false); }
     });
