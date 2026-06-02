@@ -65,10 +65,10 @@ export default function Craving() {
           const ru = (state.profile?.language ?? 'ru') === 'ru';
           // ONE recommended action — urge surfing is the evidence-based craving-moment skill.
           const others = [
-            { icon: Icon.wind,    color: '#5AC8FA', label: tr('tech.cyclic.t'),       onPress: () => router.push('/practice/cyclic_sigh') },
-            { icon: Icon.drop,    color: '#5AC8FA', label: tr('tech.replace.t'),      onPress: () => router.push('/practice/replace') },
+            { icon: Icon.lungs,   color: '#5AC8FA', label: tr('tech.cyclic.t'),       onPress: () => router.push('/practice/cyclic_sigh') },
+            { icon: Icon.swap,    color: '#5AC8FA', label: tr('tech.replace.t'),      onPress: () => router.push('/practice/replace') },
             { icon: Icon.chat,    color: '#30D158', label: tr('sos.opt_coach'),       onPress: () => router.replace('/(tabs)/coach') },
-            { icon: Icon.spark,   color: '#BF5AF2', label: (state.profile?.language ?? 'ru') === 'ru' ? 'Отвлечься в игре' : 'Play a distraction game', onPress: () => router.push('/game') },
+            { icon: Icon.play,    color: '#BF5AF2', label: (state.profile?.language ?? 'ru') === 'ru' ? 'Отвлечься в игре' : 'Play a distraction game', onPress: () => router.push('/game') },
             ...(state.profile?.faithEnabled ? [{
               icon: Icon.cross, color: '#FF9500', label: tr('sos.opt_pray'),
               onPress: () => router.replace('/faith'),
@@ -109,7 +109,7 @@ export default function Craving() {
                 <Text style={{ color: '#5AC8FA', fontSize: 18 }}>›</Text>
               </Pressable>
 
-              <Text style={{ color: t.text, fontSize: 18, fontWeight: '600' }}>{tr('sos.next')}</Text>
+              <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 10 }}>{tr('sos.next')}</Text>
 
               {/* Your own if-then plan — the plan IS the intervention */}
               {planForNow && (
@@ -146,7 +146,7 @@ export default function Craving() {
                 style={{ padding: 18, borderRadius: radius.lg, backgroundColor: '#0A84FF14', borderWidth: 1, borderColor: '#0A84FF50', gap: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#0A84FF24', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon.feather size={26} color="#0A84FF" />
+                    <Icon.waves size={26} color="#0A84FF" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: '#0A84FF', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>

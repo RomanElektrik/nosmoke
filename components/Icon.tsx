@@ -1,6 +1,13 @@
+import type { ComponentProps } from 'react';
 import Svg, { Path, Circle, G, Line, Rect } from 'react-native-svg';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type Props = { size?: number; color?: string; bg?: string };
+
+// Bridge to the bundled MaterialCommunityIcons set — thousands of distinct
+// glyphs, so different actions get genuinely different icons.
+const mci = (name: ComponentProps<typeof MaterialCommunityIcons>['name']) =>
+  ({ size = 24, color = '#9AA3AF' }: Props) => <MaterialCommunityIcons name={name} size={size} color={color} />;
 
 const wrap = (children: any, size = 24) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">{children}</Svg>
@@ -203,6 +210,31 @@ export const Icon = {
       <Path d="M12 3a6 6 0 0 1 0 12 6 6 0 0 1 0-12Z" />
       <Path d="M12 15v6M9 21h6" />
     </G>, size),
+
+  // ── Distinct glyphs from MaterialCommunityIcons (variety + harmony) ──
+  phone:      mci('phone-in-talk'),
+  waves:      mci('waves'),
+  lungs:      mci('lungs'),
+  boxBreath:  mci('square-rounded-outline'),
+  swap:       mci('swap-horizontal'),
+  pill:       mci('pill'),
+  run:        mci('run-fast'),
+  water:      mci('cup-water'),
+  meditate:   mci('meditation'),
+  sprout:     mci('sprout'),
+  bell:       mci('bell-ring-outline'),
+  chart:      mci('chart-line-variant'),
+  gauge:      mci('gauge'),
+  handshake:  mci('handshake-outline'),
+  noSmoke:    mci('smoking-off'),
+  coffee:     mci('coffee-outline'),
+  wineGlass:  mci('glass-wine'),
+  car:        mci('car-outline'),
+  group:      mci('account-group-outline'),
+  sleepy:     mci('sleep'),
+  trophy:     mci('trophy-variant-outline'),
+  list:       mci('clipboard-text-outline'),
+  compass:    mci('compass-outline'),
 };
 
 export type IconKey = keyof typeof Icon;

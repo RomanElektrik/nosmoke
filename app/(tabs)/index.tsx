@@ -149,11 +149,11 @@ export default function Home() {
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <SquareCard
-            color={t.accent} icon={<Icon.pulse size={22} color={t.accent} />}
+            color={t.accent} icon={<Icon.lungs size={22} color={t.accent} />}
             title={tr('tabs.health')}
             onPress={() => router.push('/(tabs)/health')} />
           <SquareCard
-            color="#FF9F0A" icon={<Icon.pulse size={22} color="#FF9F0A" />}
+            color="#FF9F0A" icon={<Icon.chart size={22} color="#FF9F0A" />}
             title={lang === 'ru' ? 'Симптомы' : 'Symptoms'}
             onPress={() => router.push('/symptoms' as any)} />
         </View>
