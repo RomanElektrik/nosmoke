@@ -3,6 +3,7 @@ import { View, Text, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation } from '../lib/i18n';
 import { BreathingOrb } from '../components/BreathingOrb';
@@ -75,6 +76,21 @@ export default function Craving() {
           const medName = med ? (ru ? MED_SAFETY[med].nameRu : MED_SAFETY[med].nameEn) : '';
           return (
             <>
+              {/* «Бриз звонит» — the signature crisis mechanic, top of the list */}
+              <Pressable onPress={() => router.push('/call' as any)}
+                style={{ borderRadius: radius.lg, overflow: 'hidden' }}>
+                <LinearGradient colors={['#3BD168', '#0A84FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={{ padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFFFFF2A', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 26 }}>📞</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800' }}>{ru ? 'Пусть Бриз позвонит' : 'Let Breeze call you'}</Text>
+                    <Text style={{ color: '#ffffffcc', fontSize: 13, marginTop: 2 }}>{ru ? 'Голос проведёт тебя через тягу — 1 минута' : 'A voice walks you through the urge — 1 min'}</Text>
+                  </View>
+                </LinearGradient>
+              </Pressable>
+
               <Text style={{ color: t.text, fontSize: 18, fontWeight: '600' }}>{tr('sos.next')}</Text>
 
               {/* Your own if-then plan — the plan IS the intervention */}

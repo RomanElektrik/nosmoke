@@ -87,6 +87,7 @@ export default function Root() {
         <Stack.Screen name="paywall" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="symptoms" />
         <Stack.Screen name="plans" />
+        <Stack.Screen name="call" options={{ animation: 'slide_from_bottom', gestureEnabled: false, fullScreenGestureEnabled: false }} />
         <Stack.Screen name="game" options={{ animation: 'slide_from_bottom', gestureEnabled: false, fullScreenGestureEnabled: false }} />
       </Stack>
     </GestureHandlerRootView>
