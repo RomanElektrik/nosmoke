@@ -79,21 +79,26 @@ export async function synthLine(text: string, _lang: 'ru' | 'en'): Promise<strin
 }
 
 // Speech-to-text: transcribe a recorded audio file → text (or null).
+// OpenRouter STT wants a JSON body with base64 input_audio (not multipart).
 export async function transcribe(fileUri: string, lang: 'ru' | 'en'): Promise<string | null> {
-  if (!OR_KEY || !fileUri) return null;
+  if (!OR_KEY || !fileUri || !FS?.readAsStringAsync) return null;
   try {
-    const form = new FormData();
-    form.append('file', { uri: fileUri, name: 'speech.m4a', type: 'audio/m4a' } as any);
-    form.append('model', STT_MODEL);
-    form.append('language', lang);
+    const b64 = await FS.readAsStringAsync(fileUri, { encoding: FS.EncodingType?.Base64 ?? 'base64' });
+    const fmt = fileUri.toLowerCase().endsWith('.wav') ? 'wav'
+      : fileUri.toLowerCase().endsWith('.mp3') ? 'mp3'
+      : fileUri.toLowerCase().endsWith('.caf') ? 'caf' : 'm4a';
     const res = await fetch('https://openrouter.ai/api/v1/audio/transcriptions', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${OR_KEY}` }, // no Content-Type → fetch sets multipart boundary
-      body: form as any,
+      headers: { Authorization: `Bearer ${OR_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: STT_MODEL,
+        input_audio: { data: b64, format: fmt },
+        language: lang,
+      }),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const text = (data?.text ?? '').trim();
+    const text = (data?.text ?? data?.transcript ?? data?.transcription ?? '').trim();
     return text || null;
   } catch {
     return null;

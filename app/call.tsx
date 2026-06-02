@@ -5,7 +5,7 @@
 // tap-chips remain as a fallback. Everything degrades to system voice / text.
 
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -86,10 +86,15 @@ export default function Call() {
     await new Promise<void>((r) => setTimeout(r, 1500 + text.length * 45));
   }
 
+  // Playback routes to the loud speaker (allowsRecording:false = Playback
+  // category); recording flips to PlayAndRecord only while the mic is open.
+  async function speakerMode() { try { await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }); } catch {} }
+  async function micMode() { try { await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true }); } catch {} }
+
   async function answer() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try { await AudioModule.requestRecordingPermissionsAsync(); } catch {}
-    try { await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true }); } catch {}
+    await speakerMode();
     setPhase('live');
     const opening = callOpening(state, lang).join(' ');
     historyRef.current = [{ role: 'assistant', content: opening }];
@@ -116,17 +121,19 @@ export default function Call() {
     try { playerRef.current?.remove?.(); } catch {}
     try { Speech?.stop?.(); } catch {}
     try {
+      await micMode();
       await recorder.prepareToRecordAsync();
       recorder.record();
       setConvo('listening');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch { setConvo('idle'); }
+    } catch { setConvo('idle'); await speakerMode(); }
   }
   async function stopListening() {
     if (convo !== 'listening') return;
     setConvo('thinking');
     let uri: string | null = null;
     try { await recorder.stop(); uri = recorder.uri ?? null; } catch {}
+    await speakerMode(); // back to the loud speaker before the reply plays
     const text = uri ? await transcribe(uri, lang === 'ru' ? 'ru' : 'en') : null;
     if (!text) { setCaption(lang === 'ru' ? 'Не расслышал — попробуй ещё или нажми кнопку.' : "Didn't catch that — try again or tap a button."); setConvo('idle'); return; }
     await userTurn(text);
@@ -193,11 +200,11 @@ export default function Call() {
           <Text style={{ color: '#8FA6BF', fontSize: 13, marginTop: 2 }}>{statusText}</Text>
         </View>
 
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          <Text style={{ color: '#fff', fontSize: 22, fontWeight: '600', lineHeight: 31, textAlign: 'center', letterSpacing: -0.3 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 14 }} showsVerticalScrollIndicator={false}>
+          <Text style={{ color: '#fff', fontSize: 20, fontWeight: '600', lineHeight: 29, textAlign: 'center', letterSpacing: -0.2 }}>
             {ended ? (lang === 'ru' ? 'Ты — тот, кто не курит.' : "You're someone who doesn't smoke.") : caption}
           </Text>
-        </View>
+        </ScrollView>
 
         {ended ? (
           <View style={{ gap: 10 }}>
