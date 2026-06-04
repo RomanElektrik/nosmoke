@@ -104,6 +104,31 @@ Vault: `/Users/romansuzdalcev/Documents/Документы — MacBook Air — �
 4. **Зависимость багов от ступени:** при 3+ срывах и отказе от фармы wizard ведёт в L4/L5 — нужен поведенческий интенсив-трек (P1).
 5. **Баг Фагерстрёма** — в `quiz.tsx` урезанная шкала 0–6 (HSI), а пороги в `recommendStep` ждут 0–10 (FTND). P0.
 
+## 🔴 Git workflow — ветки обязательны
+
+После инцидента 04.06.2026 (коммиты неделями жили без push):
+
+**Правило:** одна задача = одна ветка. **Никогда не работаем на `main`.**
+
+```bash
+newtask gate-pregnancy              # → task/gate-pregnancy
+newtask fagerstrom-bug fix          # → fix/fagerstrom-bug
+newtask behavioral-track feature    # → feature/behavioral-track
+
+git commit -m "..."                 # → auto git push -u origin HEAD
+
+# Задача готова:
+git checkout main && git pull
+git merge --no-ff task/gate-pregnancy && git push
+
+# Откат:
+git checkout main && git branch -D task/gate-pregnancy
+```
+
+**Hooks (project-local):**
+- `block_main_commit.py` — блок `git commit` на `main`. Bypass: `ALLOW_MAIN_COMMIT=1 git commit ...`
+- `auto_push.py` — auto `git push -u origin HEAD` после успешного commit
+
 ## Subagents
 
 - `@code-reviewer` — ревью diff перед commit
