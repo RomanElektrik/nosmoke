@@ -83,10 +83,14 @@ export function playFile(uri: string, rate = 1, id?: string): Promise<boolean> {
 // A persistent player you control (play/pause/seek) and poll for position — so
 // the practice player can have a real draggable scrubber. Goes through the same
 // ownership/epoch, so it can't overlap with the call or another player.
+let trackStat = { pos: 0, dur: 0, playing: false, loaded: false };
+
 export function playTrack(source: number | string, opts: { rate?: number; id?: string; onFinish?: () => void } = {}): boolean {
   const { rate = 1, id, onFinish } = opts;
   if (id && owner && owner !== id) return false;
   epoch++; const my = epoch; killActive();
+  trackStat = { pos: 0, dur: 0, playing: false, loaded: false };
+  seekTarget = null;
   try {
     const player = createAudioPlayer(typeof source === 'number' ? source : { uri: source });
     active = player;
@@ -95,6 +99,14 @@ export function playTrack(source: number | string, opts: { rate?: number; id?: s
     const sub = player.addListener('playbackStatusUpdate', (st: any) => {
       if (my !== epoch) { try { sub?.remove?.(); } catch {} try { player.pause?.(); } catch {} try { player.remove?.(); } catch {} return; }
       if (st?.error) console.warn('[audio] track error', st.error);
+      // Authoritative position/duration come from the status event, not from
+      // reading player.currentTime directly (that stays stale/0 on device).
+      trackStat = {
+        pos: typeof st?.currentTime === 'number' ? st.currentTime : trackStat.pos,
+        dur: st?.duration && st.duration > 0 ? st.duration : trackStat.dur,
+        playing: !!st?.playing,
+        loaded: !!st?.isLoaded,
+      };
       if (st?.didJustFinish) { try { onFinish?.(); } catch {} }
     });
     try { player.play(); } catch {}
@@ -111,21 +123,21 @@ let seekUntil = 0;
 export function trackPause() { try { active?.pause?.(); } catch {} }
 export function trackResume() { try { active?.play?.(); } catch {} }
 export function trackSeek(sec: number) {
-  seekTarget = Math.max(0, sec);
-  seekUntil = Date.now() + 1200;
-  try { active?.seekTo?.(sec); } catch {}
+  const target = Math.max(0, sec);
+  seekTarget = target;
+  seekUntil = Date.now() + 1500;
+  trackStat = { ...trackStat, pos: target };   // optimistic — bar moves instantly
+  // seekTo is async; await-free is fine, the status event confirms the new pos.
+  try { const r = active?.seekTo?.(target); if (r && r.catch) r.catch(() => {}); } catch {}
 }
 export function trackSetRate(rate: number) { if (active) applyRate(active, rate); }
 export function trackStatus(): { pos: number; dur: number; playing: boolean } {
-  try {
-    const cur = active?.currentTime ?? 0;
-    const dur = active?.duration ?? 0;
-    if (seekTarget != null) {
-      if (Date.now() > seekUntil || Math.abs(cur - seekTarget) < 1.2) seekTarget = null;  // landed
-      else return { pos: seekTarget, dur, playing: !!active?.playing };                    // still catching up
-    }
-    return { pos: cur, dur, playing: !!active?.playing };
-  } catch { return { pos: 0, dur: 0, playing: false }; }
+  const { pos, dur, playing } = trackStat;
+  if (seekTarget != null) {
+    if (Date.now() > seekUntil || Math.abs(pos - seekTarget) < 1.2) seekTarget = null;  // landed
+    else return { pos: seekTarget, dur, playing };                                       // still catching up
+  }
+  return { pos, dur, playing };
 }
 
 // System TTS fallback — also gated by ownership + exclusive.
