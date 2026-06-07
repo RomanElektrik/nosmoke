@@ -5,10 +5,8 @@
 //    with prev/next-step, speed and voice. No "step N/M" clutter.
 // All audio goes through lib/audio (single owner, hard-stop on exit).
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, Pressable, ScrollView, PanResponder, LayoutChangeEvent } from 'react-native';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { View, Text, Pressable, ScrollView, PanResponder } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -325,63 +323,40 @@ export default function AudioPlayer() {
   );
 }
 
-// Draggable scrubber using react-native-gesture-handler (native gesture
-// system). The pan gesture gives us x relative to the gesture view directly —
-// no PanResponder, no measureInWindow guessing.
+// Draggable scrubber — plain RN responder on the bar View. locationX from a
+// touch that lands inside this View is relative to the View's left edge, so
+// frac = locationX / width. No PanResponder, no gesture-handler worklets
+// (those were crashing the screen), no measureInWindow.
 function SeekBar({ pos, dur, color, onScrub }: { pos: number; dur: number; color: string; onScrub: (frac: number, final: boolean) => void }) {
-  const [w, setW] = useState(0);
+  const wRef = useRef(0);
   const [dragFrac, setDragFrac] = useState<number | null>(null);
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
 
-  const onLayout = (e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width);
-
-  const pan = useMemo(() => Gesture.Pan()
-    .minDistance(0)
-    .activeOffsetX([-1, 1])
-    .onBegin((e) => {
-      'worklet';
-      const f = w > 0 ? clamp(e.x / w) : 0;
-      runOnJS(setDragFrac)(f);
-      runOnJS(onScrub)(f, false);
-    })
-    .onUpdate((e) => {
-      'worklet';
-      const f = w > 0 ? clamp(e.x / w) : 0;
-      runOnJS(setDragFrac)(f);
-      runOnJS(onScrub)(f, false);
-    })
-    .onEnd((e) => {
-      'worklet';
-      const f = w > 0 ? clamp(e.x / w) : 0;
-      runOnJS(setDragFrac)(null as any);
-      runOnJS(onScrub)(f, true);
-    })
-    .onFinalize(() => {
-      'worklet';
-      runOnJS(setDragFrac)(null as any);
-    }), [w, onScrub]);
-
-  const tap = useMemo(() => Gesture.Tap()
-    .onEnd((e) => {
-      'worklet';
-      const f = w > 0 ? clamp(e.x / w) : 0;
-      runOnJS(onScrub)(f, true);
-    }), [w, onScrub]);
-
-  const composed = useMemo(() => Gesture.Simultaneous(pan, tap), [pan, tap]);
+  const at = (locationX: number, final: boolean) => {
+    const w = wRef.current || 1;
+    const f = clamp(locationX / w);
+    if (final) setDragFrac(null); else setDragFrac(f);
+    onScrub(f, final);
+  };
 
   const frac = dragFrac != null ? dragFrac : (dur > 0 ? clamp(pos / dur) : 0);
 
   return (
     <View style={{ gap: 6 }}>
-      <GestureDetector gesture={composed}>
-        <View onLayout={onLayout} collapsable={false} style={{ height: 36, justifyContent: 'center' }}>
-          <View style={{ height: 5, borderRadius: 4, backgroundColor: '#FFFFFF1F' }}>
-            <View style={{ width: `${frac * 100}%`, height: '100%', borderRadius: 4, backgroundColor: color }} />
-          </View>
-          <View pointerEvents="none" style={{ position: 'absolute', left: `${frac * 100}%`, marginLeft: -10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } }} />
+      <View
+        onLayout={(e) => { wRef.current = e.nativeEvent.layout.width; }}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={(e) => at(e.nativeEvent.locationX, false)}
+        onResponderMove={(e) => at(e.nativeEvent.locationX, false)}
+        onResponderRelease={(e) => at(e.nativeEvent.locationX, true)}
+        onResponderTerminate={(e) => at(e.nativeEvent.locationX, true)}
+        style={{ height: 36, justifyContent: 'center' }}>
+        <View style={{ height: 5, borderRadius: 4, backgroundColor: '#FFFFFF1F' }}>
+          <View style={{ width: `${frac * 100}%`, height: '100%', borderRadius: 4, backgroundColor: color }} />
         </View>
-      </GestureDetector>
+        <View pointerEvents="none" style={{ position: 'absolute', left: `${frac * 100}%`, marginLeft: -10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } }} />
+      </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text style={{ color: '#9FB0C0', fontSize: 12, fontVariant: ['tabular-nums'] }}>{fmt(frac * dur)}</Text>
         <Text style={{ color: '#9FB0C0', fontSize: 12, fontVariant: ['tabular-nums'] }}>{fmt(dur)}</Text>
