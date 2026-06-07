@@ -17,7 +17,7 @@ import { spacing } from '../../lib/theme';
 import { currentLang } from '../../lib/i18n';
 import { useAppState, update } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
-import { getPractice } from '../../lib/audioPractice';
+import { getPractice, PRACTICES } from '../../lib/audioPractice';
 import { synthLine, hasVoice, VOICES, geminiVoiceFor } from '../../lib/voice';
 import {
   playFile, speakFallback, ensureSpeaker, claimAudio, releaseAudio, newOwner, stopAudio,
@@ -57,6 +57,26 @@ export default function AudioPlayer() {
   if (!audioIdRef.current) audioIdRef.current = newOwner();
   const audioId = audioIdRef.current;
   const orb = useSharedValue(1);
+
+  // Sibling navigation — left/right buttons (and horizontal swipe) flip through
+  // practices like tracks in a playlist. Wraps around.
+  const pIdx = Math.max(0, PRACTICES.findIndex((p) => p.id === id));
+  const prevP = PRACTICES[(pIdx - 1 + PRACTICES.length) % PRACTICES.length];
+  const nextP = PRACTICES[(pIdx + 1) % PRACTICES.length];
+  function goPractice(target: typeof PRACTICES[number]) {
+    if (!target || target.id === id) return;
+    Haptics.selectionAsync();
+    genRef.current++;
+    stopAudio(audioId);
+    router.replace(`/audio/${target.id}` as any);
+  }
+
+  // Horizontal swipe on the body — left/right swaps practice.
+  const swipePan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 24 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
+    onPanResponderRelease: (_e, g) => { if (g.dx < -60) goPractice(nextP); else if (g.dx > 60) goPractice(prevP); },
+  })).current;
 
   const current = steps[idx];
   const caption = finished
@@ -192,7 +212,7 @@ export default function AudioPlayer() {
         </View>
 
         {/* Breathing rings + (TTS only) caption */}
-        <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 36 }}>
+        <View {...swipePan.panHandlers} style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 36 }}>
           <View style={{ width: 300, height: 300, alignItems: 'center', justifyContent: 'center' }}>
             <Animated.View style={[{ position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: c + '12' }, aOuter]} />
             <Animated.View style={[{ position: 'absolute', width: 224, height: 224, borderRadius: 112, borderWidth: 1, borderColor: c + '55', backgroundColor: c + '0F' }, aMid]} />
@@ -224,11 +244,11 @@ export default function AudioPlayer() {
               </View>
             )}
 
-            {/* transport */}
+            {/* transport — ⏮ prev practice / ⏯ play-pause / ⏭ next practice */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 28 }}>
-              <Pressable onPress={() => (recorded ? recSkip(-15) : ttsSkip(-1))} hitSlop={8}
+              <Pressable onPress={() => goPractice(prevP)} hitSlop={8}
                 style={({ pressed }) => ({ width: 54, height: 54, borderRadius: 27, backgroundColor: '#FFFFFF12', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
-                <Icon.back15 size={26} color="#fff" />
+                <Icon.skipBack size={26} color="#fff" />
               </Pressable>
               <Pressable onPress={recorded ? recToggle : (isPlaying ? ttsPause : ttsPlay)}
                 style={({ pressed }) => ({ width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', opacity: pressed ? 0.9 : 1 })}>
@@ -242,11 +262,16 @@ export default function AudioPlayer() {
                   <View style={{ width: 0, height: 0, borderTopWidth: 15, borderBottomWidth: 15, borderLeftWidth: 24, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#fff', marginLeft: 6 }} />
                 )}
               </Pressable>
-              <Pressable onPress={() => (recorded ? recSkip(15) : ttsSkip(1))} disabled={!recorded && idx >= total - 1} hitSlop={8}
-                style={({ pressed }) => ({ width: 54, height: 54, borderRadius: 27, backgroundColor: '#FFFFFF12', alignItems: 'center', justifyContent: 'center', opacity: (!recorded && idx >= total - 1) ? 0.35 : pressed ? 0.6 : 1 })}>
-                <Icon.fwd15 size={26} color="#fff" />
+              <Pressable onPress={() => goPractice(nextP)} hitSlop={8}
+                style={({ pressed }) => ({ width: 54, height: 54, borderRadius: 27, backgroundColor: '#FFFFFF12', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
+                <Icon.skipFwd size={26} color="#fff" />
               </Pressable>
             </View>
+
+            {/* Next-up hint */}
+            <Text style={{ color: '#7E90A0', fontSize: 11, textAlign: 'center', marginTop: -4 }}>
+              {ru ? 'Дальше: ' : 'Next: '}{ru ? nextP.titleRu : nextP.titleEn}
+            </Text>
 
             {/* speed */}
             <View style={{ flexDirection: 'row', gap: 8 }}>
