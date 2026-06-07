@@ -423,20 +423,24 @@ export const Icon = {
       <Path d="M6.5 13.5l1 1M17.5 13.5l-1 1" />
     </G>, size),
 
-  // Rewind 15 seconds — circular arrow + 15.
+  // Rewind 15 seconds — counter-clockwise arc + clean «15».
   back15: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
-    <G {...stroke(color, 1.6)}>
-      <Path d="M5 12a7 7 0 1 0 2-5" />
-      <Path d="M7 3v5h5" />
-      <Path d="M10 14v3M9 14h1.5v1.5H9zM13 14v3M13.5 17v-3l-1 1" fill="none" />
+    <G>
+      <G {...stroke(color, 1.7)}>
+        <Path d="M5.5 8.5A8 8 0 1 0 9 4.2" />
+        <Path d="M4 3.5v5h5" />
+      </G>
+      <SvgText x="12" y="16.3" fontSize="8.5" fontWeight="800" fill={color} textAnchor="middle">15</SvgText>
     </G>, size),
 
-  // Forward 15 seconds — mirror.
+  // Forward 15 seconds — clockwise arc + clean «15».
   fwd15: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
-    <G {...stroke(color, 1.6)}>
-      <Path d="M19 12a7 7 0 1 1-2-5" />
-      <Path d="M17 3v5h-5" />
-      <Path d="M9 14v3M9 14h1.5v1.5H9zM13 14v3M13.5 17v-3l-1 1" fill="none" />
+    <G>
+      <G {...stroke(color, 1.7)}>
+        <Path d="M18.5 8.5A8 8 0 1 1 15 4.2" />
+        <Path d="M20 3.5v5h-5" />
+      </G>
+      <SvgText x="12" y="16.3" fontSize="8.5" fontWeight="800" fill={color} textAnchor="middle">15</SvgText>
     </G>, size),
 
   // Real ✕ (two diagonals).

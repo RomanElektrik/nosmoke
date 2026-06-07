@@ -42,10 +42,10 @@ export function releaseAudio(id: string) { if (owner !== id) return; owner = nul
 export function stopAudio(id?: string) { if (id && owner && owner !== id) return; epoch++; killActive(); }
 
 function applyRate(player: any, rate: number) {
-  if (!rate || rate === 1) return;
+  const r = rate && rate > 0 ? rate : 1;   // always set, incl. back to 1× (was early-returning → stuck fast)
   try { player.shouldCorrectPitch = true; } catch {}
-  try { player.setPlaybackRate?.(rate, true); } catch {}
-  try { player.playbackRate = rate; } catch {}
+  try { player.setPlaybackRate?.(r, 'high'); } catch {}   // 2nd arg is PitchCorrectionQuality, not a boolean
+  try { player.playbackRate = r; } catch {}
 }
 
 // Play a file. Resolves true only if it actually played to the end. Resolves
@@ -101,13 +101,31 @@ export function playTrack(source: number | string, opts: { rate?: number; id?: s
     return true;
   } catch (e: any) { console.warn('[audio] track error', e?.message); return false; }
 }
+// seekTo() is async; right after it the player still reports the OLD currentTime
+// for a beat. Without this, the 250ms poll would read that stale value and snap
+// the scrubber back to 0. We hold the requested target until the player catches
+// up (within ~1.2s of it) or a short grace window elapses.
+let seekTarget: number | null = null;
+let seekUntil = 0;
+
 export function trackPause() { try { active?.pause?.(); } catch {} }
 export function trackResume() { try { active?.play?.(); } catch {} }
-export function trackSeek(sec: number) { try { active?.seekTo?.(sec); } catch {} }
+export function trackSeek(sec: number) {
+  seekTarget = Math.max(0, sec);
+  seekUntil = Date.now() + 1200;
+  try { active?.seekTo?.(sec); } catch {}
+}
 export function trackSetRate(rate: number) { if (active) applyRate(active, rate); }
 export function trackStatus(): { pos: number; dur: number; playing: boolean } {
-  try { return { pos: active?.currentTime ?? 0, dur: active?.duration ?? 0, playing: !!active?.playing }; }
-  catch { return { pos: 0, dur: 0, playing: false }; }
+  try {
+    const cur = active?.currentTime ?? 0;
+    const dur = active?.duration ?? 0;
+    if (seekTarget != null) {
+      if (Date.now() > seekUntil || Math.abs(cur - seekTarget) < 1.2) seekTarget = null;  // landed
+      else return { pos: seekTarget, dur, playing: !!active?.playing };                    // still catching up
+    }
+    return { pos: cur, dur, playing: !!active?.playing };
+  } catch { return { pos: 0, dur: 0, playing: false }; }
 }
 
 // System TTS fallback — also gated by ownership + exclusive.
