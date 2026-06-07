@@ -41,7 +41,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Когда накрыло', titleEn: 'When it hits hard',
     subRu: 'Острая тяга — успокоиться за пару минут', subEn: 'Acute craving — calm down in minutes',
     minutes: 3,
-    // audio: require('../assets/audio/breeze_calm_now.mp3'),
+    audio: require('../assets/audio/breeze_calm_now.mp3'),
     steps: [
       { kind: 'say', ru: 'Привет. Сильно накрыло — это нормально. Сейчас вместе это переждём, дыши со мной.', en: "Hi. It hit hard — that's normal. We'll ride it out together, breathe with me." },
       ...breath478(),
@@ -55,7 +55,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Поймать волну', titleEn: 'Ride the wave',
     subRu: 'Прокатиться по тяге, не закурив', subEn: 'Surf the urge without smoking',
     minutes: 4,
-    // audio: require('../assets/audio/breeze_surf.mp3'),
+    audio: require('../assets/audio/breeze_surf.mp3'),
     steps: [
       { kind: 'say', ru: 'Не гони тягу — давай просто за ней понаблюдаем. Где ты её чувствуешь в теле?', en: "Don't fight the urge — let's just watch it. Where do you feel it in your body?", hold: 3 },
       { kind: 'say', ru: 'Это просто ощущение. Оно нарастает, как волна… доходит до пика…', en: "It's just a sensation. It rises like a wave… reaches a peak…", hold: 3 },
@@ -70,7 +70,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Сбросить напряжение', titleEn: 'Let go of tension',
     subRu: 'Расслабить тело от макушки до стоп', subEn: 'Relax the body head to toe',
     minutes: 5,
-    // audio: require('../assets/audio/breeze_release.mp3'),
+    audio: require('../assets/audio/breeze_release.mp3'),
     steps: [
       { kind: 'say', ru: 'Устройся удобно, если хочешь — закрой глаза. Один глубокий вдох… и длинный выдох.', en: 'Settle in, close your eyes if you like. One deep breath in… and a long breath out.', hold: 2 },
       { kind: 'say', ru: 'Перенеси внимание к стопам. Пусть станут мягкими и тяжёлыми.', en: 'Bring attention to your feet. Let them grow soft and heavy.', hold: 4 },
@@ -87,7 +87,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Вернуться в момент', titleEn: 'Back to the present',
     subRu: 'Заземление через органы чувств', subEn: 'Grounding through your senses',
     minutes: 3,
-    // audio: require('../assets/audio/breeze_grounding.mp3'),
+    audio: require('../assets/audio/breeze_grounding.mp3'),
     steps: [
       { kind: 'say', ru: 'Давай вернёмся в этот момент. Просто замечай то, что я называю.', en: "Let's come back to this moment. Just notice what I name." },
       { kind: 'say', ru: 'Найди глазами пять вещей, которые видишь прямо сейчас.', en: 'Find five things you can see right now.', hold: 6 },
@@ -104,7 +104,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Уснуть без сигареты', titleEn: 'Sleep without a cigarette',
     subRu: 'Вечернее дыхание, чтобы заснуть', subEn: 'Evening breathing to fall asleep',
     minutes: 6,
-    // audio: require('../assets/audio/breeze_sleep.mp3'),
+    audio: require('../assets/audio/breeze_sleep.mp3'),
     steps: [
       { kind: 'say', ru: 'День закончен. Сигарета тебе сейчас не нужна — нужен покой. Я помогу уснуть.', en: "The day is done. You don't need a cigarette now — you need rest. I'll help you sleep." },
       { kind: 'say', ru: 'Дыши медленно и тихо. Вдох на четыре… и долгий, спокойный выдох на шесть.', en: 'Breathe slow and quiet. In for four… and a long, calm out for six.', hold: 3 },
