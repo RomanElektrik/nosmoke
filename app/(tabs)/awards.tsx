@@ -47,10 +47,9 @@ export default function AwardsTab() {
           const items = ACHIEVEMENTS.filter((a) => a.category === cat);
           if (items.length === 0) return null;
           return (
-            <Animated.View key={cat} entering={FadeInDown.delay(ci * 50).duration(280)} style={{ gap: 10 }}>
+            <Animated.View key={cat} entering={FadeInDown.delay(ci * 50).duration(280)} style={{ gap: 12 }}>
               <Text style={{
-                color: t.textDim, fontSize: 11, fontWeight: '800', letterSpacing: 1.4,
-                textTransform: 'uppercase', marginLeft: 6,
+                color: t.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.4, marginLeft: 2, marginTop: 6,
               }}>
                 {ru ? CATEGORY_LABEL[cat].ru : CATEGORY_LABEL[cat].en}
               </Text>
@@ -60,38 +59,39 @@ export default function AwardsTab() {
                   const prog = achProgress(a, ctx);
                   const I = Icon[a.icon];
                   return (
-                    <View key={a.id} style={{
-                      width: '47.8%',
-                      backgroundColor: t.card,
-                      borderRadius: radius.lg,
-                      borderWidth: 1, borderColor: unlocked ? a.color + '60' : t.border,
-                      padding: 14, gap: 8,
-                    }}>
-                      <View style={{
-                        width: 46, height: 46, borderRadius: 14,
-                        backgroundColor: unlocked ? a.color + '22' : t.border + '70',
-                        alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <I size={24} color={unlocked ? a.color : t.textDim} />
-                      </View>
-                      <Text style={{ color: unlocked ? t.text : t.textDim, fontSize: 14, fontWeight: '700' }} numberOfLines={2}>
-                        {ru ? a.titleRu : a.titleEn}
-                      </Text>
-                      <Text style={{ color: t.textDim, fontSize: 11, lineHeight: 15 }} numberOfLines={2}>
-                        {ru ? a.descRu : a.descEn}
-                      </Text>
+                    <View key={a.id} style={{ width: '47.8%', borderRadius: radius.xl, overflow: 'hidden', height: 170, ...(unlocked ? { shadowColor: a.color, shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } } : {}) }}>
+                      {/* Background — saturated for unlocked, muted for locked */}
                       {unlocked ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <Icon.check size={12} color={a.color} />
-                          <Text style={{ color: a.color, fontSize: 11, fontWeight: '800' }}>
-                            {ru ? 'Открыто' : 'Unlocked'}
-                          </Text>
-                        </View>
+                        <LinearGradient colors={[a.color, a.color + 'AA', '#0A0E13']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1.2 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
                       ) : (
-                        <View style={{ height: 5, borderRadius: 5, backgroundColor: t.border, overflow: 'hidden' }}>
-                          <View style={{ width: `${prog * 100}%`, height: '100%', backgroundColor: a.color }} />
+                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, borderRadius: radius.xl }} />
+                      )}
+                      {/* Soft halo */}
+                      {unlocked && <View style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: '#FFFFFF14' }} />}
+                      {/* Icon */}
+                      <View style={{ position: 'absolute', top: 14, left: 14, width: 50, height: 50, borderRadius: 25, backgroundColor: unlocked ? '#FFFFFF22' : a.color + '14', alignItems: 'center', justifyContent: 'center' }}>
+                        <I size={26} color={unlocked ? '#fff' : a.color + '70'} />
+                      </View>
+                      {/* Lock indicator for locked */}
+                      {!unlocked && (
+                        <View style={{ position: 'absolute', top: 14, right: 14, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: t.border }}>
+                          <Text style={{ color: t.textDim, fontSize: 10, fontWeight: '800' }}>{Math.round(prog * 100)}%</Text>
                         </View>
                       )}
+                      {/* Text */}
+                      <View style={{ position: 'absolute', left: 12, right: 12, bottom: 12, gap: 4 }}>
+                        <Text style={{ color: unlocked ? '#fff' : t.text, fontSize: 14, fontWeight: '800', letterSpacing: -0.2 }} numberOfLines={2}>
+                          {ru ? a.titleRu : a.titleEn}
+                        </Text>
+                        <Text style={{ color: unlocked ? '#FFFFFFC8' : t.textDim, fontSize: 11, lineHeight: 14 }} numberOfLines={2}>
+                          {ru ? a.descRu : a.descEn}
+                        </Text>
+                        {!unlocked && (
+                          <View style={{ height: 4, borderRadius: 4, backgroundColor: t.border, overflow: 'hidden', marginTop: 4 }}>
+                            <View style={{ width: `${prog * 100}%`, height: '100%', backgroundColor: a.color, borderRadius: 4 }} />
+                          </View>
+                        )}
+                      </View>
                     </View>
                   );
                 })}

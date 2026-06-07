@@ -62,7 +62,7 @@ export default function PathTab() {
 
         {/* TODAY card */}
         {step && (
-          <View style={{
+          <Pressable onPress={() => { Haptics.selectionAsync(); router.push(`/day/${today.day}` as any); }} style={{
             padding: 16, borderRadius: radius.lg,
             backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, gap: 8,
           }}>
@@ -88,7 +88,7 @@ export default function PathTab() {
                 );
               })}
             </View>
-          </View>
+          </Pressable>
         )}
 
         {/* Course days */}
@@ -108,42 +108,42 @@ export default function PathTab() {
             const accentColor = peak ? t.danger : (isToday ? t.accent : (past ? t.accent : t.textDim));
             return (
               <Pressable key={d.day} disabled={future} onPress={() => {
-                if (d.practice) {
-                  Haptics.selectionAsync();
-                  if (d.practice === 'money') router.push('/goal');
-                  else if (d.practice === 'ema') router.push('/journal');
-                  else router.push(`/practice/${d.practice}` as any);
-                }
+                Haptics.selectionAsync();
+                router.push(`/day/${d.day}` as any);
               }}>
                 <View style={{
                   flexDirection: 'row', gap: 12, alignItems: 'center',
-                  padding: 14, borderRadius: radius.lg,
-                  backgroundColor: t.card,
-                  borderWidth: isToday ? 2 : 1,
+                  padding: isToday ? 16 : 14, borderRadius: radius.lg,
+                  backgroundColor: isToday ? t.accent + '16' : t.card,
+                  borderWidth: isToday ? 1.5 : 1,
                   borderColor: isToday ? t.accent : t.border,
                   opacity: future ? 0.5 : 1,
+                  ...(isToday ? { shadowColor: t.accent, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6 } : {}),
                 }}>
                   <View style={{
-                    width: 46, height: 46, borderRadius: 14,
+                    width: isToday ? 52 : 46, height: isToday ? 52 : 46, borderRadius: isToday ? 16 : 14,
                     backgroundColor: isToday ? t.accent : (past ? t.accentSoft : t.border),
                     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
                     {past
                       ? <Icon.check size={20} color={t.accent} />
-                      : <Text style={{ color: isToday ? '#fff' : accentColor, fontSize: 17, fontWeight: '800' }}>{d.day}</Text>}
+                      : <Text style={{ color: isToday ? '#fff' : accentColor, fontSize: isToday ? 20 : 17, fontWeight: '800' }}>{d.day}</Text>}
                   </View>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={{ color: future ? t.textDim : t.text, fontSize: 15, fontWeight: '700', lineHeight: 20 }} numberOfLines={2}>
+                  <View style={{ flex: 1, gap: 3 }}>
+                    {isToday && (
+                      <Text style={{ color: t.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>{lang === 'ru' ? 'Сегодня' : 'Today'}</Text>
+                    )}
+                    <Text style={{ color: future ? t.textDim : t.text, fontSize: isToday ? 16 : 15, fontWeight: '700', lineHeight: 21 }} numberOfLines={2}>
                       {lang === 'ru' ? `День ${d.day} — ${d.focusRu}` : `Day ${d.day} — ${d.focusEn}`}
                     </Text>
                     {isToday && (
-                      <Text style={{ color: t.textDim, fontSize: 12 }}>{lang === 'ru' ? 'сейчас' : 'now'}</Text>
+                      <Text style={{ color: t.accent, fontSize: 13, fontWeight: '700', marginTop: 2 }}>{lang === 'ru' ? 'Что тебя ждёт сегодня →' : 'What today holds →'}</Text>
                     )}
                     {peak && !isToday && (
                       <Text style={{ color: t.danger, fontSize: 11, fontWeight: '800' }}>{lang === 'ru' ? 'ПИК' : 'PEAK'}</Text>
                     )}
                   </View>
-                  {!future && <Text style={{ color: t.textDim, fontSize: 20 }}>{past ? '✓' : '›'}</Text>}
+                  {!future && !isToday && <Text style={{ color: t.textDim, fontSize: 20 }}>{past ? '✓' : '›'}</Text>}
                 </View>
               </Pressable>
             );

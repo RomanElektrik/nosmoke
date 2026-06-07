@@ -63,7 +63,9 @@ export default function Root() {
           animation: 'slide_from_right',
           gestureEnabled: true,
           gestureDirection: 'horizontal',
-          fullScreenGestureEnabled: true,
+          // Edge-only back swipe (iOS standard) — full-screen was too sensitive,
+          // triggering "back" while just scrolling content (e.g. articles).
+          fullScreenGestureEnabled: false,
         }}
       >
         <Stack.Screen name="(onboarding)" />
@@ -87,8 +89,10 @@ export default function Root() {
         <Stack.Screen name="paywall" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="symptoms" />
         <Stack.Screen name="plans" />
-        <Stack.Screen name="call" options={{ animation: 'slide_from_bottom', gestureEnabled: false, fullScreenGestureEnabled: false }} />
+
         <Stack.Screen name="game" options={{ animation: 'slide_from_bottom', gestureEnabled: false, fullScreenGestureEnabled: false }} />
+        <Stack.Screen name="audio/[id]" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
+        <Stack.Screen name="day/[day]" />
       </Stack>
     </GestureHandlerRootView>
   );

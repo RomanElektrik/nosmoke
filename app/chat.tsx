@@ -9,7 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
-import { chat, ChatMessage, CoachMode } from '../lib/ai';
+import { chat, chatStream, ChatMessage, CoachMode } from '../lib/ai';
 import { Icon, type IconKey } from '../components/Icon';
 import { FREE_AI_DAILY_LIMIT, aiRemainingToday, todayKey, usePremium } from '../lib/subscription';
 
@@ -124,7 +124,15 @@ export default function ChatScreen() {
     setInput('');
     setLoading(true);
     try {
-      const reply = await chat(state, lang, mode, next);
+      // Stream tokens in for a faster, alive feel; fall back to one-shot on error.
+      let reply = '';
+      try {
+        reply = await chatStream(state, lang, mode, next, (partial) => {
+          if (partial) setHistory([...next, { role: 'assistant', content: partial }]);
+        });
+      } catch {
+        reply = await chat(state, lang, mode, next);
+      }
       const final = [...next, { role: 'assistant' as const, content: reply || '…' }];
       setHistory(final);
       await persist(final);

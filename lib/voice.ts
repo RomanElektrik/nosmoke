@@ -1,7 +1,8 @@
 // Voice for the call — routed through OpenRouter TTS (no ElevenLabs payment
 // problem: uses the SAME OpenRouter key the AI chat already uses).
-// Default model GPT-4o Mini TTS (~$0.0005/call, supports Russian). Override via
-// EXPO_PUBLIC_TTS_MODEL / EXPO_PUBLIC_TTS_VOICE to use Grok/Gemini/etc.
+// Default model Gemini 3.1 Flash TTS (native Russian, PCM output). Synthesized
+// audio is cached by text, so repeated lines (e.g. the opening) cost nothing.
+// Override via EXPO_PUBLIC_TTS_MODEL / EXPO_PUBLIC_TTS_VOICE.
 //
 // Everything degrades gracefully (returns null) → caller falls back to the
 // system voice, then captions. The call NEVER breaks.
@@ -9,10 +10,24 @@
 const OR_KEY = process.env.EXPO_PUBLIC_OPENROUTER_KEY || '';
 // Gemini 3.1 Flash TTS — native, accent-free Russian. Outputs PCM (handled below).
 const TTS_MODEL = process.env.EXPO_PUBLIC_TTS_MODEL || 'google/gemini-3.1-flash-tts-preview';
-const TTS_VOICE = process.env.EXPO_PUBLIC_TTS_VOICE || 'Kore';
+const TTS_VOICE = process.env.EXPO_PUBLIC_TTS_VOICE || 'Sulafat';
 const STT_MODEL = process.env.EXPO_PUBLIC_STT_MODEL || 'openai/gpt-4o-mini-transcribe';
 // Tone steering (supported by gpt-4o-mini-tts) — a warm, calm coach.
 const TTS_INSTRUCTIONS = 'Speak in a warm, calm, caring tone — like a close friend talking someone through a hard moment. Unhurried, grounded, reassuring.';
+// Gemini TTS understands a natural-language style prefix — this is what turns a
+// flat, robotic read into a warm human delivery. Bump STYLE_VER to bust cache.
+const TTS_STYLE = 'Say this warmly, gently and very humanly, unhurried, like a caring friend speaking softly:';
+const STYLE_VER = 'v2';
+
+// Two clean selectable voices (Gemini).
+export type VoiceGender = 'f' | 'm';
+export const VOICES: { id: string; gemini: string; ru: string; en: string; gender: VoiceGender }[] = [
+  { id: 'female', gemini: 'Sulafat', ru: 'Женский', en: 'Female', gender: 'f' },
+  { id: 'male',   gemini: 'Charon',  ru: 'Мужской', en: 'Male',   gender: 'm' },
+];
+export function geminiVoiceFor(voiceId?: string): string {
+  return VOICES.find((v) => v.id === voiceId)?.gemini || TTS_VOICE;
+}
 
 export const hasVoice = !!OR_KEY;
 
@@ -24,7 +39,14 @@ let FS: any = null;
 try { FS = require('expo-file-system/legacy'); } catch {}
 try { if (!FS?.writeAsStringAsync) FS = require('expo-file-system'); } catch {}
 
-let counter = 0;
+// Cache synthesized audio by (model, voice, text). The opening line is the
+// same every call and many short phrases repeat — synth once, then it's free.
+const memTtsCache = new Map<string, string>();
+function hashKey(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
 
 function bytesToBase64(bytes: Uint8Array): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -72,8 +94,18 @@ function pcmToWav(pcm: Uint8Array, sampleRate = 24000, channels = 1, bits = 16):
 
 // Synthesize one line → local audio file uri, or null if unavailable.
 // Handles both mp3 (OpenAI) and raw PCM (Gemini) responses by content-type.
-export async function synthLine(text: string, _lang: 'ru' | 'en'): Promise<string | null> {
+export async function synthLine(text: string, _lang: 'ru' | 'en', voice?: string): Promise<string | null> {
   if (!OR_KEY || !FS?.writeAsStringAsync || !FS?.cacheDirectory) return null;
+
+  // Reuse a cached file if we've synthesized this exact line+voice before (free).
+  const useVoice = voice || TTS_VOICE;
+  const ext = isPcmModel ? 'wav' : 'mp3';
+  const key = hashKey(`${TTS_MODEL}|${useVoice}|${STYLE_VER}|${text}`);
+  const cacheUri = `${FS.cacheDirectory}breeze_tts_${key}.${ext}`;
+  const mem = memTtsCache.get(key);
+  if (mem) return mem;
+  try { const info = await FS.getInfoAsync?.(cacheUri); if (info?.exists && (info.size ?? 0) > 64) { memTtsCache.set(key, cacheUri); return cacheUri; } } catch {}
+
   try {
     const res = await fetch('https://openrouter.ai/api/v1/audio/speech', {
       method: 'POST',
@@ -85,22 +117,19 @@ export async function synthLine(text: string, _lang: 'ru' | 'en'): Promise<strin
       },
       body: JSON.stringify(
         isPcmModel
-          ? { model: TTS_MODEL, input: text, voice: TTS_VOICE, response_format: 'pcm' }
-          : { model: TTS_MODEL, input: text, voice: TTS_VOICE, instructions: TTS_INSTRUCTIONS, response_format: 'mp3' }
+          ? { model: TTS_MODEL, input: `${TTS_STYLE} ${text}`, voice: useVoice, response_format: 'pcm' }
+          : { model: TTS_MODEL, input: text, voice: useVoice, instructions: TTS_INSTRUCTIONS, response_format: 'mp3' }
       ),
     });
     if (!res.ok) { try { console.warn('[TTS] HTTP', res.status, (await res.text()).slice(0, 300)); } catch {} return null; }
     const ct = (res.headers.get('content-type') || '').toLowerCase();
     let bytes: Uint8Array = new Uint8Array(await res.arrayBuffer());
     if (bytes.byteLength < 64) { console.warn('[TTS] tiny/empty audio', bytes.byteLength, ct); return null; }
-    let ext = 'mp3';
-    if (isPcmModel || ct.includes('pcm') || ct.includes('l16') || ct.includes('raw')) { bytes = pcmToWav(bytes) as Uint8Array; ext = 'wav'; }
-    else if (ct.includes('wav')) ext = 'wav';
-    console.log('[TTS] ok', ct, bytes.byteLength, ext);
+    if (isPcmModel || ct.includes('pcm') || ct.includes('l16') || ct.includes('raw')) bytes = pcmToWav(bytes) as Uint8Array;
     const b64 = bytesToBase64(bytes);
-    const uri = `${FS.cacheDirectory}breeze_voice_${counter++}.${ext}`;
-    await FS.writeAsStringAsync(uri, b64, { encoding: FS.EncodingType?.Base64 ?? 'base64' });
-    return uri;
+    await FS.writeAsStringAsync(cacheUri, b64, { encoding: FS.EncodingType?.Base64 ?? 'base64' });
+    memTtsCache.set(key, cacheUri);
+    return cacheUri;
   } catch (e: any) {
     console.warn('[TTS] error', e?.message);
     return null;

@@ -15,6 +15,9 @@ const ENV_KEY = process.env.EXPO_PUBLIC_OPENROUTER_KEY || '';
 const ENV_MODEL = process.env.EXPO_PUBLIC_OPENROUTER_MODEL || '';
 const DEFAULT_MODEL = 'anthropic/claude-sonnet-4.5';
 const FALLBACK = 'openai/gpt-4o-mini';
+// The voice call must feel real-time — never route it through a slow flagship
+// model. A small, fast model keeps the back-and-forth snappy.
+const CALL_MODEL = process.env.EXPO_PUBLIC_CALL_MODEL || 'google/gemini-2.5-flash-lite';
 
 export function buildSystemPrompt(state: AppState, locale: 'ru' | 'en', mode: PromptMode): string {
   const p = state.profile;
@@ -149,7 +152,7 @@ TECHNIQUE PRIORITIES BY MOMENT:
   return [role, ctx, modeBlock].join('\n\n');
 }
 
-async function callDirect(key: string, messages: ChatMessage[], model: string): Promise<string> {
+async function callDirect(key: string, messages: ChatMessage[], model: string, maxTokens = 600): Promise<string> {
   const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -158,7 +161,7 @@ async function callDirect(key: string, messages: ChatMessage[], model: string): 
       'HTTP-Referer': 'https://quitsmoke.app',
       'X-Title': 'Quit Smoking',
     },
-    body: JSON.stringify({ model, messages, temperature: 0.7, max_tokens: 600, stream: false }),
+    body: JSON.stringify({ model, messages, temperature: 0.7, max_tokens: maxTokens, stream: false }),
   });
   const text = await r.text();
   let json: any = null;
@@ -168,6 +171,55 @@ async function callDirect(key: string, messages: ChatMessage[], model: string): 
     throw new Error(String(msg).slice(0, 300));
   }
   return json?.choices?.[0]?.message?.content || '';
+}
+
+// Parse OpenRouter SSE text into the concatenated assistant content so far.
+function parseSSE(raw: string): string {
+  let out = '';
+  for (const line of raw.split('\n')) {
+    const l = line.trim();
+    if (!l.startsWith('data:')) continue;
+    const payload = l.slice(5).trim();
+    if (!payload || payload === '[DONE]') continue;
+    try { out += JSON.parse(payload)?.choices?.[0]?.delta?.content ?? ''; } catch {}
+  }
+  return out;
+}
+
+// Streaming chat — tokens arrive progressively via onToken(fullSoFar). RN fetch
+// can't stream a body reader, so we use XHR.onprogress. Rejects on error so the
+// caller can fall back to the non-streaming chat().
+export function chatStream(
+  state: AppState, locale: 'ru' | 'en', mode: PromptMode, history: ChatMessage[],
+  onToken: (fullSoFar: string) => void,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const userKey = state.profile?.openrouterKey?.trim();
+    const userModel = state.profile?.openrouterModel?.trim();
+    const key = userKey || ENV_KEY;
+    if (!key) { reject(new Error('no-key')); return; }
+    const isCall = mode === 'call';
+    const model = isCall ? CALL_MODEL : (userModel || ENV_MODEL || DEFAULT_MODEL);
+    const maxTokens = isCall ? 120 : 600;
+    const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(state, locale, mode) }, ...history];
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', 'https://openrouter.ai/api/v1/chat/completions');
+      xhr.setRequestHeader('Authorization', `Bearer ${key}`);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('HTTP-Referer', 'https://quitsmoke.app');
+      xhr.setRequestHeader('X-Title', 'Quit Smoking');
+      xhr.timeout = 60000;
+      xhr.onprogress = () => { try { onToken(parseSSE(xhr.responseText)); } catch {} };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve(parseSSE(xhr.responseText));
+        else reject(new Error(`http ${xhr.status}`));
+      };
+      xhr.onerror = () => reject(new Error('network'));
+      xhr.ontimeout = () => reject(new Error('timeout'));
+      xhr.send(JSON.stringify({ model, messages, temperature: 0.7, max_tokens: maxTokens, stream: true }));
+    } catch (e) { reject(e as Error); }
+  });
 }
 
 async function callProxy(messages: ChatMessage[], locale: string): Promise<string> {
@@ -185,7 +237,11 @@ export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMod
   const userKey = state.profile?.openrouterKey?.trim();
   const userModel = state.profile?.openrouterModel?.trim();
   const key = userKey || ENV_KEY;
-  const model = userModel || ENV_MODEL || DEFAULT_MODEL;
+  const isCall = mode === 'call';
+  // The call is real-time: force a fast model + tiny token budget (1–2 spoken
+  // sentences) so replies come back in ~1s, not the multi-second flagship lag.
+  const model = isCall ? CALL_MODEL : (userModel || ENV_MODEL || DEFAULT_MODEL);
+  const maxTokens = isCall ? 120 : 600;
 
   if (!key && !PROXY_URL) {
     return locale === 'ru'
@@ -197,9 +253,9 @@ export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMod
     ...history,
   ];
   if (key) {
-    try { return await callDirect(key, messages, model); }
+    try { return await callDirect(key, messages, model, maxTokens); }
     catch (e: any) {
-      try { return await callDirect(key, messages, FALLBACK); }
+      try { return await callDirect(key, messages, FALLBACK, maxTokens); }
       catch (e2: any) { throw new Error(e2?.message || 'OpenRouter error'); }
     }
   }

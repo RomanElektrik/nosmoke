@@ -57,9 +57,9 @@ export default function Articles() {
                       borderRadius: radius.lg, overflow: 'hidden',
                     }}>
                     {img
-                      ? <Image source={img} style={{ width: '100%', height: 168, opacity: locked ? 0.55 : 1 }} resizeMode="cover" />
-                      : <View style={{ width: '100%', height: 168, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
-                          <I size={44} color={a.color} />
+                      ? <Image source={img} style={{ width: '100%', height: 210, opacity: locked ? 0.55 : 1 }} resizeMode="cover" />
+                      : <View style={{ width: '100%', height: 210, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
+                          <I size={48} color={a.color} />
                         </View>}
                     <View style={{ padding: 14 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

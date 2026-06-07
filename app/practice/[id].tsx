@@ -98,21 +98,30 @@ function BreathOrb({
     );
   }, []);
 
-  const aGlowFar = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value * 1.42 * shimmer.value }],
-    opacity: 0.06 + scale.value * 0.10,
+  // Multi-layer breathing orb with concentric "ripple" rings — each ring's
+  // scale lags behind the breath, so they expand and collapse like ripples,
+  // not one flat circle. Soft outer halo, sharper inner core.
+  const aHalo = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value * 1.55 * shimmer.value }],
+    opacity: 0.05 + scale.value * 0.07,
   }));
-  const aGlowMid = useAnimatedStyle(() => ({
+  const aRing1 = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value * 1.34 }],
+    opacity: 0.12 + scale.value * 0.10,
+  }));
+  const aRing2 = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value * 1.16 }],
-    opacity: 0.10 + scale.value * 0.14,
+    opacity: 0.20 + scale.value * 0.12,
   }));
-  // Core follows the breath ONLY — no shimmer multiply (it fought the rhythm).
+  const aRing3 = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value * 1.02 }],
+    opacity: 0.32 + scale.value * 0.18,
+  }));
   const aCore = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
-  const aRing = useAnimatedStyle(() => ({
-    transform: [{ scale: 0.92 + scale.value * 0.10 }],
-    opacity: 0.5 + scale.value * 0.4,
+  const aProgressRing = useAnimatedStyle(() => ({
+    opacity: 0.85,
   }));
   const ringProps = useAnimatedProps(() => ({
     strokeDashoffset: CIRC * (1 - Math.min(1, Math.max(0, progress.value))),
@@ -120,63 +129,55 @@ function BreathOrb({
 
   return (
     <View style={{ alignItems: 'center' }}>
-      {/* Phase label sits ABOVE the orb so it doesn't shrink with the
-          animation and stays centered no matter how small the orb gets. */}
-      <Text style={{
-        color: t.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.4,
-        textAlign: 'center', width: '100%',
-      }}>
+      <Text style={{ color: t.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.4, textAlign: 'center', width: '100%' }}>
         {phaseLabel}
       </Text>
-      <Text style={{
-        color: t.textDim, fontSize: 14, marginTop: 4, fontWeight: '500',
-        textAlign: 'center', width: '100%',
-      }}>
+      <Text style={{ color: t.textDim, fontSize: 14, marginTop: 4, fontWeight: '500', textAlign: 'center', width: '100%' }}>
         {subLabel}
       </Text>
 
       <View style={{ alignItems: 'center', justifyContent: 'center', height: SIZE, marginTop: 6 }}>
-        {/* far + mid soft glow */}
+        {/* Outer halo (atmospheric glow) */}
         <Animated.View style={[
-          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aGlowFar,
-        ]} />
-        <Animated.View style={[
-          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aGlowMid,
+          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aHalo,
         ]} />
 
-        {/* SVG progress ring — fills over the whole session */}
-        <Animated.View style={[{ position: 'absolute', width: SIZE, height: SIZE }, aRing]}>
+        {/* Three concentric ripple rings — staggered scale gives the "breathing water" feel */}
+        <Animated.View style={[
+          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, borderWidth: 1, borderColor: color }, aRing1,
+        ]} />
+        <Animated.View style={[
+          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, borderWidth: 1, borderColor: color }, aRing2,
+        ]} />
+        <Animated.View style={[
+          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, borderWidth: 1, borderColor: color }, aRing3,
+        ]} />
+
+        {/* SVG session-progress ring (static, just the dashoffset animates) */}
+        <Animated.View style={[{ position: 'absolute', width: SIZE, height: SIZE }, aProgressRing]}>
           <Svg width={SIZE} height={SIZE}>
-            <Circle
-              cx={SIZE / 2} cy={SIZE / 2} r={R}
-              stroke={t.border} strokeWidth={3} fill="none"
-            />
+            <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke={t.border} strokeWidth={2} fill="none" />
             <AnimatedCircle
               cx={SIZE / 2} cy={SIZE / 2} r={R}
-              stroke={color} strokeWidth={4} fill="none"
-              strokeLinecap="round"
-              strokeDasharray={CIRC}
-              animatedProps={ringProps}
+              stroke={color} strokeWidth={3} fill="none" strokeLinecap="round"
+              strokeDasharray={CIRC} animatedProps={ringProps}
               transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
             />
           </Svg>
         </Animated.View>
 
-        {/* main orb — purely visual, no text inside */}
+        {/* Core orb — radial gradient fill, NO hard border (was making it look flat) */}
         <Animated.View style={[
-          {
-            width: ORB, height: ORB, borderRadius: ORB / 2,
-            alignItems: 'center', justifyContent: 'center',
-            borderWidth: 1.5, borderColor: color + '88',
-            overflow: 'hidden',
-          }, aCore,
+          { width: ORB, height: ORB, borderRadius: ORB / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+          aCore,
         ]}>
           <Svg width={ORB} height={ORB} style={{ position: 'absolute' }}>
             <Defs>
-              <SvgRadialGradient id="orbFill" cx="50%" cy="42%" r="62%">
-                <Stop offset="0%" stopColor={color} stopOpacity={0.42} />
-                <Stop offset="62%" stopColor={color} stopOpacity={0.20} />
-                <Stop offset="100%" stopColor={color} stopOpacity={0.10} />
+              <SvgRadialGradient id="orbFill" cx="50%" cy="40%" r="68%">
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.55} />
+                <Stop offset="30%" stopColor={color} stopOpacity={0.55} />
+                <Stop offset="75%" stopColor={color} stopOpacity={0.25} />
+                <Stop offset="100%" stopColor={color} stopOpacity={0} />
               </SvgRadialGradient>
             </Defs>
             <Circle cx={ORB / 2} cy={ORB / 2} r={ORB / 2} fill="url(#orbFill)" />

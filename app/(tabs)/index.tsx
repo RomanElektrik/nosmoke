@@ -99,77 +99,54 @@ export default function Home() {
         {/* Breathing drop */}
         <BreathingDrop secs={secs} lang={lang} />
 
-        {/* Identity hero — the heart of the positioning. Evolves with days.
-            One line only: the orb already shows the number, no second timer. */}
+        {/* Identity hero — the heart of the positioning. Evolves with days. */}
         <Text style={{
           color: t.text, fontSize: 18, fontWeight: '700', textAlign: 'center',
           lineHeight: 25, marginTop: 8, paddingHorizontal: 14, letterSpacing: -0.3,
         }}>
           {identityHeadline(secs, lang)}
         </Text>
-        {next && (
-          <Text style={{ color: t.textDim, fontSize: 12, textAlign: 'center', marginTop: 6 }}>
-            {lang === 'ru' ? 'до вехи' : 'to milestone'} «{tr(next.titleKey)}» — {formatDuration(next.at - secs, lang)}
-          </Text>
-        )}
+        {/* Concrete wins — no card frame, just two stats with a color divider.
+            Breaks the "everything looks like another bordered row" feel. */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 4 }}>
+          <Pressable onPress={() => router.push('/goal' as any)} style={{ alignItems: 'center', flex: 1, paddingVertical: 8 }}>
+            <Text style={{ color: t.accent, fontSize: 26, fontWeight: '900', letterSpacing: -0.6 }}>
+              {formatMoneyLive(moneySaved(p, secs), p.currency, localeStr)}
+            </Text>
+            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4, fontWeight: '600' }}>{lang === 'ru' ? 'сэкономлено' : 'saved'}</Text>
+          </Pressable>
+          <View style={{ width: 1, height: 36, backgroundColor: t.border }} />
+          <Pressable onPress={() => router.push('/journal')} style={{ alignItems: 'center', flex: 1, paddingVertical: 8 }}>
+            <Text style={{ color: t.warn, fontSize: 26, fontWeight: '900', letterSpacing: -0.6 }}>{formatCigs(cigsAvoided(p, secs))}</Text>
+            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4, fontWeight: '600' }}>{lang === 'ru' ? 'не выкурено' : 'avoided'}</Text>
+          </Pressable>
+        </View>
 
-        {/* Concrete wins — identity is already the hero above. No scare-stat. */}
-        <Pressable onPress={() => router.push('/journal')}>
-          <View style={{
-            backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
-            borderRadius: radius.lg, padding: 16, marginTop: 4,
-            flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
-          }}>
-            <View style={{ alignItems: 'center', flex: 1 }}>
-              <Text style={{ color: t.accent, fontSize: 18, fontWeight: '800' }}>
-                {formatMoneyLive(moneySaved(p, secs), p.currency, localeStr)}
-              </Text>
-              <Text style={{ color: t.textDim, fontSize: 11, marginTop: 2 }}>{lang === 'ru' ? 'сэкономлено' : 'saved'}</Text>
-            </View>
-            <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: t.border }} />
-            <View style={{ alignItems: 'center', flex: 1 }}>
-              <Text style={{ color: t.warn, fontSize: 18, fontWeight: '800' }}>{formatCigs(cigsAvoided(p, secs))}</Text>
-              <Text style={{ color: t.textDim, fontSize: 11, marginTop: 2 }}>{lang === 'ru' ? 'не выкурено' : 'avoided'}</Text>
-            </View>
+        {/* Primary navigation — 3 tiles in one row inside a shared container
+            with dividers, so they read as a single block (not floating icons).
+            «Путь» reachable from the Path tab below — no need to duplicate here. */}
+        <View style={{ marginTop: 12, backgroundColor: t.bgElev, borderRadius: radius.xl, borderWidth: 1, borderColor: t.border, paddingVertical: 14, paddingHorizontal: 6, overflow: 'hidden' }}>
+          <View style={{ flexDirection: 'row' }}>
+            <SquareCard
+              color={t.info} icon={<Icon.chat size={32} color={t.info} />}
+              title={lang === 'ru' ? 'Помощник' : 'AI coach'}
+              onPress={() => router.push('/chat?mode=support' as any)} />
+            <SquareCard
+              color={t.warn} icon={<Icon.toolbox size={32} color={t.warn} />}
+              title={tr('tabs.techniques')}
+              onPress={() => router.push('/(tabs)/techniques')} />
+            <SquareCard
+              color="#FF2D78" icon={<Icon.chart size={32} color="#FF2D78" />}
+              title={lang === 'ru' ? 'Симптомы' : 'Symptoms'}
+              onPress={() => router.push('/symptoms' as any)} />
           </View>
-        </Pressable>
-
-        {/* ПОМОЩЬ РЯДОМ — moved up: this is the user's primary navigation.
-            «Награды» убраны — есть отдельная вкладка снизу. */}
-        <SectionLabel text={lang === 'ru' ? 'Помощь рядом' : 'Help nearby'} />
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <SquareCard
-            color={t.info} icon={<Icon.chat size={22} color={t.info} />}
-            title={lang === 'ru' ? 'ИИ-помощник' : 'AI coach'}
-            onPress={() => router.push('/(tabs)/coach')} />
-          <SquareCard
-            color={t.warn} icon={<Icon.toolbox size={22} color={t.warn} />}
-            title={tr('tabs.techniques')}
-            onPress={() => router.push('/(tabs)/techniques')} />
-        </View>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <SquareCard
-            color={t.accent} icon={<Icon.lungs size={22} color={t.accent} />}
-            title={tr('tabs.health')}
-            onPress={() => router.push('/(tabs)/health')} />
-          <SquareCard
-            color="#FF9F0A" icon={<Icon.chart size={22} color="#FF9F0A" />}
-            title={lang === 'ru' ? 'Симптомы' : 'Symptoms'}
-            onPress={() => router.push('/symptoms' as any)} />
         </View>
 
-        {/* СЕЙЧАС */}
-        <SectionLabel text={lang === 'ru' ? 'Сейчас' : 'Now'} />
-        <IdentityRitualCard />
-        <TodayFocus />
-        <IfThenCard />
+        {/* Goal card (if set) — animated piggy bank progress */}
         <GoalCard />
 
-        {/* Closest achievement */}
-        <NearAchievement />
-
-        {/* ТВОЙ ПУТЬ */}
-        <SectionLabel text={lang === 'ru' ? 'Твой путь' : 'Your path'} />
+        {/* Path — your current method (label is inside the card) */}
+        <View style={{ marginTop: 14 }} />
 
         {/* Pending start banner */}
         {p.pendingMethod && p.pendingQuitDate && p.pendingQuitDate > Date.now() && (() => {
@@ -323,13 +300,13 @@ function KnowledgeSection() {
 
   return (
     <View style={{ gap: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-        <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase', marginLeft: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+        <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', letterSpacing: -0.4, marginLeft: 2 }}>
           {lang === 'ru' ? 'Знание' : 'Knowledge'}
         </Text>
         <Pressable onPress={() => router.push('/articles' as any)} hitSlop={8}>
-          <Text style={{ color: t.accent, fontSize: 13, fontWeight: '600', marginRight: 6 }}>
-            {lang === 'ru' ? 'Все статьи' : 'All articles'}
+          <Text style={{ color: t.accent, fontSize: 14, fontWeight: '700' }}>
+            {lang === 'ru' ? 'Все' : 'All'}
           </Text>
         </Pressable>
       </View>
@@ -342,10 +319,11 @@ function KnowledgeSection() {
               backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
               borderRadius: radius.lg, overflow: 'hidden',
             }}>
+            {/* Taller (210), no crop — matches the /articles list */}
             {img
-              ? <Image source={img} style={{ width: '100%', height: 168 }} resizeMode="cover" />
-              : <View style={{ width: '100%', height: 168, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
-                  <I size={44} color={a.color} />
+              ? <Image source={img} style={{ width: '100%', height: 210 }} resizeMode="cover" />
+              : <View style={{ width: '100%', height: 210, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
+                  <I size={48} color={a.color} />
                 </View>}
             <View style={{ padding: 14 }}>
               <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.3 }} numberOfLines={2}>
@@ -366,8 +344,8 @@ function SectionLabel({ text }: { text: string }) {
   const t = useTheme();
   return (
     <Text style={{
-      color: t.textDim, fontSize: 11, fontWeight: '800', letterSpacing: 1.4,
-      textTransform: 'uppercase', marginLeft: 6, marginTop: 8,
+      color: t.text, fontSize: 19, fontWeight: '800', letterSpacing: -0.4,
+      marginLeft: 2, marginTop: 12, marginBottom: 2,
     }}>
       {text}
     </Text>
@@ -375,22 +353,21 @@ function SectionLabel({ text }: { text: string }) {
 }
 
 // Square help card (2-up grid)
-function SquareCard({ icon, title, color, onPress }: { icon: any; title: string; color: string; onPress: () => void }) {
+// Launcher item — circular icon shell + label. Lives inside a grouped 2×2
+// container with dividers (see Home), so they read as one cohesive block.
+function SquareCard({ icon, title, sub, color, onPress }: { icon: any; title: string; sub?: string; color?: string; onPress: () => void }) {
   const t = useTheme();
+  const c = color ?? t.accent;
   return (
-    <Pressable onPress={onPress} style={{ flex: 1 }}>
+    <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, alignItems: 'center', gap: 10, paddingVertical: 14, opacity: pressed ? 0.6 : 1 })}>
       <View style={{
-        backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
-        borderRadius: radius.lg, padding: 16, gap: 10, minHeight: 96,
+        width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center',
+        backgroundColor: c + '1A', borderWidth: 1, borderColor: c + '33',
       }}>
-        <View style={{
-          width: 46, height: 46, borderRadius: 14, backgroundColor: color + '20',
-          alignItems: 'center', justifyContent: 'center',
-        }}>
-          {icon}
-        </View>
-        <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{title}</Text>
+        {icon}
       </View>
+      <Text style={{ color: t.text, fontSize: 14, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>{title}</Text>
+      {!!sub && <Text style={{ color: t.textDim, fontSize: 11, textAlign: 'center' }} numberOfLines={1}>{sub}</Text>}
     </Pressable>
   );
 }
@@ -522,34 +499,47 @@ function GoalCard() {
   const secs = secondsClean(p.quitDate);
   const saved = moneySaved(p, secs);
   const pct = Math.min(1, saved / p.goalAmount);
+  const remaining = Math.max(0, p.goalAmount - saved);
   return (
-    <Pressable onPress={() => router.push('/goal' as any)}>
-      <View style={{
-        padding: 16, borderRadius: radius.lg,
-        backgroundColor: t.card, borderWidth: 1, borderColor: t.border, gap: 10,
-      }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: t.accent + '22', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon.star size={22} color={t.accent} />
+    <Pressable onPress={() => router.push('/goal' as any)} style={({ pressed }) => ({ marginTop: 14, opacity: pressed ? 0.94 : 1 })}>
+      <View style={{ borderRadius: radius.xl, overflow: 'hidden' }}>
+        <LinearGradient colors={[t.accent + '20', t.accent + '06']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={{ padding: 18, borderRadius: radius.xl, borderWidth: 1, borderColor: t.accent + '30' }}>
+          {/* Piggy bank + label */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF14', borderWidth: 1, borderColor: t.accent + '50', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 36 }}>🐷</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+                {lang === 'ru' ? 'Копим на' : 'Saving for'}
+              </Text>
+              <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', marginTop: 3, letterSpacing: -0.3 }} numberOfLines={1}>
+                {p.goalLabel}
+              </Text>
+              <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 3 }}>
+                {remaining > 0
+                  ? `${lang === 'ru' ? 'осталось' : 'left'} ${Math.round(remaining).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')} ${p.currency}`
+                  : (lang === 'ru' ? 'Цель достигнута! 🎉' : 'Goal reached! 🎉')}
+              </Text>
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-              {lang === 'ru' ? 'Цель' : 'Goal'}
-            </Text>
-            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', marginTop: 2 }} numberOfLines={1}>
-              {p.goalLabel}
-            </Text>
+          {/* Progress bar with savings/total under it */}
+          <View style={{ marginTop: 14, gap: 8 }}>
+            <View style={{ height: 10, borderRadius: 10, backgroundColor: '#00000026', overflow: 'hidden' }}>
+              <LinearGradient colors={[t.accent, '#5E5CE6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 10 }} />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ color: t.text, fontSize: 13, fontWeight: '700' }}>
+                {Math.round(saved).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')} {p.currency}
+              </Text>
+              <Text style={{ color: t.accent, fontSize: 13, fontWeight: '800' }}>
+                {Math.round(pct * 100)}%
+              </Text>
+            </View>
           </View>
-          <Text style={{ color: t.accent, fontSize: 13, fontWeight: '800' }}>
-            {Math.round(pct * 100)}%
-          </Text>
-        </View>
-        <View style={{ height: 6, borderRadius: 6, backgroundColor: t.border, overflow: 'hidden' }}>
-          <View style={{ width: `${pct * 100}%`, height: '100%', backgroundColor: t.accent }} />
-        </View>
-        <Text style={{ color: t.textDim, fontSize: 12 }}>
-          {Math.round(saved).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')} / {p.goalAmount.toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')} {p.currency}
-        </Text>
+        </LinearGradient>
       </View>
     </Pressable>
   );
@@ -654,43 +644,48 @@ function MethodCard() {
   const sug = escalationSuggestion(state);
 
   return (
-    <Pressable onPress={() => router.push('/(tabs)/path')}>
+    <Pressable onPress={() => router.push('/(tabs)/path')} style={({ pressed }) => ({ opacity: pressed ? 0.94 : 1 })}>
       <View style={{
-        padding: 16, borderRadius: radius.lg,
-        backgroundColor: t.card, borderWidth: 1, borderColor: t.border, gap: 10,
+        padding: 20, borderRadius: radius.xl,
+        backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, gap: 14,
       }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: step.color + '24', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: step.color, fontWeight: '800', fontSize: 17 }}>{step.index}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: step.color + '22', borderWidth: 1, borderColor: step.color + '50', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: step.color, fontWeight: '900', fontSize: 26, letterSpacing: -1 }}>{step.index}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }} numberOfLines={1}>
+            <Text style={{ color: step.color, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+              {lang === 'ru' ? 'Твой путь' : 'Your path'}
+            </Text>
+            <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', marginTop: 2, letterSpacing: -0.3 }} numberOfLines={1}>
               {lang === 'ru' ? step.titleRu : step.titleEn}
             </Text>
-            <Text style={{ color: t.textDim, fontSize: 13, marginTop: 1 }}>
+            <Text style={{ color: t.textDim, fontSize: 13, marginTop: 2 }}>
               {prog.data
                 ? (lang === 'ru' ? `День ${prog.day} из ${prog.total}` : `Day ${prog.day} of ${prog.total}`)
                 : (lang === 'ru' ? `Ступень ${step.index} из 5` : `Step ${step.index} of 5`)}
             </Text>
           </View>
-          <Text style={{ color: t.textDim, fontSize: 20 }}>›</Text>
+          <Text style={{ color: t.textDim, fontSize: 22 }}>›</Text>
         </View>
         {prog.data && (
-          <View style={{ height: 5, backgroundColor: t.border, borderRadius: 5, overflow: 'hidden' }}>
-            <View style={{ width: `${Math.min(100, (prog.total > 0 ? prog.day / prog.total : 0) * 100)}%`, height: '100%', backgroundColor: step.color }} />
+          <View style={{ height: 8, backgroundColor: t.border, borderRadius: 8, overflow: 'hidden' }}>
+            <View style={{ width: `${Math.min(100, (prog.total > 0 ? prog.day / prog.total : 0) * 100)}%`, height: '100%', backgroundColor: step.color, borderRadius: 8 }} />
           </View>
         )}
         {!!prog.data && (
-          <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>
+          <Text style={{ color: t.text, fontSize: 15, lineHeight: 22 }}>
             {lang === 'ru' ? prog.data.focusRu : prog.data.focusEn}
           </Text>
         )}
-        {sug.yes && (
+        {/* Only nudge after a real pattern (≥2 slips/week), never after a single
+            lapse — a slip is data, not a verdict. Neutral, non-judgmental copy. */}
+        {sug.yes && sug.intensity !== 'soft' && (
           <Pressable onPress={() => router.push('/transition')}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: t.border }}>
             <Icon.bolt size={16} color={t.warn} />
             <Text style={{ color: t.warn, fontSize: 13, fontWeight: '600', flex: 1 }}>
-              {lang === 'ru' ? 'Метод держит слабовато — обсудим?' : 'Method feels too light — discuss?'}
+              {lang === 'ru' ? 'Несколько срывов на неделе — посмотрим, что усилить?' : 'A few slips this week — explore a stronger approach?'}
             </Text>
             <Text style={{ color: t.warn, fontSize: 14 }}>→</Text>
           </Pressable>

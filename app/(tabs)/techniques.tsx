@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ScrollView, View, Text, Pressable, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -11,6 +11,7 @@ import { TECHNIQUES, Technique } from '../../lib/techniques';
 import { isTechniquePremium, usePremium } from '../../lib/subscription';
 import { Icon, IconKey } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
+import { PRACTICES } from '../../lib/audioPractice';
 
 const ORDER = [
   'cyclic_sigh', 'box_breath',
@@ -41,6 +42,16 @@ export default function Techniques() {
   const lang = currentLang();
   const [open, setOpen] = useState<Technique | null>(null);
   const premium = usePremium();
+  const navLock = useRef(false);
+
+  // Guard against double-taps stacking multiple player screens (overlapping audio).
+  function openAudio(pid: string) {
+    if (navLock.current) return;
+    navLock.current = true;
+    setTimeout(() => { navLock.current = false; }, 700);
+    Haptics.selectionAsync();
+    router.push(`/audio/${pid}` as any);
+  }
 
   const sorted = TECHNIQUES
     .filter((te) => !HIDDEN.has(te.id))
@@ -74,35 +85,71 @@ export default function Techniques() {
           </Text>
         </View>
 
-        {/* SOS banner */}
-        <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md }}>
-          <LinearGradient
-            colors={[t.danger + '18', t.danger + '06']}
-            style={{ borderRadius: radius.lg, padding: 14, borderWidth: 1, borderColor: t.danger + '30', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: t.danger + '22', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon.flame size={18} color={t.danger} />
+        {/* HERO — «Начни отсюда»: one tap into the proven winner */}
+        <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/practice/cyclic_sigh' as any); }}
+          style={({ pressed }) => ({ marginHorizontal: spacing.lg, marginBottom: spacing.md, borderRadius: radius.xl, overflow: 'hidden', transform: [{ scale: pressed ? 0.985 : 1 }] })}>
+          <LinearGradient colors={[t.accent + '2E', t.accent + '0A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={{ padding: 18, borderRadius: radius.xl, borderWidth: 1, borderColor: t.accent + '3A' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: t.accent }} />
+              <Text style={{ color: t.accent, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' }}>{lang === 'ru' ? 'Начни отсюда' : 'Start here'}</Text>
             </View>
-            <Text style={{ color: t.text, fontSize: 13, flex: 1, lineHeight: 18 }}>
-              {lang === 'ru'
-                ? 'Дыхание, скольжение по тяге, заземление и Чек 4 нужд — под кнопкой «Хочу курить» на главной.'
-                : 'Breathing, urge surfing, grounding & HALT live under "I want to smoke" on home.'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+              <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon.lungs size={28} color={t.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', letterSpacing: -0.3 }}>{lang === 'ru' ? 'Подышать 5 минут' : 'Breathe for 5 min'}</Text>
+                <Text style={{ color: t.textDim, fontSize: 13, marginTop: 3, lineHeight: 18 }}>{lang === 'ru' ? 'Самый быстрый способ сбить тягу — это доказано' : 'The fastest proven way to cut a craving'}</Text>
+              </View>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon.play size={20} color="#fff" />
+              </View>
+            </View>
           </LinearGradient>
-        </View>
+        </Pressable>
 
-        {/* Grouped technique cards */}
+        {/* Audio practices — horizontal carousel of premium voiced sessions */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: spacing.lg, marginBottom: 12, marginTop: 6 }}>
+          <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.4 }}>{lang === 'ru' ? 'Аудио с голосом' : 'Audio sessions'}</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 12, paddingBottom: 4 }} style={{ marginBottom: 4 }}>
+          {PRACTICES.map((p) => (
+            <Pressable key={p.id} onPress={() => openAudio(p.id)}
+              style={({ pressed }) => ({ width: 220, height: 260, borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.92 : 1 })}>
+              <LinearGradient colors={[p.color, p.color + '80', '#0A0E13']} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1.1 }}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+              <View style={{ position: 'absolute', top: -40, left: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: '#FFFFFF10' }} />
+              <View style={{ position: 'absolute', top: 18, left: 18, width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF22', alignItems: 'center', justifyContent: 'center' }}>
+                {(() => { const I = Icon[p.icon]; return <I size={32} color="#fff" />; })()}
+              </View>
+              <View style={{ position: 'absolute', left: 16, right: 16, bottom: 16, gap: 6 }}>
+                <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: '#0008', alignSelf: 'flex-start' }}>
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.4 }}>{p.minutes} {lang === 'ru' ? 'МИН · ГОЛОС' : 'MIN · VOICE'}</Text>
+                </View>
+                <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800', letterSpacing: -0.4 }} numberOfLines={2}>{lang === 'ru' ? p.titleRu : p.titleEn}</Text>
+                <Text style={{ color: '#FFFFFFCC', fontSize: 12, lineHeight: 16 }} numberOfLines={2}>{lang === 'ru' ? p.subRu : p.subEn}</Text>
+              </View>
+              <View style={{ position: 'absolute', top: 18, right: 18, width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 0, height: 0, borderTopWidth: 8, borderBottomWidth: 8, borderLeftWidth: 13, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: p.color, marginLeft: 4 }} />
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        {/* Technique groups — readable headers, tall colorful cards */}
         {GROUPS.map((group, gi) => {
           const items = sorted.filter((te) => group.ids.includes(te.id));
           if (!items.length) return null;
           return (
             <Animated.View key={gi} entering={FadeInDown.delay(gi * 60).duration(300)}>
               <Text style={{
-                color: t.textDim, fontSize: 11, fontWeight: '700', textTransform: 'uppercase',
-                letterSpacing: 1.2, marginLeft: spacing.lg, marginBottom: 10, marginTop: gi > 0 ? 22 : 0,
+                color: t.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.4,
+                marginLeft: spacing.lg, marginBottom: 10, marginTop: gi === 0 ? 22 : 26,
               }}>
                 {lang === 'ru' ? group.labelRu : group.labelEn}
               </Text>
-              <View style={{ paddingHorizontal: spacing.lg, gap: 10 }}>
+              <View style={{ paddingHorizontal: spacing.lg, gap: 12 }}>
                 {items.map((te) => (
                   <TechCard key={te.id} te={te} lang={lang} tr={tr}
                     locked={!premium && isTechniquePremium(te.id, te.tags)}
@@ -135,66 +182,48 @@ function TechCard({ te, lang, tr, onOpen, onGo, locked }: {
   const IconComp = Icon[te.icon];
 
   const evidenceLabel = lang === 'ru'
-    ? (te.evidence === 'A' ? 'Высокий уровень' : te.evidence === 'B' ? 'Хороший уровень' : 'Поддерживающий')
-    : (te.evidence === 'A' ? 'Strong evidence' : te.evidence === 'B' ? 'Good evidence' : 'Supportive');
-
-  const ctaRu = te.practice === 'money' ? 'Поставить цель'
-    : te.practice === 'ema' ? 'Дневник'
-    : te.practice === 'pharma' || te.practice === 'nrt' ? 'Открыть'
-    : te.practice ? 'Сделать' : 'Подробнее';
-  const ctaEn = te.practice === 'money' ? 'Set goal'
-    : te.practice === 'ema' ? 'Journal'
-    : te.practice === 'pharma' || te.practice === 'nrt' ? 'Open'
-    : te.practice ? 'Do it' : 'Read';
+    ? (te.evidence === 'A' ? 'Доказано' : te.evidence === 'B' ? 'Подтверждено' : 'Поддержка')
+    : (te.evidence === 'A' ? 'Proven' : te.evidence === 'B' ? 'Confirmed' : 'Supportive');
 
   return (
     <Pressable onPress={() => (te.practice ? onGo() : onOpen())}
-      style={({ pressed }) => ({
-        borderRadius: radius.lg, borderWidth: 1, borderColor: t.border,
-        backgroundColor: t.bgElev, padding: 14,
-        flexDirection: 'row', alignItems: 'center', gap: 14,
-        opacity: pressed ? 0.85 : 1,
-      })}>
-      {/* Icon tile */}
-      <View style={{
-        width: 50, height: 50, borderRadius: 15, flexShrink: 0,
-        backgroundColor: te.color + '1E', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <IconComp size={25} color={te.color} />
-      </View>
+      style={({ pressed }) => ({ borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+      {/* Tall, colorful card — each technique gets its own gradient atmosphere */}
+      <View style={{ height: 168, position: 'relative' }}>
+        <LinearGradient colors={[te.color, te.color + '99', '#0A0E13']} locations={[0, 0.45, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1.2 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        {/* Soft halo behind the icon — feels alive */}
+        <View style={{ position: 'absolute', top: -30, right: -30, width: 180, height: 180, borderRadius: 90, backgroundColor: '#FFFFFF14' }} />
+        <View style={{ position: 'absolute', top: 14, right: 14, width: 88, height: 88, borderRadius: 44, backgroundColor: '#FFFFFF1A', alignItems: 'center', justifyContent: 'center' }}>
+          <IconComp size={44} color="#fff" />
+        </View>
 
-      {/* Title + meta */}
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 }} numberOfLines={1}>
-          {tr(te.titleKey)}
-        </Text>
-        <Text style={{ color: t.textDim, fontSize: 13, marginTop: 2, lineHeight: 18 }} numberOfLines={1}>
-          {tr(te.summaryKey)}
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
-          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: te.color }} />
-          <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '600' }}>
-            {evidenceLabel}{te.durationMin ? ` · ${te.durationMin} ${lang === 'ru' ? 'мин' : 'min'}` : ''}
+        {/* Bottom info layer */}
+        <View style={{ position: 'absolute', left: 16, right: 16, bottom: 14, gap: 6 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: '#0008' }}>
+              <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.4 }}>{evidenceLabel}</Text>
+            </View>
+            {!!te.durationMin && (
+              <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: '#0008' }}>
+                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{te.durationMin} {lang === 'ru' ? 'мин' : 'min'}</Text>
+              </View>
+            )}
+            {locked && (
+              <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: '#FFD60A', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Icon.star size={10} color="#000" />
+                <Text style={{ color: '#000', fontSize: 10, fontWeight: '800' }}>PRO</Text>
+              </View>
+            )}
+          </View>
+          <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -0.5 }} numberOfLines={1}>
+            {tr(te.titleKey)}
+          </Text>
+          <Text style={{ color: '#FFFFFFC8', fontSize: 13, lineHeight: 18 }} numberOfLines={2}>
+            {tr(te.summaryKey)}
           </Text>
         </View>
       </View>
-
-      {/* Lock badge for premium-only techniques */}
-      {locked && (
-        <View style={{
-          paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
-          backgroundColor: t.warn + '24', flexDirection: 'row', alignItems: 'center', gap: 4,
-        }}>
-          <Icon.star size={11} color={t.warn} />
-          <Text style={{ color: t.warn, fontSize: 10, fontWeight: '800' }}>PRO</Text>
-        </View>
-      )}
-
-      {/* Info / open detail */}
-      <Pressable onPress={(e) => { e.stopPropagation(); onOpen(); }} hitSlop={10}
-        style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: t.border + '80', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: t.textDim, fontSize: 16, fontWeight: '700' }}>›</Text>
-      </Pressable>
     </Pressable>
   );
 }
@@ -268,11 +297,16 @@ function Detail({ te, lang, tr, onClose, onStart }: {
 
   return (
     <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: 16, paddingBottom: 60 }}>
-      <LinearGradient colors={[te.color + '40', te.color + '10']}
-        style={{ width: 96, height: 96, borderRadius: 28, alignItems: 'center', justifyContent: 'center' }}>
-        <IconComp size={52} color={te.color} />
-      </LinearGradient>
-      <Text style={{ color: t.text, fontSize: 30, fontWeight: '700', letterSpacing: -0.6 }}>{tr(te.titleKey)}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <View style={{ width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <LinearGradient colors={[te.color + '40', te.color + '12']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', width: 64, height: 64 }} />
+          <IconComp size={34} color={te.color} />
+        </View>
+        <Text style={{ color: t.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.5, flex: 1 }}>{tr(te.titleKey)}</Text>
+        <Pressable onPress={onClose} hitSlop={12} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon.close size={16} color={t.textDim} />
+        </Pressable>
+      </View>
       <Text style={{ color: t.textDim, fontSize: 16, lineHeight: 22 }}>{tr(te.summaryKey)}</Text>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Chip color={te.color}>{tr(`tech.evidence_${te.evidence}`)}</Chip>
@@ -295,9 +329,6 @@ function Detail({ te, lang, tr, onClose, onStart }: {
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 17 }}>{lang === 'ru' ? ctaRu : ctaEn}</Text>
         </Pressable>
       )}
-      <Pressable onPress={onClose} style={{ marginTop: 4, padding: 14, alignItems: 'center' }}>
-        <Text style={{ color: t.textDim, fontWeight: '600' }}>{tr('common.done')}</Text>
-      </Pressable>
     </ScrollView>
   );
 }

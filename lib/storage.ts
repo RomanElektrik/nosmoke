@@ -76,6 +76,8 @@ export type Profile = {
   // Identity ritual: a short personal statement of who you're becoming
   // (e.g. «свободным», «здоровым отцом»). Shown in the hero / ritual.
   identityStatement?: string;
+  // Preferred TTS voice id (see VOICES in lib/voice.ts) for the call & audio practices.
+  voiceId?: string;
 };
 
 export type HealthFlag =

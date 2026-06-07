@@ -41,10 +41,15 @@ export default function ArticleScreen() {
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
+        {/* Sane hero size: 260pt tall, illustration fits inside (no crop, no
+            blow-up). White-ish "paper" backdrop so tall illustrations don't
+            float on a black void. */}
         {ARTICLE_IMAGES[a.id]
-          ? <Image source={ARTICLE_IMAGES[a.id]} style={{ width: '100%', height: 168 }} resizeMode="cover" />
+          ? <View style={{ width: '100%', height: 260, backgroundColor: '#F2F2F0', alignItems: 'center', justifyContent: 'center' }}>
+              <Image source={ARTICLE_IMAGES[a.id]} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+            </View>
           : <LinearGradient colors={[a.color + '38', a.color + '0A']}
-              style={{ width: '100%', height: 168, alignItems: 'center', justifyContent: 'center' }}>
+              style={{ width: '100%', height: 220, alignItems: 'center', justifyContent: 'center' }}>
               <I size={64} color={a.color} />
             </LinearGradient>}
       <View style={{ padding: spacing.lg, gap: 14 }}>
