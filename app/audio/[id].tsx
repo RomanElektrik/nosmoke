@@ -5,8 +5,10 @@
 //    with prev/next-step, speed and voice. No "step N/M" clutter.
 // All audio goes through lib/audio (single owner, hard-stop on exit).
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, Pressable, ScrollView, PanResponder } from 'react-native';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, Pressable, ScrollView, PanResponder, LayoutChangeEvent } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -32,9 +34,14 @@ export default function AudioPlayer() {
   const router = useRouter();
   const lang = currentLang();
   const ru = lang === 'ru';
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: routeId } = useLocalSearchParams<{ id: string }>();
   const [state] = useAppState();
-  const practice = getPractice(id);
+
+  // In-place practice swap: prev/next swaps content without re-navigating, so
+  // there's no slide-from-bottom animation between practices — like every
+  // normal music player.
+  const [curId, setCurId] = useState<string>(routeId);
+  const practice = getPractice(curId);
   const steps = practice?.steps ?? [];
   const total = steps.length;
   const recorded = !!practice?.audio;
@@ -59,16 +66,18 @@ export default function AudioPlayer() {
   const orb = useSharedValue(1);
 
   // Sibling navigation — left/right buttons (and horizontal swipe) flip through
-  // practices like tracks in a playlist. Wraps around.
-  const pIdx = Math.max(0, PRACTICES.findIndex((p) => p.id === id));
+  // practices like tracks in a playlist. Wraps around. Stays on the same
+  // screen — no navigation animation.
+  const pIdx = Math.max(0, PRACTICES.findIndex((p) => p.id === curId));
   const prevP = PRACTICES[(pIdx - 1 + PRACTICES.length) % PRACTICES.length];
   const nextP = PRACTICES[(pIdx + 1) % PRACTICES.length];
   function goPractice(target: typeof PRACTICES[number]) {
-    if (!target || target.id === id) return;
+    if (!target || target.id === curId) return;
     Haptics.selectionAsync();
     genRef.current++;
     stopAudio(audioId);
-    router.replace(`/audio/${target.id}` as any);
+    setPos(0); setDur(0); setPlaying(false); setFinished(false); setIdx(0); idxRef.current = 0;
+    setCurId(target.id);
   }
 
   // Horizontal swipe on the body — left/right swaps practice.
@@ -99,9 +108,9 @@ export default function AudioPlayer() {
       if (st.dur) setDur(st.dur);
       if (!draggingRef.current) setPos(st.pos);
       setPlaying(st.playing);
-    }, 250);
+    }, 200);
     return () => clearInterval(iv);
-  }, []);
+  }, [curId]);
 
   function recToggle() {
     Haptics.selectionAsync();
@@ -180,7 +189,7 @@ export default function AudioPlayer() {
     if (hasVoice) steps.slice(0, 4).forEach((s) => synthLine(ru ? s.ru : s.en, ru ? 'ru' : 'en', geminiVoiceFor(voiceId)).catch(() => {}));
     const tid = setTimeout(() => runLoop(), 350);
     return () => clearTimeout(tid);
-  }, []);
+  }, [curId]);
 
   // Hard-stop on unmount AND blur.
   useEffect(() => () => { genRef.current++; releaseAudio(audioId); cancelAnimation(orb); }, []);
@@ -316,53 +325,63 @@ export default function AudioPlayer() {
   );
 }
 
-// Draggable scrubber for recorded mode.
-// IMPORTANT: PanResponder's `locationX` is unreliable on device — it returns
-// the OFFSET from the gesture's start, not the touch's position inside the
-// bar. That's the classic "drag goes nowhere" bug. We use the absolute
-// `pageX` minus the bar's measured screen-X instead.
+// Draggable scrubber using react-native-gesture-handler (native gesture
+// system). The pan gesture gives us x relative to the gesture view directly —
+// no PanResponder, no measureInWindow guessing.
 function SeekBar({ pos, dur, color, onScrub }: { pos: number; dur: number; color: string; onScrub: (frac: number, final: boolean) => void }) {
-  const wRef = useRef(0);
-  const xRef = useRef(0);
-  const barRef = useRef<View>(null);
+  const [w, setW] = useState(0);
   const [dragFrac, setDragFrac] = useState<number | null>(null);
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
 
-  const remeasure = () => {
-    barRef.current?.measureInWindow?.((x, _y, w) => { xRef.current = x; if (w > 0) wRef.current = w; });
-  };
+  const onLayout = (e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width);
 
-  const touch = (pageX: number, final: boolean) => {
-    if (!wRef.current) { remeasure(); return; }
-    const f = clamp((pageX - xRef.current) / wRef.current);
-    if (final) setDragFrac(null); else setDragFrac(f);
-    onScrub(f, final);
-  };
+  const pan = useMemo(() => Gesture.Pan()
+    .minDistance(0)
+    .activeOffsetX([-1, 1])
+    .onBegin((e) => {
+      'worklet';
+      const f = w > 0 ? clamp(e.x / w) : 0;
+      runOnJS(setDragFrac)(f);
+      runOnJS(onScrub)(f, false);
+    })
+    .onUpdate((e) => {
+      'worklet';
+      const f = w > 0 ? clamp(e.x / w) : 0;
+      runOnJS(setDragFrac)(f);
+      runOnJS(onScrub)(f, false);
+    })
+    .onEnd((e) => {
+      'worklet';
+      const f = w > 0 ? clamp(e.x / w) : 0;
+      runOnJS(setDragFrac)(null as any);
+      runOnJS(onScrub)(f, true);
+    })
+    .onFinalize(() => {
+      'worklet';
+      runOnJS(setDragFrac)(null as any);
+    }), [w, onScrub]);
 
-  const pan = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderTerminationRequest: () => false,
-    onPanResponderGrant: (e) => { remeasure(); touch(e.nativeEvent.pageX, false); },
-    onPanResponderMove: (e) => { touch(e.nativeEvent.pageX, false); },
-    onPanResponderRelease: (e) => { touch(e.nativeEvent.pageX, true); },
-    onPanResponderTerminate: (e) => { touch(e.nativeEvent.pageX, true); },
-  })).current;
+  const tap = useMemo(() => Gesture.Tap()
+    .onEnd((e) => {
+      'worklet';
+      const f = w > 0 ? clamp(e.x / w) : 0;
+      runOnJS(onScrub)(f, true);
+    }), [w, onScrub]);
+
+  const composed = useMemo(() => Gesture.Simultaneous(pan, tap), [pan, tap]);
 
   const frac = dragFrac != null ? dragFrac : (dur > 0 ? clamp(pos / dur) : 0);
+
   return (
     <View style={{ gap: 6 }}>
-      <View
-        ref={barRef}
-        collapsable={false}
-        onLayout={(e) => { wRef.current = e.nativeEvent.layout.width; remeasure(); }}
-        {...pan.panHandlers}
-        style={{ height: 34, justifyContent: 'center' }}>
-        <View style={{ height: 5, borderRadius: 4, backgroundColor: '#FFFFFF1F' }}>
-          <View style={{ width: `${frac * 100}%`, height: '100%', borderRadius: 4, backgroundColor: color }} />
+      <GestureDetector gesture={composed}>
+        <View onLayout={onLayout} collapsable={false} style={{ height: 36, justifyContent: 'center' }}>
+          <View style={{ height: 5, borderRadius: 4, backgroundColor: '#FFFFFF1F' }}>
+            <View style={{ width: `${frac * 100}%`, height: '100%', borderRadius: 4, backgroundColor: color }} />
+          </View>
+          <View pointerEvents="none" style={{ position: 'absolute', left: `${frac * 100}%`, marginLeft: -10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } }} />
         </View>
-        <View pointerEvents="none" style={{ position: 'absolute', left: `${frac * 100}%`, marginLeft: -10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } }} />
-      </View>
+      </GestureDetector>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text style={{ color: '#9FB0C0', fontSize: 12, fontVariant: ['tabular-nums'] }}>{fmt(frac * dur)}</Text>
         <Text style={{ color: '#9FB0C0', fontSize: 12, fontVariant: ['tabular-nums'] }}>{fmt(dur)}</Text>
