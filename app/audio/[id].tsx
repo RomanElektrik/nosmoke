@@ -109,10 +109,18 @@ export default function AudioPlayer() {
     else { trackResume(); setPlaying(true); gentle(); }
   }
   function recSkip(delta: number) { Haptics.selectionAsync(); const s = Math.max(0, Math.min(dur || 0, pos + delta)); trackSeek(s); setPos(s); }
+  // Drag-then-seek: visual updates live, the actual seekTo() only fires on
+  // release — same UX as native players, no thrash on the audio engine.
   function onScrub(frac: number, final: boolean) {
     const s = frac * (dur || 0);
     setPos(s);
-    if (final) { trackSeek(s); draggingRef.current = false; } else { draggingRef.current = true; }
+    if (final) {
+      draggingRef.current = false;
+      trackSeek(s);
+      Haptics.selectionAsync();
+    } else {
+      draggingRef.current = true;
+    }
   }
 
   // ─────────────── TTS FALLBACK MODE ───────────────
@@ -308,31 +316,56 @@ export default function AudioPlayer() {
   );
 }
 
-// Draggable scrubber for recorded mode (PanResponder — no extra deps).
+// Draggable scrubber for recorded mode.
+// IMPORTANT: PanResponder's `locationX` is unreliable on device — it returns
+// the OFFSET from the gesture's start, not the touch's position inside the
+// bar. That's the classic "drag goes nowhere" bug. We use the absolute
+// `pageX` minus the bar's measured screen-X instead.
 function SeekBar({ pos, dur, color, onScrub }: { pos: number; dur: number; color: string; onScrub: (frac: number, final: boolean) => void }) {
   const wRef = useRef(0);
+  const xRef = useRef(0);
+  const barRef = useRef<View>(null);
   const [dragFrac, setDragFrac] = useState<number | null>(null);
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
+
+  const remeasure = () => {
+    barRef.current?.measureInWindow?.((x, _y, w) => { xRef.current = x; if (w > 0) wRef.current = w; });
+  };
+
+  const touch = (pageX: number, final: boolean) => {
+    if (!wRef.current) { remeasure(); return; }
+    const f = clamp((pageX - xRef.current) / wRef.current);
+    if (final) setDragFrac(null); else setDragFrac(f);
+    onScrub(f, final);
+  };
+
   const pan = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: (e) => { const f = clamp(e.nativeEvent.locationX / (wRef.current || 1)); setDragFrac(f); onScrub(f, false); },
-    onPanResponderMove: (e) => { const f = clamp(e.nativeEvent.locationX / (wRef.current || 1)); setDragFrac(f); onScrub(f, false); },
-    onPanResponderRelease: (e) => { const f = clamp(e.nativeEvent.locationX / (wRef.current || 1)); setDragFrac(null); onScrub(f, true); },
-    onPanResponderTerminate: () => { setDragFrac(null); },
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderGrant: (e) => { remeasure(); touch(e.nativeEvent.pageX, false); },
+    onPanResponderMove: (e) => { touch(e.nativeEvent.pageX, false); },
+    onPanResponderRelease: (e) => { touch(e.nativeEvent.pageX, true); },
+    onPanResponderTerminate: (e) => { touch(e.nativeEvent.pageX, true); },
   })).current;
+
   const frac = dragFrac != null ? dragFrac : (dur > 0 ? clamp(pos / dur) : 0);
   return (
     <View style={{ gap: 6 }}>
-      <View onLayout={(e) => { wRef.current = e.nativeEvent.layout.width; }} {...pan.panHandlers} style={{ height: 26, justifyContent: 'center' }}>
-        <View style={{ height: 4, borderRadius: 4, backgroundColor: '#FFFFFF1A' }}>
+      <View
+        ref={barRef}
+        collapsable={false}
+        onLayout={(e) => { wRef.current = e.nativeEvent.layout.width; remeasure(); }}
+        {...pan.panHandlers}
+        style={{ height: 34, justifyContent: 'center' }}>
+        <View style={{ height: 5, borderRadius: 4, backgroundColor: '#FFFFFF1F' }}>
           <View style={{ width: `${frac * 100}%`, height: '100%', borderRadius: 4, backgroundColor: color }} />
         </View>
-        <View style={{ position: 'absolute', left: `${frac * 100}%`, marginLeft: -8, width: 16, height: 16, borderRadius: 8, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } }} />
+        <View pointerEvents="none" style={{ position: 'absolute', left: `${frac * 100}%`, marginLeft: -10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } }} />
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ color: '#7E90A0', fontSize: 11 }}>{fmt(frac * dur)}</Text>
-        <Text style={{ color: '#7E90A0', fontSize: 11 }}>{fmt(dur)}</Text>
+        <Text style={{ color: '#9FB0C0', fontSize: 12, fontVariant: ['tabular-nums'] }}>{fmt(frac * dur)}</Text>
+        <Text style={{ color: '#9FB0C0', fontSize: 12, fontVariant: ['tabular-nums'] }}>{fmt(dur)}</Text>
       </View>
     </View>
   );
