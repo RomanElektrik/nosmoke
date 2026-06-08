@@ -38,40 +38,37 @@ export function WaterCircle({
     return () => { cancelAnimation(p1); cancelAnimation(p2); };
   }, []);
 
-  // Build a filled wave path in a worklet. Level = (1-fill)*size from the top;
-  // a little overshoot (-amp..size+amp) so crests never clip the rim.
-  const wave = (phase: number, f: number, a: number, per: number) => {
+  // Smooth wave path via a Catmull-Rom spline → cubic béziers. Straight `L`
+  // segments looked faceted/"rough"; béziers give a glassy, flowing surface.
+  // `close=true` seals the shape into a fill (down past the rim); false leaves
+  // an open polyline for the crisp crest stroke.
+  const build = (phase: number, f: number, a: number, per: number, close: boolean) => {
     'worklet';
     const baseline = (1 - f) * size;
-    const N = 16;
-    let d = `M 0 ${baseline}`;
+    const N = 9; // fewer points — the spline interpolates them smoothly
+    const xs: number[] = [];
+    const ys: number[] = [];
     for (let i = 0; i <= N; i++) {
-      const x = (size * i) / N;
-      const y = baseline + Math.sin((i / N) * per * TAU + phase) * a;
-      d += ` L ${Math.round(x)} ${Math.round(y)}`;
+      xs.push((size * i) / N);
+      ys.push(baseline + Math.sin((i / N) * per * TAU + phase) * a);
     }
-    d += ` L ${size} ${size + a} L 0 ${size + a} Z`;
+    let d = `M ${xs[0].toFixed(1)} ${ys[0].toFixed(1)}`;
+    for (let i = 0; i < N; i++) {
+      const x0 = xs[i - 1 < 0 ? 0 : i - 1], y0 = ys[i - 1 < 0 ? 0 : i - 1];
+      const x1 = xs[i], y1 = ys[i];
+      const x2 = xs[i + 1], y2 = ys[i + 1];
+      const x3 = xs[i + 2 > N ? N : i + 2], y3 = ys[i + 2 > N ? N : i + 2];
+      const c1x = x1 + (x2 - x0) / 6, c1y = y1 + (y2 - y0) / 6;
+      const c2x = x2 - (x3 - x1) / 6, c2y = y2 - (y3 - y1) / 6;
+      d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+    }
+    if (close) d += ` L ${size} ${size + a} L 0 ${size + a} Z`;
     return d;
   };
 
-  // Open polyline of just the front surface — stroked as a crisp waterline so
-  // the wave reads clearly, not as a soft blob.
-  const surface = (phase: number, f: number, a: number, per: number) => {
-    'worklet';
-    const baseline = (1 - f) * size;
-    const N = 16;
-    let d = `M 0 ${Math.round(baseline)}`;
-    for (let i = 0; i <= N; i++) {
-      const x = (size * i) / N;
-      const y = baseline + Math.sin((i / N) * per * TAU + phase) * a;
-      d += ` L ${Math.round(x)} ${Math.round(y)}`;
-    }
-    return d;
-  };
-
-  const frontProps = useAnimatedProps(() => ({ d: wave(p1.value, fill.value, amp, periods) }));
-  const backProps = useAnimatedProps(() => ({ d: wave(-p2.value, fill.value, amp * 0.7, periods + 0.6) }));
-  const crestProps = useAnimatedProps(() => ({ d: surface(p1.value, fill.value, amp, periods) }));
+  const frontProps = useAnimatedProps(() => ({ d: build(p1.value, fill.value, amp, periods, true) }));
+  const backProps = useAnimatedProps(() => ({ d: build(-p2.value, fill.value, amp * 0.7, periods + 0.6, true) }));
+  const crestProps = useAnimatedProps(() => ({ d: build(p1.value, fill.value, amp, periods, false) }));
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
