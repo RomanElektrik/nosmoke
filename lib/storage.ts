@@ -78,6 +78,9 @@ export type Profile = {
   identityStatement?: string;
   // Preferred TTS voice id (see VOICES in lib/voice.ts) for the call & audio practices.
   voiceId?: string;
+  // Personal SOS toolkit: ids of quick craving-busters the user picked as
+  // "what works for me" (see lib/coping.ts). Shown as chips in the SOS screen.
+  copingMethods?: string[];
 };
 
 export type HealthFlag =

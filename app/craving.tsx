@@ -22,6 +22,7 @@ import { update, useAppState } from '../lib/storage';
 import type { Trigger } from '../lib/storage';
 import { nextDueDose, MED_SAFETY } from '../lib/medication';
 import { triggerLabel, relevantPlan } from '../lib/identity';
+import { copingById } from '../lib/coping';
 
 type Phase = 'choose' | 'wave' | 'breath' | 'log' | 'win';
 type IconC = ComponentType<{ size?: number; color?: string }>;
@@ -147,6 +148,51 @@ export default function Craving() {
                   sub={ru ? 'Доза по расписанию уже наступила' : 'A scheduled dose is due'}
                   onPress={() => router.push('/meds')} />
               )}
+
+              {/* ── Personal toolkit: what works for this user ── */}
+              {(() => {
+                const mine = (state.profile?.copingMethods ?? []).map(copingById).filter(Boolean) as NonNullable<ReturnType<typeof copingById>>[];
+                if (mine.length === 0) {
+                  return (
+                    <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/coping' as any); }}
+                      style={({ pressed }) => ({
+                        padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev,
+                        borderWidth: 1, borderStyle: 'dashed', borderColor: t.accent + '66',
+                        flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed ? 0.85 : 1,
+                      })}>
+                      <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: t.accent + '1F', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon.check size={20} color={t.accent} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{ru ? 'Собери, что тебе помогает' : 'Pick what helps you'}</Text>
+                        <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>{ru ? 'Быстрые приёмы под рукой в момент тяги' : 'Quick moves at hand when it hits'}</Text>
+                      </View>
+                      <Icon.arrowRight size={16} color={t.textDim} />
+                    </Pressable>
+                  );
+                }
+                return (
+                  <View style={{ gap: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <SectionLabel t={t} text={ru ? 'Что мне помогает' : 'What helps me'} />
+                      <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/coping' as any); }} hitSlop={10}>
+                        <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '600', marginTop: 8 }}>{ru ? 'Изменить' : 'Edit'}</Text>
+                      </Pressable>
+                    </View>
+                    {mine.map((m) => {
+                      const I = Icon[m.icon];
+                      return (
+                        <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13, borderRadius: radius.lg, backgroundColor: m.color + '14', borderWidth: 1, borderColor: m.color + '3A' }}>
+                          <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: m.color + '26', alignItems: 'center', justifyContent: 'center' }}>
+                            <I size={22} color={m.color} />
+                          </View>
+                          <Text style={{ color: t.text, fontSize: 15, fontWeight: '600', flex: 1 }}>{ru ? m.ru : m.en}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              })()}
 
               {/* ── Quiet row of alternatives — all equal weight, low noise ── */}
               <SectionLabel t={t} text={ru ? 'Если нужно иначе' : 'Or try' } />

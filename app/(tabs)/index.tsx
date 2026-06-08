@@ -142,6 +142,23 @@ export default function Home() {
           </View>
         </View>
 
+        {/* One-time prompt: build a personal SOS toolkit of quick craving-busters */}
+        {(p.copingMethods?.length ?? 0) === 0 && (
+          <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/coping' as any); }}
+            style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
+            <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.info + '12', borderWidth: 1, borderColor: t.info + '40', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: t.info + '24', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon.waves size={22} color={t.info} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{lang === 'ru' ? 'Если потянет — что поможет?' : 'When the urge hits — what helps?'}</Text>
+                <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2, lineHeight: 17 }}>{lang === 'ru' ? 'Выбери быстрые приёмы — покажем их в SOS' : 'Pick quick moves — shown in SOS'}</Text>
+              </View>
+              <Text style={{ color: t.info, fontSize: 18 }}>›</Text>
+            </View>
+          </Pressable>
+        )}
+
         {/* Goal card (if set) — animated piggy bank progress */}
         <GoalCard />
 
