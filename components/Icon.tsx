@@ -205,6 +205,10 @@ export const Icon = {
       <Path d="M5 12h14" />
       <Path d="m13 6 6 6-6 6" />
     </G>, size),
+  chevronDown: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
+    <Path d="m6 9 6 6 6-6" {...stroke(color, 2)} />, size),
+  chevronUp: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
+    <Path d="m6 15 6-6 6 6" {...stroke(color, 2)} />, size),
   mirror: ({ size = 24, color = '#FF453A' }: Props) => wrap(
     <G {...stroke(color)}>
       <Path d="M12 3a6 6 0 0 1 0 12 6 6 0 0 1 0-12Z" />

@@ -226,7 +226,7 @@ const L1_DAYS: TrackDay[] = [
     whyEn: 'The acute phase is long behind, but justifying thoughts come back even on calm days. We refresh the reframing skill so it stays automatic — this is prevention of late slips.',
   },
   { day: 28,
-    focusRu: 'Месяц. Фаза maintenance.',
+    focusRu: 'Месяц. Фаза поддержки.',
     focusEn: 'One month. Maintenance phase.',
     scienceRu: 'Лёгкие очищаются, кашель уходит. Ты прошёл главное окно риска.',
     scienceEn: 'Lungs clearing, cough fading. You passed the main risk window.',
@@ -240,12 +240,12 @@ const L1_DAYS: TrackDay[] = [
 
 /* ============================================================
    L2 — Cytisine (Tabex) 25-day course (Walker NEJM 2014/2021)
-   Quit date = day 5. Schedule per Sopharma Tabex instructions.
+   День отказа = day 5. Schedule per Sopharma Tabex instructions.
 ============================================================ */
 const L2_DAYS: TrackDay[] = [
   { day: 1,
-    focusRu: 'Старт цитизина (Табекс). Quit date — день 5.',
-    focusEn: 'Cytisine (Tabex) start. Quit date = day 5.',
+    focusRu: 'Старт цитизина (Табекс). День отказа — день 5.',
+    focusEn: 'Cytisine (Tabex) start. День отказа = day 5.',
     scienceRu: 'Цитизин блокирует никотиновые рецепторы. Курс 25 дней. RR 2.21 vs плацебо. Цена — десятки раз дешевле варениклина.',
     scienceEn: 'Cytisine blocks nicotine receptors. 25-day course. RR 2.21 vs placebo. Many times cheaper than varenicline.',
     taskRu: 'Прими первую таблетку с водой. Поставь напоминания на каждые 2 часа.',
@@ -267,8 +267,8 @@ const L2_DAYS: TrackDay[] = [
   { day: 4,
     focusRu: 'Снижение частоты приёма.',
     focusEn: 'Lower dosing frequency.',
-    scienceRu: 'С дня 4 — каждые 2.5 ч. Quit date завтра.',
-    scienceEn: 'From day 4 — every 2.5 h. Quit date tomorrow.',
+    scienceRu: 'С дня 4 — каждые 2.5 ч. День отказа завтра.',
+    scienceEn: 'From day 4 — every 2.5 h. День отказа tomorrow.',
     taskRu: 'Готовься к завтра: убери сигареты, сделай if-then.',
     taskEn: 'Prep for tomorrow: remove cigarettes, make if-then.',
     practice: 'if_then',
@@ -276,8 +276,8 @@ const L2_DAYS: TrackDay[] = [
     medEn: 'Days 4–12: 1 tab every 2.5 h, 5/day.',
   },
   { day: 5,
-    focusRu: 'QUIT DATE. Последняя сигарета сегодня.',
-    focusEn: 'QUIT DATE. Last cigarette today.',
+    focusRu: 'ДЕНЬ ОТКАЗА. Последняя сигарета сегодня.',
+    focusEn: 'ДЕНЬ ОТКАЗА. Last cigarette today.',
     scienceRu: 'Цитизин уже на рецепторах. Сигарета не даёт того кайфа — это и есть план.',
     scienceEn: 'Cytisine occupies receptors. Cigarette feels muted — that’s the mechanism.',
     taskRu: 'Выкури последнюю осознанно. С завтра — ноль.',
@@ -339,14 +339,14 @@ const L2_DAYS: TrackDay[] = [
 
 /* ============================================================
    L3 — Bupropion SR 8 weeks (Cochrane Howes 2020, RR 1.64)
-   Quit date = day 8. Prescription only.
+   День отказа = day 8. Prescription only.
 ============================================================ */
 const L3_DAYS: TrackDay[] = [
   { day: 1,
     focusRu: 'Старт бупропиона. 150 мг утром.',
     focusEn: 'Bupropion start. 150 mg in the morning.',
-    scienceRu: 'Бупропион — антидепрессант, снижает тягу. Курс 8 нед. Quit date — день 8.',
-    scienceEn: 'Bupropion — antidepressant lowering craving. 8-week course. Quit date = day 8.',
+    scienceRu: 'Бупропион — антидепрессант, снижает тягу. Курс 8 нед. День отказа — день 8.',
+    scienceEn: 'Bupropion — antidepressant lowering craving. 8-week course. День отказа = day 8.',
     taskRu: 'Прими 150 мг утром после еды. Запиши настроение.',
     taskEn: 'Take 150 mg morning after food. Log mood.',
     medRu: 'Дни 1–3: 150 мг 1 раз в день утром. Курить можно.',
@@ -363,8 +363,8 @@ const L3_DAYS: TrackDay[] = [
     medEn: 'Days 4–end: 150 mg × 2/day, ≥8 h apart, 2nd dose by 5pm.',
   },
   { day: 8,
-    focusRu: 'QUIT DATE. Последняя сигарета.',
-    focusEn: 'QUIT DATE. Last cigarette.',
+    focusRu: 'ДЕНЬ ОТКАЗА. Последняя сигарета.',
+    focusEn: 'ДЕНЬ ОТКАЗА. Last cigarette.',
     scienceRu: 'Препарат накопил концентрацию. Тяга уже снижена. Можно бросать.',
     scienceEn: 'Drug at full concentration. Craving already reduced. Time to quit.',
     taskRu: 'Выкури последнюю сегодня. С завтра — ноль.',
@@ -403,7 +403,7 @@ const L3_DAYS: TrackDay[] = [
 ];
 
 /* ============================================================
-   L4 / L5 — Varenicline (Champix). EAGLES NEJM 2016. Quit date = day 8.
+   L4 / L5 — Varenicline (Champix). EAGLES NEJM 2016. День отказа = day 8.
    L4 = 12-week course, L5 = extended (24-week) course — same daily content.
 ============================================================ */
 const VARENICLINE_DAYS: TrackDay[] = [
@@ -428,8 +428,8 @@ const VARENICLINE_DAYS: TrackDay[] = [
     medEn: 'Days 4–7: 0.5 mg × 2/day. Smoking allowed.',
   },
   { day: 8,
-    focusRu: 'QUIT DATE. Полная доза, последняя сигарета.',
-    focusEn: 'QUIT DATE. Full dose, last cigarette.',
+    focusRu: 'ДЕНЬ ОТКАЗА. Полная доза, последняя сигарета.',
+    focusEn: 'ДЕНЬ ОТКАЗА. Full dose, last cigarette.',
     scienceRu: 'Препарат уже работает. Сигарета даёт ослабленный кайф — это и есть механизм.',
     scienceEn: 'Drug already working. Cigarette feels muted — that’s the mechanism.',
     taskRu: 'Сегодня — последняя сигарета. Перейди на 1 мг 2р/день.',

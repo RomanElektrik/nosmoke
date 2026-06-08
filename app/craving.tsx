@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, cancelAnimation } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withDelay, Easing, cancelAnimation } from 'react-native-reanimated';
 import { useTheme, spacing, radius, type Theme } from '../lib/theme';
 import { useTranslation } from '../lib/i18n';
 import { BreathingOrb } from '../components/BreathingOrb';
@@ -120,39 +120,8 @@ export default function Craving() {
                 </LinearGradient>
               </Pressable>
 
-              {/* ── Emotion picker → chat with context ── */}
-              <View style={{ gap: 10, marginTop: 4 }}>
-                <Text style={{ color: t.text, fontSize: 17, fontWeight: '700' }}>
-                  {ru ? 'Расскажи, что ты чувствуешь' : 'Tell me what you feel'}
-                </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {[
-                    { key: 'stress',  ru: 'В стрессе',   en: 'Stressed',  emoji: '😖', color: '#FF453A' },
-                    { key: 'anxious', ru: 'Тревожно',    en: 'Anxious',   emoji: '😟', color: '#FF9500' },
-                    { key: 'angry',   ru: 'Раздражён',   en: 'Irritated', emoji: '😤', color: '#FF2D78' },
-                    { key: 'lonely',  ru: 'Одиноко',     en: 'Lonely',    emoji: '🥺', color: '#5AC8FA' },
-                    { key: 'bored',   ru: 'Скучно',      en: 'Bored',     emoji: '😐', color: '#9AA3AF' },
-                    { key: 'sad',     ru: 'Грустно',     en: 'Sad',       emoji: '😢', color: '#5E5CE6' },
-                    { key: 'happy',   ru: 'Хорошо',      en: 'Happy',     emoji: '🙂', color: '#30D158' },
-                    { key: 'crave',   ru: 'Просто тяга', en: 'Just craving', emoji: '🚬', color: '#BF5AF2' },
-                  ].map((m) => (
-                    <Pressable key={m.key}
-                      onPress={() => { Haptics.selectionAsync(); router.push(`/chat?mode=support&seed=${m.key}` as any); }}
-                      style={({ pressed }) => ({
-                        paddingHorizontal: 12, paddingVertical: 9, borderRadius: 999,
-                        backgroundColor: m.color + '14', borderWidth: 1, borderColor: m.color + '40',
-                        flexDirection: 'row', alignItems: 'center', gap: 6,
-                        opacity: pressed ? 0.7 : 1,
-                      })}>
-                      <Text style={{ fontSize: 15 }}>{m.emoji}</Text>
-                      <Text style={{ color: t.text, fontSize: 13.5, fontWeight: '600' }}>{ru ? m.ru : m.en}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-
               {/* ── Quick secondary actions ── */}
-              <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
                 <QuickTile t={t} icon={Icon.play} color="#BF5AF2"
                   title={ru ? 'Отвлечься' : 'Distract'} sub={ru ? 'мини-игра' : 'mini-game'}
                   onPress={() => { Haptics.selectionAsync(); router.push('/game'); }} />
@@ -194,10 +163,11 @@ export default function Craving() {
               {/* ── MORE — collapsed ── */}
               {!showAll ? (
                 <Pressable onPress={() => { Haptics.selectionAsync(); setShowAll(true); }}
-                  style={{ paddingVertical: 12, alignItems: 'center' }}>
+                  style={({ pressed }) => ({ paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: pressed ? 0.6 : 1 })}>
                   <Text style={{ color: t.textDim, fontWeight: '600', fontSize: 14 }}>
-                    {ru ? 'Ещё техники ⌄' : 'More techniques ⌄'}
+                    {ru ? 'Ещё техники' : 'More techniques'}
                   </Text>
+                  <Icon.chevronDown size={16} color={t.textDim} />
                 </Pressable>
               ) : (
                 <View style={{ gap: 8 }}>
@@ -222,8 +192,14 @@ export default function Craving() {
               )}
 
               <Pressable onPress={() => { Haptics.selectionAsync(); setPhase('log'); }}
-                style={({ pressed }) => ({ padding: 15, marginTop: 6, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, alignItems: 'center', opacity: pressed ? 0.7 : 1 })}>
-                <Text style={{ color: t.textDim, fontWeight: '600', fontSize: 14 }}>{ru ? 'Отметить, чем закончилось' : 'Log how it ended'}</Text>
+                style={({ pressed }) => ({
+                  padding: 17, marginTop: 8, borderRadius: radius.lg,
+                  backgroundColor: t.accentSoft, borderWidth: 1.5, borderColor: t.accent + '66',
+                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  opacity: pressed ? 0.8 : 1,
+                })}>
+                <Icon.check size={20} color={t.accent} />
+                <Text style={{ color: t.accent, fontWeight: '800', fontSize: 15.5 }}>{ru ? 'Отметить, чем закончилось' : 'Log how it ended'}</Text>
               </Pressable>
             </>
           );
@@ -304,14 +280,35 @@ export default function Craving() {
 }
 
 // ── Wave timer — the hero of SOS ──
+// Mesmerising on purpose: continuously expanding ocean ripples the user can
+// stare at and "ride out" the urge, while a gentle core breathes and counts
+// down 3 minutes. The point is to be hypnotic enough to just keep watching.
+function Ripple({ delay, size }: { delay: number; size: number }) {
+  const p = useSharedValue(0);
+  useEffect(() => {
+    p.value = withDelay(delay, withRepeat(withTiming(1, { duration: 3600, easing: Easing.out(Easing.ease) }), -1, false));
+    return () => cancelAnimation(p);
+  }, []);
+  const a = useAnimatedStyle(() => ({
+    transform: [{ scale: 0.45 + p.value * 0.95 }],
+    opacity: (1 - p.value) * 0.5,
+  }));
+  return (
+    <Animated.View style={[
+      { position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: '#0A84FF' },
+      a,
+    ]} />
+  );
+}
+
 function WaveTimer({ onDone, onBack, ru, t }: { onDone: () => void; onBack: () => void; ru: boolean; t: Theme }) {
   const TOTAL = 180; // 3 minutes
   const [left, setLeft] = useState(TOTAL);
   const scale = useSharedValue(1);
 
   useEffect(() => {
-    // Slow gentle pulse — represents the urge wave rising and falling.
-    scale.value = withRepeat(withTiming(1.1, { duration: 4000, easing: Easing.inOut(Easing.sin) }), -1, true);
+    // Slow gentle "breath" of the core — rises and falls like a swell.
+    scale.value = withRepeat(withTiming(1.08, { duration: 4200, easing: Easing.inOut(Easing.sin) }), -1, true);
     const id = setInterval(() => {
       setLeft((s) => {
         const next = s - 1;
@@ -334,25 +331,31 @@ function WaveTimer({ onDone, onBack, ru, t }: { onDone: () => void; onBack: () =
     : (ru ? 'Почти всё. Ты держался — и держишься.' : 'Almost done. You held on.');
 
   return (
-    <View style={{ alignItems: 'center', paddingVertical: 20, gap: 22 }}>
+    <View style={{ alignItems: 'center', paddingVertical: 16, gap: 22 }}>
       <Text style={{ color: t.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.4, textAlign: 'center', paddingHorizontal: 16 }}>
         {stage}
       </Text>
-      <View style={{ width: 280, height: 280, alignItems: 'center', justifyContent: 'center' }}>
-        {/* outer halo */}
-        <View style={{ position: 'absolute', width: 280, height: 280, borderRadius: 140, backgroundColor: '#0A84FF14' }} />
-        <View style={{ position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: '#0A84FF22' }} />
-        <Animated.View style={[{ width: 160, height: 160, borderRadius: 80, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, aPulse]}>
-          <LinearGradient colors={['#0A84FF', '#5E5CE6']} style={{ position: 'absolute', width: 160, height: 160 }} />
-          <Text style={{ color: '#fff', fontSize: 36, fontWeight: '800', fontVariant: ['tabular-nums'] as any, letterSpacing: -1 }}>{mm}:{ss}</Text>
+      <View style={{ width: 300, height: 300, alignItems: 'center', justifyContent: 'center' }}>
+        {/* Continuous expanding ripples — staggered so a new wave is always rising */}
+        <Ripple delay={0}    size={300} />
+        <Ripple delay={1200} size={300} />
+        <Ripple delay={2400} size={300} />
+        {/* soft filled halos */}
+        <View style={{ position: 'absolute', width: 240, height: 240, borderRadius: 120, backgroundColor: '#0A84FF12' }} />
+        <View style={{ position: 'absolute', width: 190, height: 190, borderRadius: 95, backgroundColor: '#0A84FF1C' }} />
+        {/* breathing core with countdown */}
+        <Animated.View style={[{ width: 150, height: 150, borderRadius: 75, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowColor: '#0A84FF', shadowOpacity: 0.6, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }, aPulse]}>
+          <LinearGradient colors={['#0A84FF', '#5E5CE6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', width: 150, height: 150 }} />
+          <Text style={{ color: '#fff', fontSize: 38, fontWeight: '800', fontVariant: ['tabular-nums'] as any, letterSpacing: -1 }}>{mm}:{ss}</Text>
         </Animated.View>
       </View>
 
       <View style={{ height: 6, width: '100%', borderRadius: 6, backgroundColor: t.border, overflow: 'hidden' }}>
         <View style={{ width: `${pct * 100}%`, height: '100%', backgroundColor: '#0A84FF', borderRadius: 6 }} />
       </View>
-      <Text style={{ color: t.textDim, fontSize: 13, textAlign: 'center' }}>
-        {ru ? 'Просто оставайся здесь. Ничего делать не нужно.' : 'Just stay here. You don\'t need to do anything.'}
+      <Text style={{ color: t.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20, paddingHorizontal: 8 }}>
+        {ru ? 'Просто смотри на волны и дыши. Делать ничего не нужно — тяга пройдёт сама.'
+            : 'Just watch the waves and breathe. Do nothing — the urge passes on its own.'}
       </Text>
 
       <Pressable onPress={onBack} hitSlop={10} style={{ paddingVertical: 8 }}>

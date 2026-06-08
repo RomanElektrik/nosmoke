@@ -142,15 +142,16 @@ function BreathOrb({
           { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aHalo,
         ]} />
 
-        {/* Three concentric ripple rings — staggered scale gives the "breathing water" feel */}
+        {/* Three soft filled layers — staggered scale gives a smooth "breathing
+            water" swell, no hard 1px rings (those looked cheap). */}
         <Animated.View style={[
-          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, borderWidth: 1, borderColor: color }, aRing1,
+          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aRing1,
         ]} />
         <Animated.View style={[
-          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, borderWidth: 1, borderColor: color }, aRing2,
+          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aRing2,
         ]} />
         <Animated.View style={[
-          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, borderWidth: 1, borderColor: color }, aRing3,
+          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aRing3,
         ]} />
 
         {/* SVG session-progress ring (static, just the dashoffset animates) */}

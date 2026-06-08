@@ -145,9 +145,6 @@ export default function Home() {
         {/* Goal card (if set) — animated piggy bank progress */}
         <GoalCard />
 
-        {/* Path — your current method (label is inside the card) */}
-        <View style={{ marginTop: 14 }} />
-
         {/* Pending start banner */}
         {p.pendingMethod && p.pendingQuitDate && p.pendingQuitDate > Date.now() && (() => {
           const newStep = getStep(p.pendingMethod);
