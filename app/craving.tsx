@@ -96,58 +96,49 @@ export default function Craving() {
           const due = nextDueDose(state);
           const med = state.profile?.medication;
           const medName = med ? (ru ? MED_SAFETY[med].nameRu : MED_SAFETY[med].nameEn) : '';
-          const hasContext = !!planForNow || !!due;
 
           return (
             <>
-              {/* ── HERO: wave timer ── */}
+              {/* ── HERO: the one obvious thing — wait out the wave ── */}
               <Pressable
                 onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setPhase('wave'); }}
-                style={({ pressed }) => ({ borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.94 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] })}>
-                <LinearGradient colors={['#0A84FF', '#5E5CE6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                  style={{ padding: 20, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF26', borderWidth: 1.5, borderColor: '#FFFFFF40', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon.waves size={28} color="#fff" />
+                style={({ pressed }) => ({ borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.95 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] })}>
+                <LinearGradient colors={['#0A84FF', '#5E5CE6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1.1 }}
+                  style={{ padding: 24, gap: 18 }}>
+                  {/* soft decorative wave behind */}
+                  <View style={{ position: 'absolute', top: -50, right: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: '#FFFFFF14' }} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                    <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF26', borderWidth: 1.5, borderColor: '#FFFFFF45', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon.waves size={32} color="#fff" />
+                    </View>
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800', letterSpacing: -0.5 }}>{ru ? 'Переждать волну' : 'Ride the wave'}</Text>
+                      <Text style={{ color: '#FFFFFFDD', fontSize: 14, lineHeight: 19 }}>{ru ? '3 минуты — и тяга уходит сама. Просто смотри и дыши.' : '3 minutes and the urge passes. Just watch and breathe.'}</Text>
+                    </View>
                   </View>
-                  <View style={{ flex: 1, gap: 3 }}>
-                    <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Переждать волну' : 'Ride the wave'}</Text>
-                    <Text style={{ color: '#FFFFFFD9', fontSize: 13, lineHeight: 18 }}>{ru ? '3 минуты — и тяга пройдёт сама' : '3 minutes — the urge passes on its own'}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FFFFFF26', borderRadius: 14, paddingVertical: 13 }}>
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>{ru ? 'Начать' : 'Start'}</Text>
+                    <Icon.arrowRight size={18} color="#fff" />
                   </View>
-                  <Icon.arrowRight size={20} color="#FFFFFFCC" />
                 </LinearGradient>
               </Pressable>
 
-              {/* ── Quick secondary actions ── */}
-              <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
-                <QuickTile t={t} icon={Icon.play} color="#BF5AF2"
-                  title={ru ? 'Отвлечься' : 'Distract'} sub={ru ? 'мини-игра' : 'mini-game'}
-                  onPress={() => { Haptics.selectionAsync(); router.push('/game'); }} />
-                {state.profile?.faithEnabled ? (
-                  <QuickTile t={t} icon={Icon.cross} color="#FF9500"
-                    title={ru ? 'Помолиться' : 'Pray'} sub={ru ? 'минута с Богом' : 'a minute with God'}
-                    onPress={() => { Haptics.selectionAsync(); router.push('/faith'); }} />
-                ) : (
-                  <QuickTile t={t} icon={Icon.chat} color="#30D158"
-                    title={ru ? 'Написать' : 'Message'} sub={ru ? 'мне написать' : 'tap to chat'}
-                    onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support' as any); }} />
-                )}
-              </View>
-
-              {/* ── CONTEXT: your plan + due dose (only when present) ── */}
-              {hasContext && <SectionLabel t={t} text={ru ? 'Под рукой' : 'On hand'} />}
-
+              {/* ── Your personal plan — the most valuable thing in a craving ── */}
               {planForNow && (
-                <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, borderLeftWidth: 3, borderLeftColor: t.accent, gap: 6 }}>
-                  <Text style={{ color: t.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-                    {ru ? 'Твой план' : 'Your plan'}{planForNow.category ? ` · ${triggerLabel(planForNow.category, ru ? 'ru' : 'en')}` : ''}
-                  </Text>
-                  <Text style={{ color: t.text, fontSize: 15, lineHeight: 22 }}>
-                    <Text style={{ color: t.accent, fontWeight: '700' }}>{ru ? 'Если ' : 'If '}</Text>
-                    {planForNow.trigger}
-                    <Text style={{ color: t.warn, fontWeight: '700' }}>{ru ? ' → то ' : ' → then '}</Text>
-                    {planForNow.action}
-                  </Text>
-                </View>
+                <Pressable onPress={() => { Haptics.selectionAsync(); planForNow.action && router.push('/chat?mode=support' as any); }}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
+                  <View style={{ padding: 18, borderRadius: radius.lg, backgroundColor: t.accent + '14', borderWidth: 1, borderColor: t.accent + '4D', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Icon.check size={16} color={t.accent} />
+                      <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                        {ru ? 'Твой план' : 'Your plan'}{planForNow.category ? ` · ${triggerLabel(planForNow.category, ru ? 'ru' : 'en')}` : ''}
+                      </Text>
+                    </View>
+                    <Text style={{ color: t.text, fontSize: 17, lineHeight: 24, fontWeight: '600' }}>
+                      {planForNow.action}
+                    </Text>
+                  </View>
+                </Pressable>
               )}
 
               {due && (
@@ -157,33 +148,30 @@ export default function Craving() {
                   onPress={() => router.push('/meds')} />
               )}
 
-              {/* ── Audio practice: «Когда накрыло» → voiced player ── */}
-              <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/audio/calm_now' as any); }}
-                style={({ pressed }) => ({ borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.93 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
-                <LinearGradient colors={['#5AC8FA', '#0A84FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                  style={{ padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#FFFFFF26', borderWidth: 1.5, borderColor: '#FFFFFF40', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon.lungs size={26} color="#fff" />
-                  </View>
-                  <View style={{ flex: 1, gap: 3 }}>
-                    <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Когда накрыло' : 'When it hits hard'}</Text>
-                    <Text style={{ color: '#FFFFFFD9', fontSize: 12.5, lineHeight: 17 }}>{ru ? 'Голос проведёт через тягу — просто слушай' : 'A voice walks you through — just listen'}</Text>
-                  </View>
-                  <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
-                    <View style={{ width: 0, height: 0, borderTopWidth: 7, borderBottomWidth: 7, borderLeftWidth: 12, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#0A84FF', marginLeft: 3 }} />
-                  </View>
-                </LinearGradient>
-              </Pressable>
+              {/* ── Quiet row of alternatives — all equal weight, low noise ── */}
+              <SectionLabel t={t} text={ru ? 'Если нужно иначе' : 'Or try' } />
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <MiniTile t={t} icon={Icon.lungs} color="#5AC8FA"
+                  title={ru ? 'Слушать' : 'Listen'} sub={ru ? 'голос' : 'voice'}
+                  onPress={() => { Haptics.selectionAsync(); router.push('/audio/calm_now' as any); }} />
+                <MiniTile t={t} icon={Icon.play} color="#BF5AF2"
+                  title={ru ? 'Отвлечься' : 'Distract'} sub={ru ? 'игра' : 'game'}
+                  onPress={() => { Haptics.selectionAsync(); router.push('/game'); }} />
+                {state.profile?.faithEnabled ? (
+                  <MiniTile t={t} icon={Icon.cross} color="#FF9500"
+                    title={ru ? 'Молитва' : 'Pray'} sub={ru ? 'минута' : 'a minute'}
+                    onPress={() => { Haptics.selectionAsync(); router.push('/faith'); }} />
+                ) : (
+                  <MiniTile t={t} icon={Icon.chat} color="#30D158"
+                    title={ru ? 'Написать' : 'Message'} sub={ru ? 'мне' : 'me'}
+                    onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support' as any); }} />
+                )}
+              </View>
 
+              {/* ── Logging is post-hoc — quiet link, not a competing button ── */}
               <Pressable onPress={() => { Haptics.selectionAsync(); setPhase('log'); }}
-                style={({ pressed }) => ({
-                  padding: 17, marginTop: 8, borderRadius: radius.lg,
-                  backgroundColor: t.accentSoft, borderWidth: 1.5, borderColor: t.accent + '66',
-                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  opacity: pressed ? 0.8 : 1,
-                })}>
-                <Icon.check size={20} color={t.accent} />
-                <Text style={{ color: t.accent, fontWeight: '800', fontSize: 15.5 }}>{ru ? 'Отметить, чем закончилось' : 'Log how it ended'}</Text>
+                style={({ pressed }) => ({ paddingVertical: 14, marginTop: 4, alignItems: 'center', opacity: pressed ? 0.6 : 1 })}>
+                <Text style={{ color: t.textDim, fontWeight: '600', fontSize: 14 }}>{ru ? 'Отметить, чем закончилось' : 'Log how it ended'}</Text>
               </Pressable>
             </>
           );
@@ -373,22 +361,23 @@ function SectionLabel({ t, text }: { t: Theme; text: string }) {
   );
 }
 
-function QuickTile({ t, icon: I, color, title, sub, onPress }: {
+// Compact equal-weight tile — used for the low-noise row of alternatives.
+function MiniTile({ t, icon: I, color, title, sub, onPress }: {
   t: Theme; icon: IconC; color: string; title: string; sub: string; onPress: () => void;
 }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={title}
       style={({ pressed }) => ({
-        flex: 1, padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev,
-        borderWidth: 1, borderColor: t.border, gap: 12, minHeight: 112,
+        flex: 1, paddingVertical: 14, paddingHorizontal: 8, borderRadius: radius.lg, backgroundColor: t.bgElev,
+        borderWidth: 1, borderColor: t.border, alignItems: 'center', gap: 8, minHeight: 96,
         opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.98 : 1 }],
       })}>
-      <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: color + '24', alignItems: 'center', justifyContent: 'center' }}>
-        <I size={26} color={color} />
+      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: color + '24', alignItems: 'center', justifyContent: 'center' }}>
+        <I size={24} color={color} />
       </View>
-      <View style={{ gap: 3 }}>
-        <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>{title}</Text>
-        <Text style={{ color: t.textDim, fontSize: 12.5 }}>{sub}</Text>
+      <View style={{ alignItems: 'center', gap: 1 }}>
+        <Text style={{ color: t.text, fontSize: 14, fontWeight: '700' }}>{title}</Text>
+        <Text style={{ color: t.textDim, fontSize: 11.5 }}>{sub}</Text>
       </View>
     </Pressable>
   );
