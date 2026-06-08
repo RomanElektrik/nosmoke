@@ -68,7 +68,6 @@ export function WaterCircle({
 
   const frontProps = useAnimatedProps(() => ({ d: build(p1.value, fill.value, amp, periods, true) }));
   const backProps = useAnimatedProps(() => ({ d: build(-p2.value, fill.value, amp * 0.7, periods + 0.6, true) }));
-  const crestProps = useAnimatedProps(() => ({ d: build(p1.value, fill.value, amp, periods, false) }));
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -83,8 +82,6 @@ export function WaterCircle({
         <Rect x={0} y={0} width={size} height={size} rx={size / 2} fill={color} opacity={0.12} clipPath="url(#wc-clip)" />
         <APath animatedProps={backProps} fill={back} opacity={0.5} clipPath="url(#wc-clip)" />
         <APath animatedProps={frontProps} fill="url(#wc-front)" clipPath="url(#wc-clip)" />
-        {/* crisp waterline crest */}
-        <APath animatedProps={crestProps} fill="none" stroke="#FFFFFF" strokeOpacity={0.85} strokeWidth={2.5} strokeLinecap="round" clipPath="url(#wc-clip)" />
         <Circle cx={size / 2} cy={size / 2} r={size / 2 - 1} fill="none" stroke={color} strokeOpacity={0.6} strokeWidth={2} />
       </Svg>
       {children}

@@ -654,7 +654,7 @@ function MethodCard() {
             <Text style={{ color: step.color, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
               {lang === 'ru' ? 'Твой путь' : 'Your path'}
             </Text>
-            <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', marginTop: 2, letterSpacing: -0.3 }} numberOfLines={1}>
+            <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', marginTop: 2, letterSpacing: -0.3 }} numberOfLines={2}>
               {lang === 'ru' ? step.titleRu : step.titleEn}
             </Text>
             <Text style={{ color: t.textDim, fontSize: 13, marginTop: 2 }}>
@@ -733,10 +733,56 @@ function MedicationCard() {
     );
   }
 
-  const medInfo = todayDoses(state, lang);
-  if (medInfo.schedule.length === 0) return null;
   const medColor = med === 'cytisine' ? t.accent : med === 'bupropion' ? t.warn : t.info;
   const medName = med === 'cytisine' ? 'Цитизин' : med === 'bupropion' ? 'Бупропион' : 'Варениклин';
+
+  async function stopMed() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    await update((s) => ({
+      ...s,
+      profile: s.profile ? { ...s.profile, medication: undefined, medicationStartedAt: undefined } : s.profile,
+    }));
+  }
+
+  // Path no longer involves this drug (e.g. switched to a behavioural step, or
+  // a different medication). Don't silently keep showing "take your dose" for a
+  // course that isn't part of the current path — offer a one-tap way to end it.
+  const expectedNow = stepId ? expectedMedForStep(stepId) : null;
+  if (med && expectedNow !== med) {
+    return (
+      <View style={{
+        padding: 16, borderRadius: radius.lg,
+        backgroundColor: t.card, borderWidth: 1, borderColor: medColor + '50', borderLeftWidth: 3, borderLeftColor: medColor, gap: 12,
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: medColor + '20', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon.shield size={22} color={medColor} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>
+              {lang === 'ru' ? `Ещё принимаешь ${medName}?` : `Still taking ${medName}?`}
+            </Text>
+            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2, lineHeight: 17 }}>
+              {lang === 'ru' ? 'Твой путь сменился и больше не включает этот препарат.' : 'Your path changed and no longer includes this medication.'}
+            </Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Pressable onPress={() => router.push('/meds')}
+            style={({ pressed }) => ({ flex: 1, paddingVertical: 11, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, alignItems: 'center', opacity: pressed ? 0.7 : 1 })}>
+            <Text style={{ color: t.text, fontWeight: '700', fontSize: 13.5 }}>{lang === 'ru' ? 'Продолжаю курс' : 'Continue course'}</Text>
+          </Pressable>
+          <Pressable onPress={stopMed}
+            style={({ pressed }) => ({ flex: 1, paddingVertical: 11, borderRadius: radius.md, backgroundColor: medColor, alignItems: 'center', opacity: pressed ? 0.85 : 1 })}>
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13.5 }}>{lang === 'ru' ? 'Я уже не принимаю' : 'I stopped'}</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  const medInfo = todayDoses(state, lang);
+  if (medInfo.schedule.length === 0) return null;
 
   return (
     <Pressable onPress={() => router.push('/meds')}>
