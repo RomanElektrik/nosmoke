@@ -6,6 +6,9 @@ import { StatusBar } from 'expo-status-bar';
 import { loadState, update, useAppState } from '../lib/storage';
 import { useTheme } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
+import { computeInsights } from '../lib/insights';
+import { scheduleCravingNudge } from '../lib/notifications';
+import { currentLang } from '../lib/i18n';
 import '../lib/i18n';
 
 export default function Root() {
@@ -31,6 +34,13 @@ export default function Root() {
           } : prev.profile,
         }));
       }
+      // Re-schedule the personal craving nudge from the latest logged data.
+      try {
+        if (s.profile?.onboardingComplete) {
+          const ins = computeInsights(s.cravings ?? []);
+          await scheduleCravingNudge(ins.peakHourStart, currentLang());
+        }
+      } catch {}
       setReady(true);
     });
   }, []);
@@ -94,6 +104,8 @@ export default function Root() {
         <Stack.Screen name="audio/[id]" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="day/[day]" />
         <Stack.Screen name="coping" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
+        <Stack.Screen name="insights" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
+        <Stack.Screen name="reasons" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
       </Stack>
     </GestureHandlerRootView>
   );

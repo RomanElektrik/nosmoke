@@ -164,3 +164,27 @@ export async function scheduleDailyCheckIn(locale: 'ru' | 'en', checkInHour: num
     });
   }
 }
+
+// Proactive, data-driven nudge: fires ~10 min before the user's personal peak
+// craving window (computed from their logged cravings). A fixed identifier so
+// re-scheduling on each app open replaces it instead of stacking duplicates.
+export async function scheduleCravingNudge(peakHourStart: number | null, locale: 'ru' | 'en') {
+  const id = 'craving-nudge';
+  try { await Notifications.cancelScheduledNotificationAsync(id); } catch {}
+  if (peakHourStart == null) return;
+  let hour = peakHourStart, minute = -10;
+  if (minute < 0) { minute += 60; hour = (hour + 23) % 24; }
+  const t: T = (ru, en) => (locale === 'ru' ? ru : en);
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier: id,
+      content: {
+        title: t('Скоро твоё время тяги', 'Your craving window is near'),
+        body: t('Обычно сейчас тянет — и обычно ты держишься. Под рукой: холодная вода и пара вдохов.',
+                'You usually crave now — and usually you hold. Cold water and a few breaths help.'),
+        data: { route: '/craving' },
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
+    });
+  } catch {}
+}

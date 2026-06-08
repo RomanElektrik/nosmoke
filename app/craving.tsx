@@ -174,6 +174,25 @@ export default function Craving() {
                 );
               })()}
 
+              {/* ── Remember why — personal reasons in the craving moment ── */}
+              {(() => {
+                const reasons = state.profile?.reasons ?? (state.profile?.whyQuit ? [state.profile.whyQuit] : []);
+                if (reasons.length === 0) return null;
+                return (
+                  <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/reasons' as any); }}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
+                    <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.accent + '10', borderWidth: 1, borderColor: t.accent + '33', gap: 8 }}>
+                      <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                        {ru ? 'Ты держишься ради' : 'You\'re holding on for'}
+                      </Text>
+                      {reasons.slice(0, 2).map((r, i) => (
+                        <Text key={i} style={{ color: t.text, fontSize: 16, fontWeight: '600', lineHeight: 22 }}>• {r}</Text>
+                      ))}
+                    </View>
+                  </Pressable>
+                );
+              })()}
+
               {/* ── Quiet row of alternatives — all equal weight, low noise ── */}
               <SectionLabel t={t} text={ru ? 'Если нужно иначе' : 'Or try' } />
               <View style={{ flexDirection: 'row', gap: 10 }}>

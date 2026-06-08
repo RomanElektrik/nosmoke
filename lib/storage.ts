@@ -81,6 +81,8 @@ export type Profile = {
   // Personal SOS toolkit: ids of quick craving-busters the user picked as
   // "what works for me" (see lib/coping.ts). Shown as chips in the SOS screen.
   copingMethods?: string[];
+  // "Why I'm quitting" board — personal reasons shown in SOS and mornings.
+  reasons?: string[];
 };
 
 export type HealthFlag =
