@@ -409,7 +409,10 @@ export default function Transition() {
             ...(isImmediate ? {
               currentStep: pickedMethod,
               stepEnteredAt: startMs,
-              quitDate: startMs,
+              // NOTE: quitDate is intentionally NOT reset. Clean time = continuous
+              // abstinence; switching support method doesn't mean you smoked.
+              // (Consistent with «streak never resets on a slip».) stepEnteredAt
+              // tracks time-on-this-step separately.
               pendingMethod: undefined,
               pendingQuitDate: undefined,
               pendingPrep: prep,
