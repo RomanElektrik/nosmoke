@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, {
-  useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, withRepeat, withSequence, Easing,
+  useSharedValue, useAnimatedStyle, useAnimatedProps, useDerivedValue, withTiming, withRepeat, withSequence, Easing,
 } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
-import Svg, { Circle, Defs, RadialGradient as SvgRadialGradient, Stop } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
+import { WaterCircle } from '../../components/WaterCircle';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -98,31 +99,17 @@ function BreathOrb({
     );
   }, []);
 
-  // Multi-layer breathing orb with concentric "ripple" rings — each ring's
-  // scale lags behind the breath, so they expand and collapse like ripples,
-  // not one flat circle. Soft outer halo, sharper inner core.
+  // The orb is a glass of living water: the level rises on the inhale and
+  // drains on the exhale (mapped from the breath `scale`), two sine surfaces
+  // drift, and a soft halo glows behind. A session-progress ring sits on top.
   const aHalo = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value * 1.55 * shimmer.value }],
-    opacity: 0.05 + scale.value * 0.07,
+    transform: [{ scale: 0.92 + scale.value * 0.5 * shimmer.value }],
+    opacity: 0.06 + scale.value * 0.08,
   }));
-  const aRing1 = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value * 1.34 }],
-    opacity: 0.12 + scale.value * 0.10,
-  }));
-  const aRing2 = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value * 1.16 }],
-    opacity: 0.20 + scale.value * 0.12,
-  }));
-  const aRing3 = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value * 1.02 }],
-    opacity: 0.32 + scale.value * 0.18,
-  }));
-  const aCore = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-  const aProgressRing = useAnimatedStyle(() => ({
-    opacity: 0.85,
-  }));
+  const fill = useDerivedValue(() => {
+    const v = (scale.value - 0.55) / (1.15 - 0.55);
+    return Math.max(0.12, Math.min(0.94, 0.14 + v * 0.78));
+  });
   const ringProps = useAnimatedProps(() => ({
     strokeDashoffset: CIRC * (1 - Math.min(1, Math.max(0, progress.value))),
   }));
@@ -137,53 +124,24 @@ function BreathOrb({
       </Text>
 
       <View style={{ alignItems: 'center', justifyContent: 'center', height: SIZE, marginTop: 6 }}>
-        {/* Outer halo (atmospheric glow) */}
+        {/* Atmospheric glow that breathes with the orb */}
         <Animated.View style={[
           { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aHalo,
         ]} />
 
-        {/* Three soft filled layers — staggered scale gives a smooth "breathing
-            water" swell, no hard 1px rings (those looked cheap). */}
-        <Animated.View style={[
-          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aRing1,
-        ]} />
-        <Animated.View style={[
-          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aRing2,
-        ]} />
-        <Animated.View style={[
-          { position: 'absolute', width: ORB, height: ORB, borderRadius: ORB / 2, backgroundColor: color }, aRing3,
-        ]} />
+        {/* Living water core — fills on inhale, drains on exhale */}
+        <WaterCircle size={ORB} fill={fill} color={color} color2="#5E5CE6" amp={8} periods={1.2} speedMs={2800} />
 
-        {/* SVG session-progress ring (static, just the dashoffset animates) */}
-        <Animated.View style={[{ position: 'absolute', width: SIZE, height: SIZE }, aProgressRing]}>
-          <Svg width={SIZE} height={SIZE}>
-            <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke={t.border} strokeWidth={2} fill="none" />
-            <AnimatedCircle
-              cx={SIZE / 2} cy={SIZE / 2} r={R}
-              stroke={color} strokeWidth={3} fill="none" strokeLinecap="round"
-              strokeDasharray={CIRC} animatedProps={ringProps}
-              transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
-            />
-          </Svg>
-        </Animated.View>
-
-        {/* Core orb — radial gradient fill, NO hard border (was making it look flat) */}
-        <Animated.View style={[
-          { width: ORB, height: ORB, borderRadius: ORB / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-          aCore,
-        ]}>
-          <Svg width={ORB} height={ORB} style={{ position: 'absolute' }}>
-            <Defs>
-              <SvgRadialGradient id="orbFill" cx="50%" cy="40%" r="68%">
-                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.55} />
-                <Stop offset="30%" stopColor={color} stopOpacity={0.55} />
-                <Stop offset="75%" stopColor={color} stopOpacity={0.25} />
-                <Stop offset="100%" stopColor={color} stopOpacity={0} />
-              </SvgRadialGradient>
-            </Defs>
-            <Circle cx={ORB / 2} cy={ORB / 2} r={ORB / 2} fill="url(#orbFill)" />
-          </Svg>
-        </Animated.View>
+        {/* SVG session-progress ring on top */}
+        <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }}>
+          <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke={t.border} strokeWidth={2} fill="none" />
+          <AnimatedCircle
+            cx={SIZE / 2} cy={SIZE / 2} r={R}
+            stroke={color} strokeWidth={3} fill="none" strokeLinecap="round"
+            strokeDasharray={CIRC} animatedProps={ringProps}
+            transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+          />
+        </Svg>
       </View>
 
       <Text style={{

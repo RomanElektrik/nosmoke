@@ -10,10 +10,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withDelay, Easing, cancelAnimation } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, cancelAnimation } from 'react-native-reanimated';
 import { useTheme, spacing, radius, type Theme } from '../lib/theme';
 import { useTranslation } from '../lib/i18n';
 import { BreathingOrb } from '../components/BreathingOrb';
+import { WaterCircle } from '../components/WaterCircle';
 import { Icon } from '../components/Icon';
 import { update, useAppState } from '../lib/storage';
 import type { Trigger } from '../lib/storage';
@@ -280,46 +281,32 @@ export default function Craving() {
 }
 
 // ── Wave timer — the hero of SOS ──
-// Mesmerising on purpose: continuously expanding ocean ripples the user can
-// stare at and "ride out" the urge, while a gentle core breathes and counts
-// down 3 minutes. The point is to be hypnotic enough to just keep watching.
-function Ripple({ delay, size }: { delay: number; size: number }) {
-  const p = useSharedValue(0);
-  useEffect(() => {
-    p.value = withDelay(delay, withRepeat(withTiming(1, { duration: 3600, easing: Easing.out(Easing.ease) }), -1, false));
-    return () => cancelAnimation(p);
-  }, []);
-  const a = useAnimatedStyle(() => ({
-    transform: [{ scale: 0.45 + p.value * 0.95 }],
-    opacity: (1 - p.value) * 0.5,
-  }));
-  return (
-    <Animated.View style={[
-      { position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: '#0A84FF' },
-      a,
-    ]} />
-  );
-}
-
+// A glass orb slowly fills with living water over 3 minutes. The water level
+// rises as the urge passes (you literally watch yourself "ride it out"), while
+// two sine surfaces drift in opposite directions so it's hypnotic to watch.
+// A soft swell halo breathes behind it.
 function WaveTimer({ onDone, onBack, ru, t }: { onDone: () => void; onBack: () => void; ru: boolean; t: Theme }) {
   const TOTAL = 180; // 3 minutes
   const [left, setLeft] = useState(TOTAL);
-  const scale = useSharedValue(1);
+  const fill = useSharedValue(0.06);
+  const swell = useSharedValue(1);
 
   useEffect(() => {
-    // Slow gentle "breath" of the core — rises and falls like a swell.
-    scale.value = withRepeat(withTiming(1.08, { duration: 4200, easing: Easing.inOut(Easing.sin) }), -1, true);
+    swell.value = withRepeat(withTiming(1.06, { duration: 4200, easing: Easing.inOut(Easing.sin) }), -1, true);
+    fill.value = withTiming(0.1, { duration: 800 });
     const id = setInterval(() => {
       setLeft((s) => {
         const next = s - 1;
-        if (next <= 0) { clearInterval(id); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setTimeout(onDone, 400); return 0; }
+        // Ease the water up smoothly each second (0.06 → ~0.96).
+        fill.value = withTiming(0.06 + (1 - next / TOTAL) * 0.9, { duration: 1000, easing: Easing.linear });
+        if (next <= 0) { clearInterval(id); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setTimeout(onDone, 500); return 0; }
         return next;
       });
     }, 1000);
-    return () => { clearInterval(id); cancelAnimation(scale); };
+    return () => { clearInterval(id); cancelAnimation(swell); cancelAnimation(fill); };
   }, []);
 
-  const aPulse = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const aSwell = useAnimatedStyle(() => ({ transform: [{ scale: swell.value }], opacity: 0.5 }));
   const passed = TOTAL - left;
   const pct = passed / TOTAL;
   const mm = String(Math.floor(left / 60)).padStart(1, '0');
@@ -331,31 +318,24 @@ function WaveTimer({ onDone, onBack, ru, t }: { onDone: () => void; onBack: () =
     : (ru ? 'Почти всё. Ты держался — и держишься.' : 'Almost done. You held on.');
 
   return (
-    <View style={{ alignItems: 'center', paddingVertical: 16, gap: 22 }}>
+    <View style={{ alignItems: 'center', paddingVertical: 16, gap: 24 }}>
       <Text style={{ color: t.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.4, textAlign: 'center', paddingHorizontal: 16 }}>
         {stage}
       </Text>
-      <View style={{ width: 300, height: 300, alignItems: 'center', justifyContent: 'center' }}>
-        {/* Continuous expanding ripples — staggered so a new wave is always rising */}
-        <Ripple delay={0}    size={300} />
-        <Ripple delay={1200} size={300} />
-        <Ripple delay={2400} size={300} />
-        {/* soft filled halos */}
-        <View style={{ position: 'absolute', width: 240, height: 240, borderRadius: 120, backgroundColor: '#0A84FF12' }} />
-        <View style={{ position: 'absolute', width: 190, height: 190, borderRadius: 95, backgroundColor: '#0A84FF1C' }} />
-        {/* breathing core with countdown */}
-        <Animated.View style={[{ width: 150, height: 150, borderRadius: 75, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowColor: '#0A84FF', shadowOpacity: 0.6, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } }, aPulse]}>
-          <LinearGradient colors={['#0A84FF', '#5E5CE6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', width: 150, height: 150 }} />
-          <Text style={{ color: '#fff', fontSize: 38, fontWeight: '800', fontVariant: ['tabular-nums'] as any, letterSpacing: -1 }}>{mm}:{ss}</Text>
-        </Animated.View>
+      <View style={{ width: 280, height: 280, alignItems: 'center', justifyContent: 'center' }}>
+        {/* breathing swell halo behind the orb */}
+        <Animated.View style={[{ position: 'absolute', width: 264, height: 264, borderRadius: 132, backgroundColor: '#0A84FF18' }, aSwell]} />
+        <WaterCircle size={236} fill={fill} color="#0A84FF" color2="#5E5CE6" amp={9} periods={1.3} speedMs={2400}>
+          <Text style={{ color: '#fff', fontSize: 46, fontWeight: '800', fontVariant: ['tabular-nums'] as any, letterSpacing: -1.5,
+            textShadowColor: '#00000055', textShadowRadius: 8, textShadowOffset: { width: 0, height: 1 } }}>
+            {mm}:{ss}
+          </Text>
+        </WaterCircle>
       </View>
 
-      <View style={{ height: 6, width: '100%', borderRadius: 6, backgroundColor: t.border, overflow: 'hidden' }}>
-        <View style={{ width: `${pct * 100}%`, height: '100%', backgroundColor: '#0A84FF', borderRadius: 6 }} />
-      </View>
       <Text style={{ color: t.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20, paddingHorizontal: 8 }}>
-        {ru ? 'Просто смотри на волны и дыши. Делать ничего не нужно — тяга пройдёт сама.'
-            : 'Just watch the waves and breathe. Do nothing — the urge passes on its own.'}
+        {ru ? 'Просто смотри, как наполняется. Делать ничего не нужно — тяга уходит сама.'
+            : 'Just watch it fill. Do nothing — the urge leaves on its own.'}
       </Text>
 
       <Pressable onPress={onBack} hitSlop={10} style={{ paddingVertical: 8 }}>
