@@ -35,7 +35,6 @@ export default function Craving() {
   const [intensity, setIntensity] = useState(6);
   const [trigger, setTrigger] = useState<Trigger | undefined>();
   const [outcome, setOutcome] = useState<'resisted' | 'smoked' | null>(null);
-  const [showAll, setShowAll] = useState(false);
   const ru = (state.profile?.language ?? 'ru') === 'ru';
 
   async function save() {
@@ -98,11 +97,6 @@ export default function Craving() {
           const med = state.profile?.medication;
           const medName = med ? (ru ? MED_SAFETY[med].nameRu : MED_SAFETY[med].nameEn) : '';
           const hasContext = !!planForNow || !!due;
-          const others: { icon: IconC; color: string; label: string; onPress: () => void }[] = [
-            { icon: Icon.lungs, color: '#5AC8FA', label: ru ? 'Подышать минуту' : 'Breathe for a minute', onPress: () => setPhase('breath') },
-            { icon: Icon.waves, color: '#0A84FF', label: ru ? 'Оседлать волну тяги' : 'Surf the urge', onPress: () => router.push('/practice/urge_surf') },
-            { icon: Icon.swap,  color: '#5AC8FA', label: tr('tech.replace.t'), onPress: () => router.push('/practice/replace') },
-          ];
 
           return (
             <>
@@ -163,36 +157,23 @@ export default function Craving() {
                   onPress={() => router.push('/meds')} />
               )}
 
-              {/* ── MORE — collapsed ── */}
-              {!showAll ? (
-                <Pressable onPress={() => { Haptics.selectionAsync(); setShowAll(true); }}
-                  style={({ pressed }) => ({ paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: pressed ? 0.6 : 1 })}>
-                  <Text style={{ color: t.textDim, fontWeight: '600', fontSize: 14 }}>
-                    {ru ? 'Ещё техники' : 'More techniques'}
-                  </Text>
-                  <Icon.chevronDown size={16} color={t.textDim} />
-                </Pressable>
-              ) : (
-                <View style={{ gap: 8 }}>
-                  {others.map((o, i) => {
-                    const I = o.icon;
-                    return (
-                      <Pressable key={i} onPress={o.onPress}
-                        style={({ pressed }) => ({
-                          padding: 12, borderRadius: radius.md, backgroundColor: t.bgElev,
-                          borderWidth: 1, borderColor: t.border, opacity: pressed ? 0.8 : 1,
-                          flexDirection: 'row', alignItems: 'center', gap: 12,
-                        })}>
-                        <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: o.color + '22', alignItems: 'center', justifyContent: 'center' }}>
-                          <I size={20} color={o.color} />
-                        </View>
-                        <Text style={{ color: t.text, fontSize: 15, flex: 1, fontWeight: '500' }}>{o.label}</Text>
-                        <Icon.arrowRight size={16} color={t.textDim} />
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              )}
+              {/* ── Audio practice: «Когда накрыло» → voiced player ── */}
+              <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/audio/calm_now' as any); }}
+                style={({ pressed }) => ({ borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.93 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+                <LinearGradient colors={['#5AC8FA', '#0A84FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={{ padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#FFFFFF26', borderWidth: 1.5, borderColor: '#FFFFFF40', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon.lungs size={26} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Когда накрыло' : 'When it hits hard'}</Text>
+                    <Text style={{ color: '#FFFFFFD9', fontSize: 12.5, lineHeight: 17 }}>{ru ? 'Голос проведёт через тягу — просто слушай' : 'A voice walks you through — just listen'}</Text>
+                  </View>
+                  <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{ width: 0, height: 0, borderTopWidth: 7, borderBottomWidth: 7, borderLeftWidth: 12, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#0A84FF', marginLeft: 3 }} />
+                  </View>
+                </LinearGradient>
+              </Pressable>
 
               <Pressable onPress={() => { Haptics.selectionAsync(); setPhase('log'); }}
                 style={({ pressed }) => ({

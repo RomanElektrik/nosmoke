@@ -14,25 +14,27 @@ import { SwipeToHome } from '../../components/SwipeToHome';
 import { PRACTICES } from '../../lib/audioPractice';
 
 const ORDER = [
-  'cyclic_sigh', 'box_breath',
-  'urge_surf', 'halt_check', 'replace',
+  'box_breath', 'cyclic_sigh',
+  'halt_check',
   'faith',
 ];
 
 // Everything not in the ORDER list above is hidden. Cognitive/pharma/
-// reference items removed — they were справка, not practices.
+// reference items removed — they were справка, not practices. urge_surf and
+// replace removed too — random text "practices" that read as filler.
 const HIDDEN = new Set<string>([
   'pharma', 'nrt', 'taper', 'fagerstrom',
   'ema', 'money', 'contract',
   'reframe', 'if_then', 'cbt',
   'mindfulness', 'grounding',
+  'urge_surf', 'replace',
 ]);
 
 // Group labels for visual sectioning
 const GROUPS: { ids: string[]; labelRu: string; labelEn: string }[] = [
-  { ids: ['cyclic_sigh', 'box_breath'],         labelRu: 'Дыхание',           labelEn: 'Breathing' },
-  { ids: ['urge_surf', 'halt_check', 'replace'], labelRu: 'В момент тяги',     labelEn: 'When the urge hits' },
-  { ids: ['faith'],                              labelRu: 'Поддержка',         labelEn: 'Support' },
+  { ids: ['box_breath', 'cyclic_sigh'], labelRu: 'Дыхание',       labelEn: 'Breathing' },
+  { ids: ['halt_check'],                labelRu: 'В момент тяги',  labelEn: 'When the urge hits' },
+  { ids: ['faith'],                     labelRu: 'Поддержка',      labelEn: 'Support' },
 ];
 
 export default function Techniques() {
@@ -84,30 +86,6 @@ export default function Techniques() {
               : 'Every technique is evidence-based — science behind each.'}
           </Text>
         </View>
-
-        {/* HERO — «Начни отсюда»: one tap into the proven winner */}
-        <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/practice/cyclic_sigh' as any); }}
-          style={({ pressed }) => ({ marginHorizontal: spacing.lg, marginBottom: spacing.md, borderRadius: radius.xl, overflow: 'hidden', transform: [{ scale: pressed ? 0.985 : 1 }] })}>
-          <LinearGradient colors={[t.accent + '2E', t.accent + '0A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={{ padding: 18, borderRadius: radius.xl, borderWidth: 1, borderColor: t.accent + '3A' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: t.accent }} />
-              <Text style={{ color: t.accent, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' }}>{lang === 'ru' ? 'Начни отсюда' : 'Start here'}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-              <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon.lungs size={28} color={t.accent} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', letterSpacing: -0.3 }}>{lang === 'ru' ? 'Подышать 5 минут' : 'Breathe for 5 min'}</Text>
-                <Text style={{ color: t.textDim, fontSize: 13, marginTop: 3, lineHeight: 18 }}>{lang === 'ru' ? 'Самый быстрый способ сбить тягу — это доказано' : 'The fastest proven way to cut a craving'}</Text>
-              </View>
-              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon.play size={20} color="#fff" />
-              </View>
-            </View>
-          </LinearGradient>
-        </Pressable>
 
         {/* Audio practices — horizontal carousel of premium voiced sessions */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: spacing.lg, marginBottom: 12, marginTop: 6 }}>

@@ -99,7 +99,7 @@ export const PRACTICES: AudioPractice[] = [
   },
   {
     id: 'sleep',
-    icon: 'meditate',
+    icon: 'sleepy',
     color: '#7E8CE0',
     titleRu: 'Уснуть без сигареты', titleEn: 'Sleep without a cigarette',
     subRu: 'Вечернее дыхание, чтобы заснуть', subEn: 'Evening breathing to fall asleep',

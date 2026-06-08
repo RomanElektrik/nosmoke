@@ -83,10 +83,10 @@ function BreathOrb({
   timeLabel: string;
 }) {
   const t = useTheme();
-  const SIZE = 300;
-  const R = 132;            // progress ring radius
+  const SIZE = 344;
+  const R = 154;            // progress ring radius
   const CIRC = 2 * Math.PI * R;
-  const ORB = 188;          // core orb diameter
+  const ORB = 232;          // core orb diameter
 
   // Gentle independent shimmer so the orb is never fully static during holds.
   const shimmer = useSharedValue(1);
@@ -224,9 +224,7 @@ function BoxBreath({ onDone }: { onDone: () => void }) {
   return (
     <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 40 }}>
       <Title icon={Icon.wind} color={COLOR} title={tr('tech.box.t')}
-        intro={lang === 'ru'
-          ? 'Вдох на 4 — пауза на 4 — выдох на 4 — пауза на 4. Следуй за кругом.'
-          : 'Inhale for 4 — hold 4 — exhale 4 — hold 4. Follow the circle.'} />
+        intro={lang === 'ru' ? 'Следуй за кругом.' : 'Follow the circle.'} />
       <View style={{ paddingVertical: 18 }}>
         <BreathOrb
           color={COLOR} scale={scale} progress={progress}
@@ -315,9 +313,7 @@ function CyclicSigh({ onDone }: { onDone: () => void }) {
   return (
     <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 40 }}>
       <Title icon={Icon.wind} color={COLOR} title={tr('tech.cyclic.t')}
-        intro={lang === 'ru'
-          ? 'Двойной вдох носом + длинный выдох ртом. Просто следуй за кругом 5 минут.'
-          : 'Double inhale through the nose + long exhale through the mouth. Just follow the circle for 5 minutes.'} />
+        intro={lang === 'ru' ? 'Следуй за кругом.' : 'Follow the circle.'} />
       <View style={{ paddingVertical: 18 }}>
         <BreathOrb
           color={COLOR} scale={scale} progress={progress}
