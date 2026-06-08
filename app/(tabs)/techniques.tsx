@@ -15,7 +15,7 @@ import { PRACTICES } from '../../lib/audioPractice';
 
 const ORDER = [
   'box_breath', 'cyclic_sigh',
-  'halt_check',
+  'if_then', 'halt_check',
   'faith',
 ];
 
@@ -25,7 +25,7 @@ const ORDER = [
 const HIDDEN = new Set<string>([
   'pharma', 'nrt', 'taper', 'fagerstrom',
   'ema', 'money', 'contract',
-  'reframe', 'if_then', 'cbt',
+  'reframe', 'cbt',
   'mindfulness', 'grounding',
   'urge_surf', 'replace',
 ]);
@@ -33,7 +33,7 @@ const HIDDEN = new Set<string>([
 // Group labels for visual sectioning
 const GROUPS: { ids: string[]; labelRu: string; labelEn: string }[] = [
   { ids: ['box_breath', 'cyclic_sigh'], labelRu: 'Дыхание',       labelEn: 'Breathing' },
-  { ids: ['halt_check'],                labelRu: 'В момент тяги',  labelEn: 'When the urge hits' },
+  { ids: ['if_then', 'halt_check'],     labelRu: 'В момент тяги',  labelEn: 'When the urge hits' },
   { ids: ['faith'],                     labelRu: 'Поддержка',      labelEn: 'Support' },
 ];
 

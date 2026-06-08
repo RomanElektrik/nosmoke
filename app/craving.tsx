@@ -125,7 +125,7 @@ export default function Craving() {
 
               {/* ── Your personal plan — the most valuable thing in a craving ── */}
               {planForNow && (
-                <Pressable onPress={() => { Haptics.selectionAsync(); planForNow.action && router.push('/chat?mode=support' as any); }}
+                <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/practice/if_then' as any); }}
                   style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
                   <View style={{ padding: 18, borderRadius: radius.lg, backgroundColor: t.accent + '14', borderWidth: 1, borderColor: t.accent + '4D', gap: 8 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -162,7 +162,7 @@ export default function Craving() {
                     title={ru ? 'Молитва' : 'Pray'} sub={ru ? 'минута' : 'a minute'}
                     onPress={() => { Haptics.selectionAsync(); router.push('/faith'); }} />
                 ) : (
-                  <MiniTile t={t} icon={Icon.chat} color="#30D158"
+                  <MiniTile t={t} icon={Icon.wave2} color="#30D158"
                     title={ru ? 'Написать' : 'Message'} sub={ru ? 'мне' : 'me'}
                     onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support' as any); }} />
                 )}
