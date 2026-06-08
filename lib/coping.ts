@@ -43,3 +43,20 @@ export const COPING_METHODS: CopingMethod[] = [
 export function copingById(id: string): CopingMethod | undefined {
   return COPING_METHODS.find((m) => m.id === id);
 }
+
+// Custom user-written methods are stored as `custom:<text>` in copingMethods.
+export const CUSTOM_PREFIX = 'custom:';
+
+export type ResolvedCoping = { id: string; label: string; hint?: string; icon: IconKey; color: string };
+
+// Resolve any stored id (preset or custom) into something renderable.
+export function resolveCoping(id: string, ru: boolean): ResolvedCoping | null {
+  if (id.startsWith(CUSTOM_PREFIX)) {
+    const label = id.slice(CUSTOM_PREFIX.length).trim();
+    if (!label) return null;
+    return { id, label, icon: 'check', color: '#0A84FF' };
+  }
+  const m = copingById(id);
+  if (!m) return null;
+  return { id, label: ru ? m.ru : m.en, hint: ru ? m.hintRu : m.hintEn, icon: m.icon, color: m.color };
+}

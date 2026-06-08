@@ -13,8 +13,6 @@ export const ROUTE_LABELS: Record<string, { ru: string; en: string; href: string
   halt_check:   { ru: 'Чек 4 нужд (HALT)',         en: 'HALT check',               href: '/practice/halt_check' },
   grounding:    { ru: 'Заземление 5-4-3-2-1',      en: 'Grounding 5-4-3-2-1',      href: '/practice/grounding' },
   reframe:      { ru: 'Переписать мысль',          en: 'Reframe a thought',        href: '/practice/reframe' },
-  if_then:      { ru: 'План «Если — то»',           en: 'If-then plan',             href: '/practice/if_then' },
-  replace:      { ru: 'Замена ритуала',             en: 'Replace ritual',          href: '/practice/replace' },
   mindfulness:  { ru: 'Осознанность 10 мин',        en: 'Mindfulness 10 min',      href: '/practice/mindfulness' },
   pharma:       { ru: 'Открыть лекарства',          en: 'Open medications',        href: '/practice/pharma' },
   fagerstrom:   { ru: 'Тест Фагерстрёма',           en: 'Fagerström test',         href: '/practice/fagerstrom' },

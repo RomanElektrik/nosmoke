@@ -21,8 +21,7 @@ import { Icon } from '../components/Icon';
 import { update, useAppState } from '../lib/storage';
 import type { Trigger } from '../lib/storage';
 import { nextDueDose, MED_SAFETY } from '../lib/medication';
-import { triggerLabel, relevantPlan } from '../lib/identity';
-import { copingById } from '../lib/coping';
+import { resolveCoping } from '../lib/coping';
 
 type Phase = 'choose' | 'wave' | 'breath' | 'log' | 'win';
 type IconC = ComponentType<{ size?: number; color?: string }>;
@@ -93,7 +92,6 @@ export default function Craving() {
 
         {/* ───────────────────────── CHOOSE ───────────────────────── */}
         {phase === 'choose' && (() => {
-          const planForNow = relevantPlan(state.ifThens ?? [], state.cravings);
           const due = nextDueDose(state);
           const med = state.profile?.medication;
           const medName = med ? (ru ? MED_SAFETY[med].nameRu : MED_SAFETY[med].nameEn) : '';
@@ -124,24 +122,6 @@ export default function Craving() {
                 </LinearGradient>
               </Pressable>
 
-              {/* ── Your personal plan — the most valuable thing in a craving ── */}
-              {planForNow && (
-                <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/practice/if_then' as any); }}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
-                  <View style={{ padding: 18, borderRadius: radius.lg, backgroundColor: t.accent + '14', borderWidth: 1, borderColor: t.accent + '4D', gap: 8 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Icon.check size={16} color={t.accent} />
-                      <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                        {ru ? 'Твой план' : 'Your plan'}{planForNow.category ? ` · ${triggerLabel(planForNow.category, ru ? 'ru' : 'en')}` : ''}
-                      </Text>
-                    </View>
-                    <Text style={{ color: t.text, fontSize: 17, lineHeight: 24, fontWeight: '600' }}>
-                      {planForNow.action}
-                    </Text>
-                  </View>
-                </Pressable>
-              )}
-
               {due && (
                 <ContextRow t={t} icon={Icon.pill} color={t.info}
                   title={ru ? `Прими дозу · ${medName}` : `Take your dose · ${medName}`}
@@ -151,7 +131,7 @@ export default function Craving() {
 
               {/* ── Personal toolkit: what works for this user ── */}
               {(() => {
-                const mine = (state.profile?.copingMethods ?? []).map(copingById).filter(Boolean) as NonNullable<ReturnType<typeof copingById>>[];
+                const mine = (state.profile?.copingMethods ?? []).map((id) => resolveCoping(id, ru)).filter(Boolean) as NonNullable<ReturnType<typeof resolveCoping>>[];
                 if (mine.length === 0) {
                   return (
                     <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/coping' as any); }}
@@ -186,7 +166,7 @@ export default function Craving() {
                           <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: m.color + '26', alignItems: 'center', justifyContent: 'center' }}>
                             <I size={22} color={m.color} />
                           </View>
-                          <Text style={{ color: t.text, fontSize: 15, fontWeight: '600', flex: 1 }}>{ru ? m.ru : m.en}</Text>
+                          <Text style={{ color: t.text, fontSize: 15, fontWeight: '600', flex: 1 }}>{m.label}</Text>
                         </View>
                       );
                     })}
@@ -208,7 +188,7 @@ export default function Craving() {
                     title={ru ? 'Молитва' : 'Pray'} sub={ru ? 'минута' : 'a minute'}
                     onPress={() => { Haptics.selectionAsync(); router.push('/faith'); }} />
                 ) : (
-                  <MiniTile t={t} icon={Icon.wave2} color="#30D158"
+                  <MiniTile t={t} icon={Icon.chat} color="#30D158"
                     title={ru ? 'Написать' : 'Message'} sub={ru ? 'мне' : 'me'}
                     onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support' as any); }} />
                 )}

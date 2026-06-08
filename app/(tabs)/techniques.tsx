@@ -15,17 +15,17 @@ import { PRACTICES } from '../../lib/audioPractice';
 
 const ORDER = [
   'box_breath', 'cyclic_sigh',
-  'if_then', 'halt_check',
+  'halt_check',
   'faith',
 ];
 
 // Everything not in the ORDER list above is hidden. Cognitive/pharma/
-// reference items removed — they were справка, not practices. urge_surf and
-// replace removed too — random text "practices" that read as filler.
+// reference items removed — they were справка, not practices. urge_surf,
+// replace and if_then removed — filler / replaced by the personal SOS toolkit.
 const HIDDEN = new Set<string>([
   'pharma', 'nrt', 'taper', 'fagerstrom',
   'ema', 'money', 'contract',
-  'reframe', 'cbt',
+  'reframe', 'cbt', 'if_then',
   'mindfulness', 'grounding',
   'urge_surf', 'replace',
 ]);
@@ -33,7 +33,7 @@ const HIDDEN = new Set<string>([
 // Group labels for visual sectioning
 const GROUPS: { ids: string[]; labelRu: string; labelEn: string }[] = [
   { ids: ['box_breath', 'cyclic_sigh'], labelRu: 'Дыхание',       labelEn: 'Breathing' },
-  { ids: ['if_then', 'halt_check'],     labelRu: 'В момент тяги',  labelEn: 'When the urge hits' },
+  { ids: ['halt_check'],                labelRu: 'В момент тяги',  labelEn: 'When the urge hits' },
   { ids: ['faith'],                     labelRu: 'Поддержка',      labelEn: 'Support' },
 ];
 

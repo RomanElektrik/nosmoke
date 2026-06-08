@@ -234,12 +234,13 @@ export const Icon = {
 
   // Two lungs with central airway.
   lungs: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
-    <G {...stroke(color, 1.8)}>
+    <G {...stroke(color, 1.7)}>
+      {/* trachea + two bronchi (the Y that makes it read as lungs, not eggs) */}
       <Path d="M12 4v6" />
-      <Path d="M9.5 7.5h5" />
-      {/* two outward-bulging lobes */}
-      <Path d="M11.5 9C8 9 5.5 12 5.5 16c0 2.5 1 3.5 2.5 3.5 2 0 3.5-2 3.5-5V9Z" />
-      <Path d="M12.5 9C16 9 18.5 12 18.5 16c0 2.5-1 3.5-2.5 3.5-2 0-3.5-2-3.5-5V9Z" />
+      <Path d="M12 10c0-1.4-1-2.4-2.5-2.5M12 10c0-1.4 1-2.4 2.5-2.5" />
+      {/* left & right lobes — inner edge near the stem, bulge outward+down */}
+      <Path d="M9.5 7.5C7 9 5.5 12.5 6 16.5c.2 1.8 1.8 2.6 3.1 1.7.9-.6 1.4-1.8 1.4-3.2V9.5C10.5 8.4 10 7.6 9.5 7.5Z" />
+      <Path d="M14.5 7.5C17 9 18.5 12.5 18 16.5c-.2 1.8-1.8 2.6-3.1 1.7-.9-.6-1.4-1.8-1.4-3.2V9.5C13.5 8.4 14 7.6 14.5 7.5Z" />
     </G>, size),
 
   // Headphones — audio / listen tiles.

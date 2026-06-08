@@ -15,7 +15,7 @@ import { FREE_AI_DAILY_LIMIT, aiRemainingToday, todayKey, usePremium } from '../
 import { extractLinks, stripLinks } from '../lib/aiLinks';
 
 const MODE_META: Record<CoachMode, { icon: IconKey; color: string; ru: string; en: string }> = {
-  support:      { icon: 'wave2',   color: '#0A84FF', ru: 'Поддержи сейчас', en: 'Support now' },
+  support:      { icon: 'chat',    color: '#0A84FF', ru: 'Поддержи сейчас', en: 'Support now' },
   analyze_slip: { icon: 'feather', color: '#FF9500', ru: 'Разбери срыв',    en: 'Analyze a slip' },
   daily_task:   { icon: 'spark',   color: '#30D158', ru: 'Задание на день', en: 'Task for today' },
 };

@@ -3,14 +3,14 @@
 // personal, not generic. Reachable from onboarding and from SOS.
 
 import { useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { useAppState, update } from '../lib/storage';
 import { Icon } from '../components/Icon';
-import { COPING_METHODS } from '../lib/coping';
+import { COPING_METHODS, CUSTOM_PREFIX } from '../lib/coping';
 
 export default function Coping() {
   const t = useTheme();
@@ -18,10 +18,20 @@ export default function Coping() {
   const [state] = useAppState();
   const ru = (state.profile?.language ?? 'ru') === 'ru';
   const [picked, setPicked] = useState<string[]>(state.profile?.copingMethods ?? []);
+  const [draft, setDraft] = useState('');
+  const customs = picked.filter((id) => id.startsWith(CUSTOM_PREFIX));
 
   function toggle(id: string) {
     Haptics.selectionAsync();
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  }
+
+  function addCustom() {
+    const text = draft.trim();
+    if (!text) return;
+    Haptics.selectionAsync();
+    setPicked((p) => [...p, CUSTOM_PREFIX + text]);
+    setDraft('');
   }
 
   async function save() {
@@ -77,6 +87,33 @@ export default function Coping() {
               </Pressable>
             );
           })}
+
+          {/* User's own custom methods */}
+          {customs.map((id) => (
+            <View key={id} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: radius.lg, backgroundColor: '#0A84FF1A', borderWidth: 1.5, borderColor: '#0A84FF' }}>
+              <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: '#0A84FF24', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon.check size={24} color="#0A84FF" />
+              </View>
+              <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', flex: 1 }}>{id.slice(CUSTOM_PREFIX.length)}</Text>
+              <Pressable onPress={() => toggle(id)} hitSlop={10} style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border }}>
+                <Icon.close size={14} color={t.textDim} />
+              </Pressable>
+            </View>
+          ))}
+
+          {/* Add your own */}
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+            <TextInput
+              value={draft} onChangeText={setDraft}
+              placeholder={ru ? 'Свой приём…' : 'Your own move…'} placeholderTextColor={t.textDim}
+              onSubmitEditing={addCustom} returnKeyType="done"
+              style={{ flex: 1, backgroundColor: t.bgElev, color: t.text, paddingHorizontal: 14, paddingVertical: 13, borderRadius: radius.lg, borderWidth: 1, borderColor: t.border, fontSize: 15 }}
+            />
+            <Pressable onPress={addCustom} disabled={!draft.trim()}
+              style={({ pressed }) => ({ width: 52, borderRadius: radius.lg, backgroundColor: draft.trim() ? t.accent : t.border, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.85 : 1 })}>
+              <Text style={{ color: '#fff', fontSize: 26, fontWeight: '700', marginTop: -2 }}>+</Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
 
