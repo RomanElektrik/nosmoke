@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform, Share } from 'react-native';
+import { ScrollView, View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform, Share, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,9 @@ import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
 import { Icon } from '../components/Icon';
+import { pickPhoto } from '../lib/media';
+
+const GOAL_EMOJIS = ['🐷', '💍', '🚗', '🏠', '✈️', '🏖️', '🎮', '💻', '📱', '👟', '🎓', '🚲', '🎁', '❤️', '🐶', '📷'];
 
 const SUGGESTIONS_RU = [
   { label: 'AirPods Pro', amount: 24990 },
@@ -37,6 +40,13 @@ export default function Goal() {
   const [amount, setAmount] = useState(p?.goalAmount ? String(p.goalAmount) : '');
   const [committed, setCommitted] = useState(p?.committedAmount ? String(p.committedAmount) : '');
   const [partner, setPartner] = useState(p?.contractPartner ?? '');
+  const [emoji, setEmoji] = useState(p?.goalEmoji ?? '🐷');
+  const [photo, setPhoto] = useState<string | undefined>(p?.goalPhoto);
+
+  async function choosePhoto() {
+    const uri = await pickPhoto();
+    if (uri) { Haptics.selectionAsync(); setPhoto(uri); }
+  }
 
   if (!p) return null;
   const suggestions = lang === 'ru' ? SUGGESTIONS_RU : SUGGESTIONS_EN;
@@ -49,6 +59,8 @@ export default function Goal() {
         ...s.profile,
         goalLabel: label.trim(),
         goalAmount: Number(amount) || undefined,
+        goalEmoji: emoji,
+        goalPhoto: photo,
         committedAmount: Number(committed) || undefined,
         contractPartner: partner.trim() || undefined,
       } : s.profile,
@@ -68,7 +80,7 @@ export default function Goal() {
   async function clearGoal() {
     await update((s) => ({
       ...s,
-      profile: s.profile ? { ...s.profile, goalLabel: undefined, goalAmount: undefined } : s.profile,
+      profile: s.profile ? { ...s.profile, goalLabel: undefined, goalAmount: undefined, goalEmoji: undefined, goalPhoto: undefined } : s.profile,
     }));
     router.back();
   }
@@ -87,10 +99,31 @@ export default function Goal() {
           )}
         </View>
         <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: 18, paddingBottom: 40 }}>
-          <LinearGradient colors={['#30D15838', '#30D15808']}
-            style={{ width: 96, height: 96, borderRadius: 28, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon.sparkle size={52} color="#30D158" />
-          </LinearGradient>
+          {/* Goal avatar — photo or chosen emoji, not a fixed piggy */}
+          <View style={{ alignItems: 'center', gap: 10 }}>
+            <Pressable onPress={choosePhoto}
+              style={{ width: 110, height: 110, borderRadius: 30, overflow: 'hidden', backgroundColor: '#30D15820', borderWidth: 1, borderColor: '#30D15850', alignItems: 'center', justifyContent: 'center' }}>
+              {photo
+                ? <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                : <Text style={{ fontSize: 56 }}>{emoji}</Text>}
+            </Pressable>
+            <Pressable onPress={choosePhoto} hitSlop={8}>
+              <Text style={{ color: t.accent, fontSize: 13, fontWeight: '600' }}>{photo ? (lang === 'ru' ? 'Сменить фото' : 'Change photo') : (lang === 'ru' ? '＋ Загрузить фото' : '＋ Add photo')}</Text>
+            </Pressable>
+          </View>
+
+          {/* Emoji avatar picker */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
+            {GOAL_EMOJIS.map((e) => {
+              const on = !photo && e === emoji;
+              return (
+                <Pressable key={e} onPress={() => { Haptics.selectionAsync(); setEmoji(e); setPhoto(undefined); }}
+                  style={{ width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.accent + '24' : t.bgElev, borderWidth: 1.5, borderColor: on ? t.accent : t.border }}>
+                  <Text style={{ fontSize: 24 }}>{e}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
 
           <Text style={{ color: t.text, fontSize: 30, fontWeight: '700', letterSpacing: -0.6 }}>
             {lang === 'ru' ? 'Поставь цель' : 'Set a goal'}

@@ -25,6 +25,12 @@
       "expo-secure-store",
       "expo-font",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Бриз использует фото только чтобы поставить картинку на твою цель или причину — они хранятся на устройстве."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/icon.png",

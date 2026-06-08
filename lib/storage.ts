@@ -36,6 +36,8 @@ export type Profile = {
   faithEnabled: boolean;
   goalAmount?: number;     // savings goal
   goalLabel?: string;
+  goalEmoji?: string;      // chosen avatar emoji for the jar (default 🐷)
+  goalPhoto?: string;      // optional photo uri for the goal avatar
   language?: 'ru' | 'en';
   onboardingComplete: boolean;
   openrouterKey?: string;
@@ -82,8 +84,17 @@ export type Profile = {
   // "what works for me" (see lib/coping.ts). Shown as chips in the SOS screen.
   copingMethods?: string[];
   // "Why I'm quitting" board — personal reasons shown in SOS and mornings.
-  reasons?: string[];
+  // Stored as rich objects; legacy string[] is migrated by normalizeReasons().
+  reasons?: (Reason | string)[];
 };
+
+export type Reason = { text: string; emoji?: string; color?: string; photo?: string };
+
+// Accepts legacy string[] or new Reason[] and always returns Reason[].
+export function normalizeReasons(reasons?: (Reason | string)[]): Reason[] {
+  if (!reasons) return [];
+  return reasons.map((r) => (typeof r === 'string' ? { text: r } : r)).filter((r) => r.text?.trim());
+}
 
 export type HealthFlag =
   | 'pregnant'        // беременность / грудное вскармливание

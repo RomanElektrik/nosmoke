@@ -5,7 +5,7 @@
 // breathing — the user gets to choose what helps.
 
 import { useState, useEffect, useRef, type ComponentType } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -18,7 +18,7 @@ import { useTranslation } from '../lib/i18n';
 import { BreathingOrb } from '../components/BreathingOrb';
 import { WaterCircle } from '../components/WaterCircle';
 import { Icon } from '../components/Icon';
-import { update, useAppState } from '../lib/storage';
+import { update, useAppState, normalizeReasons } from '../lib/storage';
 import type { Trigger } from '../lib/storage';
 import { nextDueDose, MED_SAFETY } from '../lib/medication';
 import { resolveCoping } from '../lib/coping';
@@ -176,17 +176,22 @@ export default function Craving() {
 
               {/* ── Remember why — personal reasons in the craving moment ── */}
               {(() => {
-                const reasons = state.profile?.reasons ?? (state.profile?.whyQuit ? [state.profile.whyQuit] : []);
+                const reasons = normalizeReasons(state.profile?.reasons ?? (state.profile?.whyQuit ? [state.profile.whyQuit] : []));
                 if (reasons.length === 0) return null;
                 return (
                   <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/reasons' as any); }}
                     style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
-                    <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.accent + '10', borderWidth: 1, borderColor: t.accent + '33', gap: 8 }}>
+                    <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.accent + '10', borderWidth: 1, borderColor: t.accent + '33', gap: 10 }}>
                       <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                         {ru ? 'Ты держишься ради' : 'You\'re holding on for'}
                       </Text>
-                      {reasons.slice(0, 2).map((r, i) => (
-                        <Text key={i} style={{ color: t.text, fontSize: 16, fontWeight: '600', lineHeight: 22 }}>• {r}</Text>
+                      {reasons.slice(0, 3).map((r, i) => (
+                        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          {r.photo
+                            ? <Image source={{ uri: r.photo }} style={{ width: 38, height: 38, borderRadius: 11 }} />
+                            : <Text style={{ fontSize: 22 }}>{r.emoji ?? '❤️'}</Text>}
+                          <Text style={{ color: t.text, fontSize: 16, fontWeight: '600', lineHeight: 22, flex: 1 }}>{r.text}</Text>
+                        </View>
                       ))}
                     </View>
                   </Pressable>

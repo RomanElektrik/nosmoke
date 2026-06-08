@@ -521,8 +521,10 @@ function GoalCard() {
           style={{ padding: 18, borderRadius: radius.xl, borderWidth: 1, borderColor: t.accent + '30' }}>
           {/* Piggy bank + label */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF14', borderWidth: 1, borderColor: t.accent + '50', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 36 }}>🐷</Text>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF14', borderWidth: 1, borderColor: t.accent + '50', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              {p.goalPhoto
+                ? <Image source={{ uri: p.goalPhoto }} style={{ width: '100%', height: '100%' }} />
+                : <Text style={{ fontSize: 36 }}>{p.goalEmoji ?? '🐷'}</Text>}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ color: t.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
