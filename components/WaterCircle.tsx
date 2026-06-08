@@ -54,8 +54,24 @@ export function WaterCircle({
     return d;
   };
 
+  // Open polyline of just the front surface — stroked as a crisp waterline so
+  // the wave reads clearly, not as a soft blob.
+  const surface = (phase: number, f: number, a: number, per: number) => {
+    'worklet';
+    const baseline = (1 - f) * size;
+    const N = 16;
+    let d = `M 0 ${Math.round(baseline)}`;
+    for (let i = 0; i <= N; i++) {
+      const x = (size * i) / N;
+      const y = baseline + Math.sin((i / N) * per * TAU + phase) * a;
+      d += ` L ${Math.round(x)} ${Math.round(y)}`;
+    }
+    return d;
+  };
+
   const frontProps = useAnimatedProps(() => ({ d: wave(p1.value, fill.value, amp, periods) }));
   const backProps = useAnimatedProps(() => ({ d: wave(-p2.value, fill.value, amp * 0.7, periods + 0.6) }));
+  const crestProps = useAnimatedProps(() => ({ d: surface(p1.value, fill.value, amp, periods) }));
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -67,10 +83,12 @@ export function WaterCircle({
             <Stop offset="1" stopColor={color} stopOpacity={0.65} />
           </SvgLinearGradient>
         </Defs>
-        <Rect x={0} y={0} width={size} height={size} rx={size / 2} fill={color} opacity={0.1} clipPath="url(#wc-clip)" />
-        <APath animatedProps={backProps} fill={back} opacity={0.4} clipPath="url(#wc-clip)" />
+        <Rect x={0} y={0} width={size} height={size} rx={size / 2} fill={color} opacity={0.12} clipPath="url(#wc-clip)" />
+        <APath animatedProps={backProps} fill={back} opacity={0.5} clipPath="url(#wc-clip)" />
         <APath animatedProps={frontProps} fill="url(#wc-front)" clipPath="url(#wc-clip)" />
-        <Circle cx={size / 2} cy={size / 2} r={size / 2 - 1} fill="none" stroke={color} strokeOpacity={0.55} strokeWidth={2} />
+        {/* crisp waterline crest */}
+        <APath animatedProps={crestProps} fill="none" stroke="#FFFFFF" strokeOpacity={0.85} strokeWidth={2.5} strokeLinecap="round" clipPath="url(#wc-clip)" />
+        <Circle cx={size / 2} cy={size / 2} r={size / 2 - 1} fill="none" stroke={color} strokeOpacity={0.6} strokeWidth={2} />
       </Svg>
       {children}
     </View>

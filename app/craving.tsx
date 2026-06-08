@@ -322,12 +322,16 @@ function WaveTimer({ onDone, onBack, ru, t }: { onDone: () => void; onBack: () =
 
   useEffect(() => {
     swell.value = withRepeat(withTiming(1.06, { duration: 4200, easing: Easing.inOut(Easing.sin) }), -1, true);
-    fill.value = withTiming(0.1, { duration: 800 });
+    fill.value = withTiming(0.06, { duration: 800 });
     const id = setInterval(() => {
       setLeft((s) => {
         const next = s - 1;
-        // Ease the water up smoothly each second (0.06 → ~0.96).
-        fill.value = withTiming(0.06 + (1 - next / TOTAL) * 0.9, { duration: 1000, easing: Easing.linear });
+        // The water IS the urge: it rises to the very top at the halfway peak,
+        // then recedes to near-empty by the end — "the craving passed". A sine
+        // bump (0 → 1 → 0 over the full duration) drives the level.
+        const passedPct = (TOTAL - next) / TOTAL;          // 0..1
+        const level = 0.06 + Math.sin(passedPct * Math.PI) * 0.92;  // 0.06 → ~0.98 → 0.06
+        fill.value = withTiming(level, { duration: 1000, easing: Easing.linear });
         if (next <= 0) { clearInterval(id); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setTimeout(onDone, 500); return 0; }
         return next;
       });
@@ -354,7 +358,7 @@ function WaveTimer({ onDone, onBack, ru, t }: { onDone: () => void; onBack: () =
       <View style={{ width: 320, height: 320, alignItems: 'center', justifyContent: 'center' }}>
         {/* breathing swell halo behind the orb */}
         <Animated.View style={[{ position: 'absolute', width: 312, height: 312, borderRadius: 156, backgroundColor: '#0A84FF18' }, aSwell]} />
-        <WaterCircle size={288} fill={fill} color="#0A84FF" color2="#5E5CE6" amp={11} periods={1.3} speedMs={2400}>
+        <WaterCircle size={288} fill={fill} color="#0A84FF" color2="#5E5CE6" amp={14} periods={1.6} speedMs={2200}>
           <Text style={{ color: '#fff', fontSize: 54, fontWeight: '800', fontVariant: ['tabular-nums'] as any, letterSpacing: -1.8,
             textShadowColor: '#00000055', textShadowRadius: 8, textShadowOffset: { width: 0, height: 1 } }}>
             {mm}:{ss}
