@@ -159,8 +159,7 @@ export default function Home() {
           </Pressable>
         )}
 
-        {/* Goal card (if set) — animated piggy bank progress */}
-        <GoalCard />
+        {/* Goal/jar lives in the Progress tab now, not on home. */}
 
         {/* Pending start banner */}
         {p.pendingMethod && p.pendingQuitDate && p.pendingQuitDate > Date.now() && (() => {

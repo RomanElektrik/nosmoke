@@ -8,11 +8,11 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, spacing, radius } from '../../lib/theme';
-import { currentLang } from '../../lib/i18n';
+import { currentLang, useTranslation } from '../../lib/i18n';
 import { useAppState, normalizeReasons } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
-import { secondsClean } from '../../lib/health';
-import { moneySaved, cigsAvoided, pricePerCig, formatMoney } from '../../lib/money';
+import { secondsClean, MILESTONES } from '../../lib/health';
+import { moneySaved, cigsAvoided, pricePerCig, formatMoney, formatDuration } from '../../lib/money';
 import { rewardProgress } from '../../lib/rewards';
 import { computeInsights, triggerName, worstDayLocalized } from '../../lib/insights';
 import { plural } from '../../lib/identity';
@@ -20,6 +20,7 @@ import { plural } from '../../lib/identity';
 export default function Progress() {
   const t = useTheme();
   const router = useRouter();
+  const { t: tr } = useTranslation();
   const lang = currentLang();
   const ru = lang === 'ru';
   const [state] = useAppState();
@@ -159,6 +160,43 @@ export default function Progress() {
             <Text style={{ color: t.accent, fontWeight: '700', fontSize: 14 }}>{reasons.length === 0 ? (ru ? 'Добавить причины' : 'Add reasons') : (ru ? 'Редактировать' : 'Edit')}</Text>
           </Pressable>
         </View>
+
+        {/* ───── ЗДОРОВЬЕ — ВЕХИ ВОССТАНОВЛЕНИЯ ───── */}
+        <View style={{ borderRadius: radius.xl, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, padding: 18, gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Восстановление' : 'Recovery'}</Text>
+            <Icon.heartPulse size={22} color="#FF453A" />
+          </View>
+          {MILESTONES.map((m) => {
+            const done = secs >= m.at;
+            const I = Icon[m.icon];
+            return (
+              <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: m.color + (done ? '26' : '14'), alignItems: 'center', justifyContent: 'center' }}>
+                  <I size={19} color={done ? m.color : t.textDim} />
+                </View>
+                <Text style={{ color: done ? t.text : t.textDim, fontSize: 14.5, fontWeight: done ? '600' : '500', flex: 1 }} numberOfLines={1}>{tr(m.titleKey)}</Text>
+                {done
+                  ? <Icon.check size={18} color={m.color} />
+                  : <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '600' }}>{ru ? 'через ' : 'in '}{formatDuration(m.at - secs, lang)}</Text>}
+              </View>
+            );
+          })}
+        </View>
+
+        {/* ───── СИМПТОМЫ ───── */}
+        <Pressable onPress={() => go('/symptoms')} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
+          <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#FF2D7822', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon.chart size={22} color="#FF2D78" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{ru ? 'Симптомы отмены' : 'Withdrawal symptoms'}</Text>
+              <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>{ru ? 'Что сейчас норма и когда пройдёт' : 'What\'s normal now and when it passes'}</Text>
+            </View>
+            <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
+          </View>
+        </Pressable>
 
         {/* ───── ЧТО МНЕ ПОМОГАЕТ (быстрая кастомизация) ───── */}
         <Pressable onPress={() => go('/coping')} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>

@@ -17,18 +17,30 @@ export default function Coping() {
   const router = useRouter();
   const [state] = useAppState();
   const ru = (state.profile?.language ?? 'ru') === 'ru';
-  const [picked, setPicked] = useState<string[]>(state.profile?.copingMethods ?? []);
+  const MAX = 2;
+  const [picked, setPicked] = useState<string[]>((state.profile?.copingMethods ?? []).slice(0, MAX));
   const [draft, setDraft] = useState('');
+  const [warn, setWarn] = useState(false);
   const customs = picked.filter((id) => id.startsWith(CUSTOM_PREFIX));
+  const full = picked.length >= MAX;
+
+  function flashLimit() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    setWarn(true);
+    setTimeout(() => setWarn(false), 2200);
+  }
 
   function toggle(id: string) {
+    if (picked.includes(id)) { Haptics.selectionAsync(); setPicked((p) => p.filter((x) => x !== id)); return; }
+    if (full) { flashLimit(); return; }
     Haptics.selectionAsync();
-    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+    setPicked((p) => [...p, id]);
   }
 
   function addCustom() {
     const text = draft.trim();
     if (!text) return;
+    if (full) { flashLimit(); return; }
     Haptics.selectionAsync();
     setPicked((p) => [...p, CUSTOM_PREFIX + text]);
     setDraft('');
@@ -50,13 +62,24 @@ export default function Coping() {
             </Text>
             <Text style={{ color: t.textDim, fontSize: 15, lineHeight: 21, marginTop: 6 }}>
               {ru
-                ? 'Когда тянет — эти быстрые приёмы сбивают тягу за пару минут. Отметь те, что подходят тебе — покажем их на экране SOS.'
-                : 'When the urge hits, these quick moves cut it in a couple of minutes. Pick the ones that fit — we\'ll show them on the SOS screen.'}
+                ? 'Выбери максимум 2 приёма. В момент тяги меньше выбора = быстрее действуешь, а не зависаешь над списком. Покажем их в SOS.'
+                : 'Pick at most 2. In a craving, fewer options = you act faster instead of freezing over a list. Shown in SOS.'}
             </Text>
           </View>
           <Pressable onPress={() => router.back()} hitSlop={12} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, alignItems: 'center', justifyContent: 'center' }}>
             <Icon.close size={16} color={t.textDim} />
           </Pressable>
+        </View>
+
+        {/* Selection counter / limit warning */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.md,
+          backgroundColor: warn ? t.warn + '1F' : t.bgElev, borderWidth: 1, borderColor: warn ? t.warn : t.border }}>
+          <Text style={{ fontSize: 15 }}>{warn ? '✋' : '✓'}</Text>
+          <Text style={{ color: warn ? t.warn : t.textDim, fontSize: 13.5, fontWeight: '600', flex: 1 }}>
+            {warn
+              ? (ru ? 'Максимум 2 — иначе в тяге теряешься. Сними один, чтобы выбрать другой.' : 'Max 2 — more dilutes focus. Remove one to pick another.')
+              : (ru ? `Выбрано ${picked.length} из 2` : `${picked.length} of 2 picked`)}
+          </Text>
         </View>
 
         <View style={{ gap: 10, marginTop: 4 }}>
@@ -69,7 +92,7 @@ export default function Coping() {
               style={{ flex: 1, backgroundColor: t.bgElev, color: t.text, paddingHorizontal: 14, paddingVertical: 13, borderRadius: radius.lg, borderWidth: 1, borderColor: t.border, fontSize: 15 }}
             />
             <Pressable onPress={addCustom} disabled={!draft.trim()}
-              style={({ pressed }) => ({ width: 52, borderRadius: radius.lg, backgroundColor: draft.trim() ? t.accent : t.border, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.85 : 1 })}>
+              style={({ pressed }) => ({ width: 52, borderRadius: radius.lg, backgroundColor: draft.trim() && !full ? t.accent : t.border, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.85 : 1 })}>
               <Text style={{ color: '#fff', fontSize: 26, fontWeight: '700', marginTop: -2 }}>+</Text>
             </Pressable>
           </View>
@@ -89,6 +112,7 @@ export default function Coping() {
 
           {COPING_METHODS.map((m) => {
             const on = picked.includes(m.id);
+            const dim = !on && full;
             const I = Icon[m.icon];
             return (
               <Pressable key={m.id} onPress={() => toggle(m.id)}
@@ -96,7 +120,7 @@ export default function Coping() {
                   flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: radius.lg,
                   backgroundColor: on ? m.color + '1A' : t.bgElev,
                   borderWidth: 1.5, borderColor: on ? m.color : t.border,
-                  opacity: pressed ? 0.85 : 1,
+                  opacity: pressed ? 0.85 : dim ? 0.4 : 1,
                 })}>
                 <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: m.color + '24', alignItems: 'center', justifyContent: 'center' }}>
                   <I size={24} color={m.color} />
