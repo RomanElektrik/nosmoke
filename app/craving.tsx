@@ -151,7 +151,7 @@ export default function Craving() {
               {/* ── Quiet row of alternatives — all equal weight, low noise ── */}
               <SectionLabel t={t} text={ru ? 'Если нужно иначе' : 'Or try' } />
               <View style={{ flexDirection: 'row', gap: 10 }}>
-                <MiniTile t={t} icon={Icon.lungs} color="#5AC8FA"
+                <MiniTile t={t} icon={Icon.headphones} color="#5AC8FA"
                   title={ru ? 'Слушать' : 'Listen'} sub={ru ? 'голос' : 'voice'}
                   onPress={() => { Haptics.selectionAsync(); router.push('/audio/calm_now' as any); }} />
                 <MiniTile t={t} icon={Icon.play} color="#BF5AF2"

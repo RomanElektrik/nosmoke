@@ -235,22 +235,29 @@ export const Icon = {
   // Two lungs with central airway.
   lungs: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
     <G {...stroke(color, 1.8)}>
-      {/* windpipe */}
       <Path d="M12 4v6" />
       <Path d="M9.5 7.5h5" />
-      {/* two symmetric lobes */}
-      <Path d="M11 10c0 4-.5 6-2.5 8.5C7 20 5 19.5 5 17.5c0-3 .8-5.5 2.5-7.5C9 8.5 11 8.5 11 10Z" />
-      <Path d="M13 10c0 4 .5 6 2.5 8.5C17 20 19 19.5 19 17.5c0-3-.8-5.5-2.5-7.5C15 8.5 13 8.5 13 10Z" />
+      {/* two outward-bulging lobes */}
+      <Path d="M11.5 9C8 9 5.5 12 5.5 16c0 2.5 1 3.5 2.5 3.5 2 0 3.5-2 3.5-5V9Z" />
+      <Path d="M12.5 9C16 9 18.5 12 18.5 16c0 2.5-1 3.5-2.5 3.5-2 0-3.5-2-3.5-5V9Z" />
     </G>, size),
 
-  // Box breathing — square path with a travelling dot + a flow arrow.
+  // Headphones — audio / listen tiles.
+  headphones: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
+    <G {...stroke(color, 1.8)}>
+      <Path d="M5 13v-1a7 7 0 0 1 14 0v1" />
+      <Path d="M4 14.5A1.5 1.5 0 0 1 5.5 13H7v6H5.5A1.5 1.5 0 0 1 4 17.5Z" />
+      <Path d="M20 14.5A1.5 1.5 0 0 0 18.5 13H17v6h1.5A1.5 1.5 0 0 0 20 17.5Z" />
+    </G>, size),
+
+  // Box breathing — square with a dot on each edge (the 4 equal phases).
   boxBreath: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
     <G {...stroke(color, 1.8)}>
       <Path d="M6.5 5h11a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5v-11A1.5 1.5 0 0 1 6.5 5Z" />
-      {/* arrow showing the clockwise breath cycle on the top edge */}
-      <Path d="M12.5 5l-2 2 2 2" />
-      {/* travelling marker */}
-      <Circle cx="19" cy="12" r="1.7" fill={color} stroke="none" />
+      <Circle cx="12" cy="5" r="1.4" fill={color} stroke="none" />
+      <Circle cx="19" cy="12" r="1.4" fill={color} stroke="none" />
+      <Circle cx="12" cy="19" r="1.4" fill={color} stroke="none" />
+      <Circle cx="5" cy="12" r="1.4" fill={color} stroke="none" />
     </G>, size),
 
   // Swap arrows — replacement ritual.
@@ -282,13 +289,12 @@ export const Icon = {
       <Path d="M12 3c-1 1.5-2 2.5-2 4a2 2 0 0 0 4 0c0-1.5-1-2.5-2-4Z" />
     </G>, size),
 
-  // Lotus / meditation — folded legs + halo above.
+  // Lotus / meditation — head + folded body, arms resting on knees.
   meditate: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
     <G {...stroke(color)}>
-      <Circle cx="12" cy="7" r="2.5" />
-      <Path d="M9 11c-3 1-5 3-5 6h16c0-3-2-5-5-6" />
-      <Path d="M12 13v5" />
-      <Path d="M8 18h8" />
+      <Circle cx="12" cy="6" r="2.5" />
+      <Path d="M6 18c0-3 2.5-5 6-5s6 2 6 5H6Z" />
+      <Path d="M7 15c1.5 1 3 1.5 5 1.5s3.5-.5 5-1.5" />
     </G>, size),
 
   // Sprout — a curved stem with two leaves.
@@ -378,11 +384,12 @@ export const Icon = {
       <Path d="M22 18c0-2-1.5-3.5-3.5-3.5" />
     </G>, size),
 
-  // Crescent moon — sleep.
+  // Crescent moon with «Zzz» — sleep.
   sleepy: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
     <G {...stroke(color)}>
       <Path d="M20 14a8 8 0 1 1-9-10 6.5 6.5 0 0 0 9 10Z" />
-      <Path d="M16 5h3l-3 3h3" />
+      <Path d="M15 3.5h3l-3 3.5h3" />
+      <Path d="M17.5 9h2.2l-2.2 2.8h2.2" />
     </G>, size),
 
   // Trophy with base.
@@ -403,12 +410,12 @@ export const Icon = {
       <Path d="M9 12h6M9 16h4" />
     </G>, size),
 
-  // Compass with needle pointing NE.
+  // Compass — classic dual diamond needle.
   compass: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
     <G {...stroke(color)}>
       <Circle cx="12" cy="12" r="9" />
-      <Path d="M15 9l-4 3-2 6 6-2 3-4-3-3Z" fill={color + '30'} />
-      <Circle cx="12" cy="12" r="0.8" fill={color} stroke="none" />
+      <Path d="M12 6l2.2 5.8L12 18l-2.2-6.2Z" fill={color + '30'} />
+      <Circle cx="12" cy="12" r="1" fill={color} stroke="none" />
     </G>, size),
 
   // Skip-previous: bar + triangle.
@@ -472,35 +479,36 @@ export const Icon = {
       <Path d="M6 9v6M4 7.5v9M18 9v6M20 7.5v9M6 12h12" />
     </G>, size),
 
-  // «100» badge — one hundred days.
+  // «100» badge — one hundred days. Smaller digits so they don't crowd the rim.
   hundred: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
     <G>
       <Circle cx="12" cy="12" r="9.2" {...stroke(color, 1.7)} />
-      <SvgText x="12" y="14.7" fontSize="8.2" fontWeight="800" fill={color} stroke="none" textAnchor="middle">100</SvgText>
+      <SvgText x="12" y="14.4" fontSize="7" fontWeight="800" fill={color} stroke="none" textAnchor="middle">100</SvgText>
     </G>, size),
 
-  // Coin with a ruble «₽» — money saved.
+  // Coin with a drawn ruble «₽» (paths, not font — centers reliably).
   coin: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
-    <G>
-      <Circle cx="12" cy="12" r="9" {...stroke(color, 1.7)} />
-      <SvgText x="12" y="16" fontSize="11" fontWeight="800" fill={color} stroke="none" textAnchor="middle">₽</SvgText>
+    <G {...stroke(color, 1.7)}>
+      <Circle cx="12" cy="12" r="8.5" />
+      <Path d="M10.5 8.5h2.2a2 2 0 0 1 0 4h-2.2V8.5M10.5 8.5v7M10.5 14h3" />
     </G>, size),
 
-  // Gift box with a bow.
+  // Gift box with a clean two-loop bow.
   gift: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
     <G {...stroke(color)}>
       <Path d="M4 10h16v3H4z" />
       <Path d="M5 13h14v7H5z" />
       <Path d="M12 10v10" />
-      <Path d="M12 10C10 10 8 9.2 8 7.6 8 6 10 6.2 12 10c2-3.8 4-4 4-2.4 0 1.6-2 2.4-4 2.4Z" />
+      <Path d="M12 10C12 7.5 9.5 6.5 9.5 8.3 9.5 10 12 10 12 10Z" />
+      <Path d="M12 10C12 7.5 14.5 6.5 14.5 8.3 14.5 10 12 10 12 10Z" />
     </G>, size),
 
-  // Wallet.
+  // Wallet with a clear flap + snap button.
   wallet: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
     <G {...stroke(color)}>
-      <Path d="M4 7h13a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4Z" />
-      <Path d="M4 7V6a1 1 0 0 1 1-1h11" />
-      <Path d="M19 12h-3a1.5 1.5 0 0 0 0 3h3" />
+      <Path d="M4 8h15a1 1 0 0 1 1 1v8a2 2 0 0 1-2 2H4Z" />
+      <Path d="M4 8V6a1 1 0 0 1 1-1h12v3" />
+      <Circle cx="16.5" cy="13.5" r="1.4" fill={color} stroke="none" />
     </G>, size),
 
   // Heart with an ECG pulse — pulse normalising.
@@ -510,24 +518,21 @@ export const Icon = {
       <Path d="M5 11.5h2.5L9 9l2 5 1.5-2.5H19" />
     </G>, size),
 
-  // O₂ molecule — oxygen returns.
+  // O₂ molecule with a double bond (O=O) — oxygen returns.
   o2: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
     <G {...stroke(color)}>
       <Circle cx="8" cy="12" r="4.5" />
       <Circle cx="17.5" cy="12" r="3" />
-      <Path d="M12.5 12h2" />
+      <Path d="M12.5 11h2M12.5 13h2" />
     </G>, size),
 
-  // Tongue with a taste spark — taste returns.
+  // Open mouth + clear tongue — taste returns.
   taste: ({ size = 24, color = '#9AA3AF' }: Props) => wrap(
     <G {...stroke(color, 1.8)}>
-      {/* upper lip line */}
-      <Path d="M5 8c2.5-1.5 4.5-2 7-2s4.5.5 7 2" />
-      {/* rounded tongue */}
-      <Path d="M7 9.5c0 4 2.2 7 5 7s5-3 5-7c-1.6 1-3.2 1.5-5 1.5S8.6 10.5 7 9.5Z" />
-      <Path d="M12 12.5v3" />
-      {/* taste spark */}
-      <Path d="M18.5 5.5l.7 1.5 1.5.7-1.5.7-.7 1.5-.7-1.5L16.3 7.7l1.5-.7Z" fill={color} stroke="none" />
+      <Path d="M6 8a6 4 0 0 1 12 0" />
+      <Path d="M10 10c0 3 .8 5 2 5s2-2 2-5" />
+      <Path d="M12 11v3" />
+      <Path d="M18.5 5.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4L16.5 7.5l1.4-.6Z" fill={color} stroke="none" />
     </G>, size),
 
   // Single cigarette.
