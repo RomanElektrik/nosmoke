@@ -10,6 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import { createAudioPlayer } from 'expo-audio';
+import { ensureSpeaker } from '../lib/audio';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, cancelAnimation } from 'react-native-reanimated';
 import { useTheme, spacing, radius, type Theme } from '../lib/theme';
 import { useTranslation } from '../lib/i18n';
@@ -288,8 +290,35 @@ export default function Craving() {
 function WaveTimer({ onDone, onBack, ru, t }: { onDone: () => void; onBack: () => void; ru: boolean; t: Theme }) {
   const TOTAL = 180; // 3 minutes
   const [left, setLeft] = useState(TOTAL);
+  const [muted, setMuted] = useState(false);
   const fill = useSharedValue(0.06);
   const swell = useSharedValue(1);
+  const surf = useRef<any>(null);
+
+  // Looping ocean-waves ambience — makes the orb genuinely calming to sit with.
+  useEffect(() => {
+    let player: any = null;
+    (async () => {
+      try {
+        await ensureSpeaker();
+        player = createAudioPlayer(require('../assets/audio/ocean_waves.mp3'));
+        player.loop = true;
+        try { player.volume = 0.7; } catch {}
+        player.play();
+        surf.current = player;
+      } catch {}
+    })();
+    return () => { try { player?.pause?.(); } catch {} try { player?.remove?.(); } catch {} surf.current = null; };
+  }, []);
+
+  function toggleMute() {
+    Haptics.selectionAsync();
+    setMuted((m) => {
+      const next = !m;
+      try { if (surf.current) surf.current.volume = next ? 0 : 0.7; } catch {}
+      return next;
+    });
+  }
 
   useEffect(() => {
     swell.value = withRepeat(withTiming(1.06, { duration: 4200, easing: Easing.inOut(Easing.sin) }), -1, true);
@@ -322,11 +351,11 @@ function WaveTimer({ onDone, onBack, ru, t }: { onDone: () => void; onBack: () =
       <Text style={{ color: t.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.4, textAlign: 'center', paddingHorizontal: 16 }}>
         {stage}
       </Text>
-      <View style={{ width: 280, height: 280, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: 320, height: 320, alignItems: 'center', justifyContent: 'center' }}>
         {/* breathing swell halo behind the orb */}
-        <Animated.View style={[{ position: 'absolute', width: 264, height: 264, borderRadius: 132, backgroundColor: '#0A84FF18' }, aSwell]} />
-        <WaterCircle size={236} fill={fill} color="#0A84FF" color2="#5E5CE6" amp={9} periods={1.3} speedMs={2400}>
-          <Text style={{ color: '#fff', fontSize: 46, fontWeight: '800', fontVariant: ['tabular-nums'] as any, letterSpacing: -1.5,
+        <Animated.View style={[{ position: 'absolute', width: 312, height: 312, borderRadius: 156, backgroundColor: '#0A84FF18' }, aSwell]} />
+        <WaterCircle size={288} fill={fill} color="#0A84FF" color2="#5E5CE6" amp={11} periods={1.3} speedMs={2400}>
+          <Text style={{ color: '#fff', fontSize: 54, fontWeight: '800', fontVariant: ['tabular-nums'] as any, letterSpacing: -1.8,
             textShadowColor: '#00000055', textShadowRadius: 8, textShadowOffset: { width: 0, height: 1 } }}>
             {mm}:{ss}
           </Text>
@@ -338,9 +367,15 @@ function WaveTimer({ onDone, onBack, ru, t }: { onDone: () => void; onBack: () =
             : 'Just watch it fill. Do nothing — the urge leaves on its own.'}
       </Text>
 
-      <Pressable onPress={onBack} hitSlop={10} style={{ paddingVertical: 8 }}>
-        <Text style={{ color: t.textDim, fontSize: 14 }}>← {ru ? 'Назад' : 'Back'}</Text>
-      </Pressable>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
+        <Pressable onPress={onBack} hitSlop={10} style={{ paddingVertical: 8 }}>
+          <Text style={{ color: t.textDim, fontSize: 14 }}>← {ru ? 'Назад' : 'Back'}</Text>
+        </Pressable>
+        <Pressable onPress={toggleMute} hitSlop={10} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 }}>
+          <Text style={{ fontSize: 15 }}>{muted ? '🔇' : '🌊'}</Text>
+          <Text style={{ color: t.textDim, fontSize: 14 }}>{muted ? (ru ? 'Включить звук' : 'Sound on') : (ru ? 'Без звука' : 'Mute')}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
