@@ -8,6 +8,7 @@ import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
 import { chat } from '../lib/ai';
+import { extractLinks, stripLinks } from '../lib/aiLinks';
 import { cravingsSurvived } from '../lib/program';
 import { escalationSuggestion, getStep } from '../lib/stepped';
 import { Icon } from '../components/Icon';
@@ -256,11 +257,26 @@ export default function Slip() {
             {loadingAi ? (lang === 'ru' ? 'Помощник думает…' : 'Assistant thinking…') : (advice ? (lang === 'ru' ? 'Спросить ещё раз' : 'Ask again') : (lang === 'ru' ? 'Получить персональный план от ИИ' : 'Get a personal plan from AI'))}
           </Text>
         </Pressable>
-        {!!advice && (
-          <View style={{ padding: 14, borderRadius: radius.md, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border }}>
-            <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>{advice}</Text>
-          </View>
-        )}
+        {!!advice && (() => {
+          const links = extractLinks(advice);
+          return (
+            <View style={{ padding: 14, borderRadius: radius.md, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, gap: 12 }}>
+              <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>{stripLinks(advice)}</Text>
+              {links.map((l) => (
+                <Pressable key={l.href} onPress={() => { Haptics.selectionAsync(); router.push(l.href as any); }}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                    paddingVertical: 11, paddingHorizontal: 14, borderRadius: radius.md,
+                    backgroundColor: '#0A84FF18', borderWidth: 1, borderColor: '#0A84FF55',
+                    opacity: pressed ? 0.7 : 1,
+                  })}>
+                  <Text style={{ color: '#0A84FF', fontSize: 14, fontWeight: '700' }}>{l.label}</Text>
+                  <Icon.arrowRight size={16} color="#0A84FF" />
+                </Pressable>
+              ))}
+            </View>
+          );
+        })()}
 
         {/* Method change CTA — tiered intensity */}
         <MethodChangeBlock />
