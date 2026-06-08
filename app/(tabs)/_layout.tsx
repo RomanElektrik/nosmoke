@@ -12,7 +12,7 @@ import { Icon } from '../../components/Icon';
 // the centre between index 1 (path) and index 2 (awards).
 const PILL_TABS = [
   { name: 'index', labelKey: 'tabs.home', icon: 'home' as const },
-  { name: 'path', labelKey: 'tabs.path', icon: 'leaf' as const },
+  { name: 'progress', labelKey: 'tabs.progress', icon: 'gauge' as const },
   { name: 'awards', labelKey: 'tabs.awards', icon: 'star' as const },
   { name: 'profile', labelKey: 'tabs.profile', icon: 'user' as const },
 ];
@@ -115,10 +115,11 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="path" />
+      <Tabs.Screen name="progress" />
       <Tabs.Screen name="awards" />
       <Tabs.Screen name="profile" />
       {/* Reachable via router.push but hidden from the pill */}
+      <Tabs.Screen name="path" options={{ href: null }} />
       <Tabs.Screen name="health" options={{ href: null }} />
       <Tabs.Screen name="techniques" options={{ href: null }} />
       <Tabs.Screen name="coach" options={{ href: null }} />

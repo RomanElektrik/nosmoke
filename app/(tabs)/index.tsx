@@ -10,10 +10,9 @@ import { useTranslation, currentLang } from '../../lib/i18n';
 import { useAppState, update } from '../../lib/storage';
 import { secondsClean, nextMilestone, progressFor } from '../../lib/health';
 import {
-  moneySaved, cigsAvoided, pricePerCig,
+  moneySaved, cigsAvoided,
   formatMoneyLive, formatCigs, formatDuration,
 } from '../../lib/money';
-import { rewardProgress } from '../../lib/rewards';
 import { identityHeadline, plural, triggerLabel, relevantPlan } from '../../lib/identity';
 import { Icon } from '../../components/Icon';
 import { programToday } from '../../lib/program';
@@ -199,15 +198,6 @@ export default function Home() {
 
         <MethodCard />
         <MedicationCard />
-
-        {/* Savings → tangible reward */}
-        <RewardCard />
-
-        {/* Why I'm quitting — motivation board */}
-        <ReasonsCard />
-
-        {/* Craving patterns — insight from logged data */}
-        <InsightsCard />
 
         {/* Knowledge — coping articles */}
         <KnowledgeSection />
@@ -834,98 +824,6 @@ function MedicationCard() {
         <Text style={{ color: medColor, fontSize: 16, fontWeight: '800' }}>
           {medInfo.takenCount}/{medInfo.schedule.length}
         </Text>
-      </View>
-    </Pressable>
-  );
-}
-
-// Savings → a tangible reward you're getting closer to.
-function RewardCard() {
-  const t = useTheme();
-  const router = useRouter();
-  const lang = currentLang();
-  const [state] = useAppState();
-  const p = state.profile;
-  if (!p) return null;
-  const secs = secondsClean(p.quitDate);
-  const saved = moneySaved(p, secs);
-  if (saved < 50) return null;
-  const perDay = pricePerCig(p) * p.cigsPerDay;
-  const rp = rewardProgress(saved, perDay);
-  if (!rp.next && !rp.current) return null;
-
-  return (
-    <Pressable onPress={() => router.push('/goal' as any)} style={({ pressed }) => ({ opacity: pressed ? 0.94 : 1 })}>
-      <View style={{ padding: 18, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, gap: 12 }}>
-        <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-          {lang === 'ru' ? 'На сэкономленное' : 'Your savings buy'}
-        </Text>
-        {rp.current && (
-          <Text style={{ color: t.text, fontSize: 17, fontWeight: '700' }}>
-            {rp.current.emoji} {lang === 'ru' ? `Уже хватит на ${rp.current.ru}` : `Already enough for ${rp.current.en}`}
-          </Text>
-        )}
-        {rp.next && (
-          <>
-            <View style={{ height: 8, borderRadius: 8, backgroundColor: t.border, overflow: 'hidden' }}>
-              <View style={{ width: `${Math.round(rp.pct * 100)}%`, height: '100%', backgroundColor: t.accent, borderRadius: 8 }} />
-            </View>
-            <Text style={{ color: t.textDim, fontSize: 13.5 }}>
-              {rp.next.emoji} {lang === 'ru' ? `До «${rp.next.ru}»` : `To "${rp.next.en}"`}
-              {rp.daysToNext != null
-                ? (lang === 'ru' ? ` — ещё ${rp.daysToNext} ${plural(rp.daysToNext, ['день', 'дня', 'дней'])}` : ` — ${rp.daysToNext} more days`)
-                : ''}
-            </Text>
-          </>
-        )}
-      </View>
-    </Pressable>
-  );
-}
-
-// Motivation board entry — your personal reasons.
-function ReasonsCard() {
-  const t = useTheme();
-  const router = useRouter();
-  const lang = currentLang();
-  const [state] = useAppState();
-  const reasons = state.profile?.reasons ?? (state.profile?.whyQuit ? [state.profile.whyQuit] : []);
-  return (
-    <Pressable onPress={() => router.push('/reasons' as any)} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
-      <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.accent + '10', borderWidth: 1, borderColor: t.accent + '33', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon.heartPulse size={22} color={t.accent} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{lang === 'ru' ? 'Почему я бросаю' : "Why I'm quitting"}</Text>
-          <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }} numberOfLines={1}>
-            {reasons.length > 0 ? reasons[0] : (lang === 'ru' ? 'Добавь свои причины — вспомнишь в тяге' : 'Add your reasons — recall them in a craving')}
-          </Text>
-        </View>
-        <Text style={{ color: t.accent, fontSize: 18 }}>›</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-// Craving-patterns entry — appears once there's enough logged data.
-function InsightsCard() {
-  const t = useTheme();
-  const router = useRouter();
-  const lang = currentLang();
-  const [state] = useAppState();
-  if ((state.cravings?.length ?? 0) < 3) return null;
-  return (
-    <Pressable onPress={() => router.push('/insights' as any)} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
-      <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: t.info + '20', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon.chart size={22} color={t.info} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{lang === 'ru' ? 'Твои паттерны тяги' : 'Your craving patterns'}</Text>
-          <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>{lang === 'ru' ? 'Когда тянет, после чего, как держишься' : 'When, after what, how you hold'}</Text>
-        </View>
-        <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
       </View>
     </Pressable>
   );
