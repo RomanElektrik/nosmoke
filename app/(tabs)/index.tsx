@@ -147,6 +147,9 @@ export default function Home() {
         {/* Relapse-aware: if smoking most days, gently offer an honest restart */}
         <RelapseCard />
 
+        {/* Gentle, rare honesty check — our non-nagging "smoking or not" signal */}
+        <StatusCheckCard />
+
         {/* One-time prompt: build a personal SOS toolkit of quick craving-busters */}
         {(p.copingMethods?.length ?? 0) === 0 && (
           <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/coping' as any); }}
@@ -884,6 +887,61 @@ function RelapseCard() {
         <Pressable onPress={restart}
           style={({ pressed }) => ({ flex: 1.3, paddingVertical: 12, borderRadius: radius.md, backgroundColor: t.warn, alignItems: 'center', opacity: pressed ? 0.85 : 1 })}>
           <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13.5 }}>{lang === 'ru' ? 'Начать заново с сегодня' : 'Restart from today'}</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+// Gentle, low-frequency "how are you really" check — our only honest signal of
+// whether someone has quietly started smoking again, WITHOUT nagging daily
+// pushes. Appears in-app at most once every 3 days, on a natural app open.
+function StatusCheckCard() {
+  const t = useTheme();
+  const router = useRouter();
+  const lang = currentLang();
+  const [state] = useAppState();
+  const p = state.profile;
+  if (!p) return null;
+  const now = Date.now();
+  const DAY = 86400_000;
+  const daysSince = Math.floor((now - p.quitDate) / DAY);
+  const lastAsked = p.lastStatusCheckAt ?? p.quitDate;
+  // Don't ask in the first 2 days, not more than once per 3 days, and not when
+  // we already know they're actively smoking (the RelapseCard handles that).
+  if (daysSince < 2 || now - lastAsked < 3 * DAY || relapseStatus(state).activelySmoking) return null;
+
+  async function holding() {
+    Haptics.selectionAsync();
+    await update((s) => ({ ...s, profile: s.profile ? { ...s.profile, lastStatusCheckAt: now } : s.profile }));
+  }
+  async function smoked() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    await update((s) => ({
+      ...s,
+      slips: [...s.slips, now],
+      cravings: [...s.cravings, { ts: now, intensity: 7, outcome: 'smoked' as const }],
+      profile: s.profile ? { ...s.profile, lastStatusCheckAt: now } : s.profile,
+    }));
+    router.push('/slip');
+  }
+
+  return (
+    <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, gap: 12 }}>
+      <Text style={{ color: t.text, fontSize: 16, fontWeight: '800' }}>
+        {lang === 'ru' ? 'Как ты сейчас, честно?' : 'How are you, honestly?'}
+      </Text>
+      <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 19 }}>
+        {lang === 'ru' ? 'Спрашиваю редко — но честный ответ помогает мне быть полезнее. Никакого осуждения.' : 'I ask rarely — an honest answer helps me help you. No judgment.'}
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Pressable onPress={holding}
+          style={({ pressed }) => ({ flex: 1, paddingVertical: 13, borderRadius: radius.md, backgroundColor: t.accent, alignItems: 'center', opacity: pressed ? 0.85 : 1 })}>
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>{lang === 'ru' ? 'Держусь 💪' : "Holding 💪"}</Text>
+        </Pressable>
+        <Pressable onPress={smoked}
+          style={({ pressed }) => ({ flex: 1, paddingVertical: 13, borderRadius: radius.md, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, alignItems: 'center', opacity: pressed ? 0.7 : 1 })}>
+          <Text style={{ color: t.textDim, fontWeight: '700', fontSize: 14 }}>{lang === 'ru' ? 'Закурил' : 'I smoked'}</Text>
         </Pressable>
       </View>
     </View>

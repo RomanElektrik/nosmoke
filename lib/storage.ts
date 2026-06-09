@@ -86,6 +86,9 @@ export type Profile = {
   // "Why I'm quitting" board — personal reasons shown in SOS and mornings.
   // Stored as rich objects; legacy string[] is migrated by normalizeReasons().
   reasons?: (Reason | string)[];
+  // Gentle in-app honesty check ("holding / smoked?") — last time we asked, so
+  // we ask at most once every few days instead of nagging daily.
+  lastStatusCheckAt?: number;
 };
 
 export type Reason = { text: string; emoji?: string; color?: string; photo?: string };
