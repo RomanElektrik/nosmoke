@@ -198,13 +198,17 @@ export default function AudioPlayer() {
   // speeds over a dark base → a slow, shimmering, meditative flow.
   const rot1 = useSharedValue(0);
   const rot2 = useSharedValue(0);
+  const drift = useSharedValue(0);
   useEffect(() => {
-    rot1.value = withRepeat(withTiming(360, { duration: 17000, easing: Easing.linear }), -1, false);
-    rot2.value = withRepeat(withTiming(-360, { duration: 23000, easing: Easing.linear }), -1, false);
-    return () => { cancelAnimation(rot1); cancelAnimation(rot2); };
+    rot1.value = withRepeat(withTiming(360, { duration: 12000, easing: Easing.linear }), -1, false);
+    rot2.value = withRepeat(withTiming(-360, { duration: 16000, easing: Easing.linear }), -1, false);
+    drift.value = withRepeat(withTiming(1, { duration: 6500, easing: Easing.inOut(Easing.sin) }), -1, true);
+    return () => { cancelAnimation(rot1); cancelAnimation(rot2); cancelAnimation(drift); };
   }, []);
-  const aRot1 = useAnimatedStyle(() => ({ transform: [{ rotate: `${rot1.value}deg` }] }));
-  const aRot2 = useAnimatedStyle(() => ({ transform: [{ rotate: `${rot2.value}deg` }] }));
+  // Living blobs: rotate + drift + breathe, each on its own phase → flowing aurora.
+  const aBlob1 = useAnimatedStyle(() => ({ transform: [{ rotate: `${rot1.value}deg` }, { translateX: -30 + drift.value * 70 }, { translateY: 24 - drift.value * 56 }, { scale: 1 + drift.value * 0.16 }] }));
+  const aBlob2 = useAnimatedStyle(() => ({ opacity: 0.6 + drift.value * 0.28, transform: [{ rotate: `${rot2.value}deg` }, { translateX: 34 - drift.value * 64 }, { translateY: -22 + drift.value * 52 }, { scale: 1.14 - drift.value * 0.14 }] }));
+  const aBlob3 = useAnimatedStyle(() => ({ opacity: 0.35 + drift.value * 0.25, transform: [{ rotate: `${-rot1.value * 0.7}deg` }, { translateY: -44 + drift.value * 90 }, { scale: 0.88 + drift.value * 0.24 }] }));
 
   if (!practice) {
     return (
@@ -221,14 +225,17 @@ export default function AudioPlayer() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#06080C' }}>
-      {/* full-screen flowing aurora — two colour blobs slowly rotating */}
+      {/* full-screen living aurora — three colour blobs rotate, drift and breathe */}
       <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
-        <LinearGradient colors={[c + '4D', '#0A0E13', '#06080C']} locations={[0, 0.5, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-        <Animated.View style={[{ position: 'absolute', width: 560, height: 560, top: -180, left: -150 }, aRot1]}>
-          <LinearGradient colors={[c + '66', 'transparent']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1, borderRadius: 280 }} />
+        <LinearGradient colors={[c + '3A', '#0A0E13', '#06080C']} locations={[0, 0.5, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        <Animated.View style={[{ position: 'absolute', width: 560, height: 560, top: -170, left: -150 }, aBlob1]}>
+          <LinearGradient colors={[c + '88', 'transparent']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1, borderRadius: 280 }} />
         </Animated.View>
-        <Animated.View style={[{ position: 'absolute', width: 520, height: 520, bottom: -200, right: -170, opacity: 0.85 }, aRot2]}>
-          <LinearGradient colors={[c + '4D', 'transparent']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1, borderRadius: 260 }} />
+        <Animated.View style={[{ position: 'absolute', width: 520, height: 520, bottom: -190, right: -160 }, aBlob2]}>
+          <LinearGradient colors={[c + '6E', 'transparent']} start={{ x: 0.3, y: 0 }} end={{ x: 0.7, y: 1 }} style={{ flex: 1, borderRadius: 260 }} />
+        </Animated.View>
+        <Animated.View style={[{ position: 'absolute', width: 420, height: 420, top: 120, right: -120 }, aBlob3]}>
+          <LinearGradient colors={['#FFFFFF30', 'transparent']} start={{ x: 0.4, y: 0 }} end={{ x: 0.6, y: 1 }} style={{ flex: 1, borderRadius: 210 }} />
         </Animated.View>
       </View>
       <SafeAreaView style={{ flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' }}>
@@ -253,14 +260,9 @@ export default function AudioPlayer() {
             </ScrollView>
           ) : (
             <>
-              <Text style={{ color: '#fff', fontSize: 30, fontWeight: '800', letterSpacing: -0.6, textAlign: 'center', paddingHorizontal: 12 }}>{ru ? practice.titleRu : practice.titleEn}</Text>
-              <Text style={{ color: '#FFFFFFA8', fontSize: 15, marginTop: 6, textAlign: 'center', paddingHorizontal: 24, lineHeight: 21 }}>{ru ? practice.subRu : practice.subEn}</Text>
-              {recorded ? (
-                <View style={{ alignItems: 'center', marginTop: 40 }}>
-                  <Text style={{ color: '#fff', fontSize: 66, fontWeight: '300', letterSpacing: 1, fontVariant: ['tabular-nums'] as any }}>{fmt(pos)}</Text>
-                  <Text style={{ color: '#FFFFFF7A', fontSize: 18, marginTop: 2, fontVariant: ['tabular-nums'] as any }}>{fmt(dur)}</Text>
-                </View>
-              ) : (
+              <Text style={{ color: '#fff', fontSize: 32, fontWeight: '800', letterSpacing: -0.6, textAlign: 'center', paddingHorizontal: 12 }}>{ru ? practice.titleRu : practice.titleEn}</Text>
+              <Text style={{ color: '#FFFFFFB0', fontSize: 16, marginTop: 8, textAlign: 'center', paddingHorizontal: 24, lineHeight: 22 }}>{ru ? practice.subRu : practice.subEn}</Text>
+              {!recorded && (
                 <ScrollView style={{ maxHeight: 170, alignSelf: 'stretch', marginTop: 26 }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 10 }} showsVerticalScrollIndicator={false}>
                   <Text style={{ color: '#F2F6FA', fontSize: 22, fontWeight: '500', lineHeight: 32, textAlign: 'center', letterSpacing: -0.2 }}>{caption}</Text>
                 </ScrollView>

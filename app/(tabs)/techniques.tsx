@@ -151,21 +151,22 @@ function AudioCard({ p, openAudio, lang }: {
   const I = Icon[p.icon];
   return (
     <Pressable onPress={() => openAudio(p.id)}
-      style={({ pressed }) => ({ height: 132, borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.93 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
-      <LinearGradient colors={[p.color, p.color + 'AA', '#0A0E13']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1.1, y: 1 }}
+      style={({ pressed }) => ({ height: 164, borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.93 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+      {/* muted: soft colour wash fading into dark, not a bright slab */}
+      <LinearGradient colors={[p.color + '4D', '#161C24', '#0F141A']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1.1, y: 1 }}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-      <View style={{ position: 'absolute', top: -50, right: -30, width: 190, height: 190, borderRadius: 95, backgroundColor: '#FFFFFF12' }} />
-      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, gap: 16 }}>
-        <View style={{ width: 60, height: 60, borderRadius: 20, backgroundColor: '#FFFFFF26', borderWidth: 1, borderColor: '#FFFFFF33', alignItems: 'center', justifyContent: 'center' }}>
-          <I size={30} color="#fff" />
+      <View style={{ position: 'absolute', top: -60, right: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: p.color + '1A' }} />
+      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, gap: 16 }}>
+        <View style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: p.color + '2E', borderWidth: 1, borderColor: p.color + '4D', alignItems: 'center', justifyContent: 'center' }}>
+          <I size={32} color={p.color} />
         </View>
         <View style={{ flex: 1, gap: 4 }}>
-          <Text style={{ color: '#fff', fontSize: 21, fontWeight: '800', letterSpacing: -0.5 }} numberOfLines={1}>{lang === 'ru' ? p.titleRu : p.titleEn}</Text>
-          <Text style={{ color: '#FFFFFFD0', fontSize: 13, lineHeight: 17 }} numberOfLines={2}>{lang === 'ru' ? p.subRu : p.subEn}</Text>
-          <Text style={{ color: '#FFFFFF99', fontSize: 11.5, fontWeight: '700', marginTop: 1 }}>{p.minutes} {lang === 'ru' ? 'мин' : 'min'}</Text>
+          <Text style={{ color: '#F2F6FA', fontSize: 22, fontWeight: '800', letterSpacing: -0.5 }} numberOfLines={1}>{lang === 'ru' ? p.titleRu : p.titleEn}</Text>
+          <Text style={{ color: '#A8B2BE', fontSize: 13.5, lineHeight: 18 }} numberOfLines={2}>{lang === 'ru' ? p.subRu : p.subEn}</Text>
+          <Text style={{ color: p.color, fontSize: 11.5, fontWeight: '800', marginTop: 2 }}>{p.minutes} {lang === 'ru' ? 'мин' : 'min'}</Text>
         </View>
-        <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ width: 0, height: 0, borderTopWidth: 9, borderBottomWidth: 9, borderLeftWidth: 15, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: p.color, marginLeft: 4 }} />
+        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: p.color, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 0, height: 0, borderTopWidth: 9, borderBottomWidth: 9, borderLeftWidth: 15, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#fff', marginLeft: 4 }} />
         </View>
       </View>
     </Pressable>
