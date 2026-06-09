@@ -138,11 +138,7 @@ export default function Techniques() {
 
         <Animated.View key={tab} entering={FadeInDown.duration(280)} style={{ paddingHorizontal: spacing.lg, gap: 12 }}>
           {tab === 'audio' && audioItems.map((p) => (
-            <PremiumCard key={p.id} color={p.color} motif="orb" gid={`a_${p.id}`}
-              tag={lang === 'ru' ? AUDIO_TAGS[p.id]?.ru : AUDIO_TAGS[p.id]?.en}
-              title={lang === 'ru' ? p.titleRu : p.titleEn}
-              sub={lang === 'ru' ? p.subRu : p.subEn}
-              onPress={() => openAudio(p.id)} />
+            <AudioCard key={p.id} p={p} openAudio={openAudio} lang={lang} />
           ))}
 
           {tab === 'breath' && breathTech.map((te) => (
