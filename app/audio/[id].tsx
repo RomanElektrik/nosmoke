@@ -17,7 +17,7 @@ import { spacing } from '../../lib/theme';
 import { currentLang } from '../../lib/i18n';
 import { useAppState, update } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
-import { getPractice, PRACTICES } from '../../lib/audioPractice';
+import { getPractice, PRACTICES, practiceScript } from '../../lib/audioPractice';
 import { synthLine, hasVoice, VOICES, geminiVoiceFor } from '../../lib/voice';
 import {
   playFile, speakFallback, ensureSpeaker, claimAudio, releaseAudio, newOwner, stopAudio,
@@ -254,8 +254,8 @@ export default function AudioPlayer() {
         <View {...swipePan.panHandlers} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           {showScript ? (
             <ScrollView style={{ alignSelf: 'stretch' }} contentContainerStyle={{ paddingVertical: 24, gap: 18 }} showsVerticalScrollIndicator={false}>
-              {steps.map((s, i) => (
-                <Text key={i} style={{ color: '#E8EEF4', fontSize: 18, lineHeight: 27, textAlign: 'center' }}>{ru ? s.ru : s.en}</Text>
+              {(practiceScript(practice.id) ?? steps.map((s) => (ru ? s.ru : s.en))).map((line, i) => (
+                <Text key={i} style={{ color: '#E8EEF4', fontSize: 18, lineHeight: 27, textAlign: 'center' }}>{line}</Text>
               ))}
             </ScrollView>
           ) : (
