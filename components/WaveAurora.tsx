@@ -50,22 +50,22 @@ function WaveLayer({ W, H, col, base, amp, per, dur, dir, op }: Layer & { W: num
 
 export function WaveAurora({ color }: { color: string }) {
   const { width: W, height: H } = Dimensions.get('window');
-  // Many colours, each band a different hue / speed / direction → rich, never-
-  // repeating flow. The practice colour leads; the rest add the rainbow.
+  // ONE colour — the practice colour — in soft shades. Calm, slow, never-
+  // repeating flow. A faint white band on top adds a gentle highlight, not a
+  // second colour.
   const layers: Layer[] = [
-    { col: color,     base: 0.30, amp: 34, per: 1.4, dur: 9000,  dir: 1,  op: 0.50 },
-    { col: '#5E5CE6', base: 0.42, amp: 46, per: 1.1, dur: 13000, dir: -1, op: 0.42 },
-    { col: '#0A84FF', base: 0.54, amp: 40, per: 1.7, dur: 7000,  dir: 1,  op: 0.40 },
-    { col: '#FF2D78', base: 0.66, amp: 52, per: 1.0, dur: 15000, dir: -1, op: 0.34 },
-    { col: '#30D158', base: 0.77, amp: 42, per: 1.5, dur: 11000, dir: 1,  op: 0.30 },
-    { col: '#FF9F0A', base: 0.88, amp: 38, per: 1.2, dur: 8000,  dir: -1, op: 0.30 },
+    { col: color,     base: 0.34, amp: 30, per: 1.3, dur: 19000, dir: 1,  op: 0.55 },
+    { col: color,     base: 0.50, amp: 40, per: 1.0, dur: 24000, dir: -1, op: 0.4 },
+    { col: '#FFFFFF', base: 0.62, amp: 34, per: 1.5, dur: 21000, dir: 1,  op: 0.08 },
+    { col: color,     base: 0.74, amp: 44, per: 1.1, dur: 27000, dir: -1, op: 0.5 },
+    { col: color,     base: 0.88, amp: 36, per: 1.4, dur: 16000, dir: 1,  op: 0.6 },
   ];
   return (
     <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
       <Svg width={W} height={H}>
         {layers.map((l, i) => <WaveLayer key={i} W={W} H={H} {...l} />)}
       </Svg>
-      <BlurView intensity={44} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      <BlurView intensity={40} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
     </View>
   );
 }

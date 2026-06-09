@@ -43,6 +43,23 @@ type TabId = (typeof TABS)[number]['id'];
 const BREATH_TECH = ['box_breath', 'cyclic_sigh'];
 const SUPPORT_TECH = ['faith', 'halt_check'];
 
+// Short mood tag per audio session (shown as a pill on the card).
+const AUDIO_TAGS: Record<string, { ru: string; en: string }> = {
+  calm_now:       { ru: 'ТЯГА',       en: 'CRAVING' },
+  surf:           { ru: 'ТЯГА',       en: 'CRAVING' },
+  release:        { ru: 'НАПРЯЖЕНИЕ', en: 'TENSION' },
+  grounding:      { ru: 'ЗДЕСЬ',      en: 'PRESENT' },
+  sleep:          { ru: 'СОН',        en: 'SLEEP' },
+  you_got_this:   { ru: 'СИЛА',       en: 'STRENGTH' },
+  after_slip:     { ru: 'СРЫВ',       en: 'SLIP' },
+  morning:        { ru: 'УТРО',       en: 'MORNING' },
+  i_dont_smoke:   { ru: 'ЛИЧНОСТЬ',   en: 'IDENTITY' },
+  let_go_anxiety: { ru: 'ТРЕВОГА',    en: 'ANXIETY' },
+  evening_unwind: { ru: 'ВЕЧЕР',      en: 'EVENING' },
+  social_urge:    { ru: 'КОМПАНИЯ',   en: 'SOCIAL' },
+  proud:          { ru: 'ГОРДОСТЬ',   en: 'PRIDE' },
+};
+
 export default function Techniques() {
   const t = useTheme();
   const { t: tr } = useTranslation();
@@ -148,26 +165,25 @@ export default function Techniques() {
 function AudioCard({ p, openAudio, lang }: {
   p: (typeof PRACTICES)[number]; openAudio: (id: string) => void; lang: 'ru' | 'en';
 }) {
-  const I = Icon[p.icon];
+  const tag = AUDIO_TAGS[p.id];
   return (
     <Pressable onPress={() => openAudio(p.id)}
-      style={({ pressed }) => ({ minHeight: 188, borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.93 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
-      {/* muted: soft colour wash fading into dark, not a bright slab */}
-      <LinearGradient colors={[p.color + '4D', '#161C24', '#0F141A']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1.1, y: 1 }}
+      style={({ pressed }) => ({ height: 210, borderRadius: 26, overflow: 'hidden', opacity: pressed ? 0.93 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+      {/* dark card */}
+      <LinearGradient colors={['#161B22', '#10141A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-      <View style={{ position: 'absolute', top: -60, right: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: p.color + '1A' }} />
-      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: 20, paddingHorizontal: 20, gap: 16 }}>
-        <View style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: p.color + '2E', borderWidth: 1, borderColor: p.color + '4D', alignItems: 'center', justifyContent: 'center' }}>
-          <I size={32} color={p.color} />
-        </View>
-        <View style={{ flex: 1, gap: 5 }}>
-          <Text style={{ color: '#F2F6FA', fontSize: 22, fontWeight: '800', letterSpacing: -0.5, lineHeight: 27 }} numberOfLines={2}>{lang === 'ru' ? p.titleRu : p.titleEn}</Text>
-          <Text style={{ color: '#A8B2BE', fontSize: 13.5, lineHeight: 18 }} numberOfLines={2}>{lang === 'ru' ? p.subRu : p.subEn}</Text>
-          <Text style={{ color: p.color, fontSize: 11.5, fontWeight: '800', marginTop: 2 }}>{p.minutes} {lang === 'ru' ? 'мин' : 'min'}</Text>
-        </View>
-        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: p.color, alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ width: 0, height: 0, borderTopWidth: 9, borderBottomWidth: 9, borderLeftWidth: 15, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#fff', marginLeft: 4 }} />
-        </View>
+      {/* big colour orb, top-right — the one accent */}
+      <View style={{ position: 'absolute', top: -46, right: -36, width: 210, height: 210, borderRadius: 105, backgroundColor: p.color + '26' }} />
+      <View style={{ position: 'absolute', top: -20, right: -10, width: 150, height: 150, borderRadius: 75, backgroundColor: p.color, opacity: 0.92 }} />
+      {/* text bottom-left */}
+      <View style={{ position: 'absolute', left: 20, right: 20, bottom: 18, gap: 8 }}>
+        {tag && (
+          <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: '#00000055' }}>
+            <Text style={{ color: '#FFFFFFCC', fontSize: 10.5, fontWeight: '800', letterSpacing: 1 }}>{lang === 'ru' ? tag.ru : tag.en}</Text>
+          </View>
+        )}
+        <Text style={{ color: '#F2F6FA', fontSize: 25, fontWeight: '800', letterSpacing: -0.6, lineHeight: 29 }} numberOfLines={2}>{lang === 'ru' ? p.titleRu : p.titleEn}</Text>
+        <Text style={{ color: '#9AA5B1', fontSize: 14, lineHeight: 18 }} numberOfLines={1}>{lang === 'ru' ? p.subRu : p.subEn}</Text>
       </View>
     </Pressable>
   );
