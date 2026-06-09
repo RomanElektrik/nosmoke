@@ -17,6 +17,7 @@ import { useTheme, spacing, radius, type Theme } from '../lib/theme';
 import { useTranslation } from '../lib/i18n';
 import { BreathingOrb } from '../components/BreathingOrb';
 import { WaterCircle } from '../components/WaterCircle';
+import { PremiumCard } from '../components/PremiumCard';
 import { Icon } from '../components/Icon';
 import { update, useAppState } from '../lib/storage';
 import type { Trigger } from '../lib/storage';
@@ -99,28 +100,11 @@ export default function Craving() {
           return (
             <>
               {/* ── HERO: the one obvious thing — wait out the wave ── */}
-              <Pressable
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setPhase('wave'); }}
-                style={({ pressed }) => ({ borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.95 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] })}>
-                <LinearGradient colors={['#0A84FF', '#5E5CE6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1.1 }}
-                  style={{ padding: 24, gap: 18 }}>
-                  {/* soft decorative wave behind */}
-                  <View style={{ position: 'absolute', top: -50, right: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: '#FFFFFF14' }} />
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                    <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF26', borderWidth: 1.5, borderColor: '#FFFFFF45', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon.waves size={32} color="#fff" />
-                    </View>
-                    <View style={{ flex: 1, gap: 4 }}>
-                      <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800', letterSpacing: -0.5 }}>{ru ? 'Переждать волну' : 'Ride the wave'}</Text>
-                      <Text style={{ color: '#FFFFFFDD', fontSize: 14, lineHeight: 19 }}>{ru ? '3 минуты — и тяга уходит сама. Просто смотри и дыши.' : '3 minutes and the urge passes. Just watch and breathe.'}</Text>
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FFFFFF26', borderRadius: 14, paddingVertical: 13 }}>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>{ru ? 'Начать' : 'Start'}</Text>
-                    <Icon.arrowRight size={18} color="#fff" />
-                  </View>
-                </LinearGradient>
-              </Pressable>
+              <PremiumCard color="#0A84FF" motif="waves" gid="sos_wave" height={196}
+                tag={ru ? '3 МИНУТЫ' : '3 MIN'}
+                title={ru ? 'Переждать волну' : 'Ride the wave'}
+                sub={ru ? 'Тяга уходит сама — просто смотри и дыши' : 'The urge passes — just watch and breathe'}
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setPhase('wave'); }} />
 
               {due && (
                 <ContextRow t={t} icon={Icon.pill} color={t.info}
