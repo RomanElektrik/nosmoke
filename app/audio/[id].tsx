@@ -254,7 +254,7 @@ export default function AudioPlayer() {
         </View>
 
         {/* Bottom — scrubber + transport */}
-        <View style={{ paddingBottom: 12, gap: 22 }}>
+        <View style={{ paddingBottom: 38, gap: 22 }}>
           {recorded ? (
             <SeekBar pos={pos} dur={dur} color={c} onScrub={onScrub} />
           ) : (
