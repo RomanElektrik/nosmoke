@@ -151,17 +151,17 @@ function AudioCard({ p, openAudio, lang }: {
   const I = Icon[p.icon];
   return (
     <Pressable onPress={() => openAudio(p.id)}
-      style={({ pressed }) => ({ height: 164, borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.93 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+      style={({ pressed }) => ({ minHeight: 188, borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.93 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
       {/* muted: soft colour wash fading into dark, not a bright slab */}
       <LinearGradient colors={[p.color + '4D', '#161C24', '#0F141A']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1.1, y: 1 }}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
       <View style={{ position: 'absolute', top: -60, right: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: p.color + '1A' }} />
-      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, gap: 16 }}>
+      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: 20, paddingHorizontal: 20, gap: 16 }}>
         <View style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: p.color + '2E', borderWidth: 1, borderColor: p.color + '4D', alignItems: 'center', justifyContent: 'center' }}>
           <I size={32} color={p.color} />
         </View>
-        <View style={{ flex: 1, gap: 4 }}>
-          <Text style={{ color: '#F2F6FA', fontSize: 22, fontWeight: '800', letterSpacing: -0.5 }} numberOfLines={1}>{lang === 'ru' ? p.titleRu : p.titleEn}</Text>
+        <View style={{ flex: 1, gap: 5 }}>
+          <Text style={{ color: '#F2F6FA', fontSize: 22, fontWeight: '800', letterSpacing: -0.5, lineHeight: 27 }} numberOfLines={2}>{lang === 'ru' ? p.titleRu : p.titleEn}</Text>
           <Text style={{ color: '#A8B2BE', fontSize: 13.5, lineHeight: 18 }} numberOfLines={2}>{lang === 'ru' ? p.subRu : p.subEn}</Text>
           <Text style={{ color: p.color, fontSize: 11.5, fontWeight: '800', marginTop: 2 }}>{p.minutes} {lang === 'ru' ? 'мин' : 'min'}</Text>
         </View>
