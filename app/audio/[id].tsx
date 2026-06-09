@@ -197,6 +197,18 @@ export default function AudioPlayer() {
   const aMid = useAnimatedStyle(() => ({ transform: [{ scale: 1 + (orb.value - 1) * 0.6 }], opacity: 0.55 }));
   const aOuter = useAnimatedStyle(() => ({ transform: [{ scale: 1 + (orb.value - 1) * 0.32 }], opacity: 0.3 }));
 
+  // Iridescent "aurora": two gradient layers rotate at different speeds inside a
+  // clipped circle → a slow, shimmering, meditative flow instead of a flat pulse.
+  const rot1 = useSharedValue(0);
+  const rot2 = useSharedValue(0);
+  useEffect(() => {
+    rot1.value = withRepeat(withTiming(360, { duration: 17000, easing: Easing.linear }), -1, false);
+    rot2.value = withRepeat(withTiming(-360, { duration: 23000, easing: Easing.linear }), -1, false);
+    return () => { cancelAnimation(rot1); cancelAnimation(rot2); };
+  }, []);
+  const aRot1 = useAnimatedStyle(() => ({ transform: [{ rotate: `${rot1.value}deg` }] }));
+  const aRot2 = useAnimatedStyle(() => ({ transform: [{ rotate: `${rot2.value}deg` }] }));
+
   if (!practice) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#0B0F14', alignItems: 'center', justifyContent: 'center' }}>
@@ -229,14 +241,23 @@ export default function AudioPlayer() {
         {/* Breathing rings + (TTS only) caption */}
         <View {...swipePan.panHandlers} style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 36 }}>
           <View style={{ width: 300, height: 300, alignItems: 'center', justifyContent: 'center' }}>
+            {/* soft outer glow */}
             <Animated.View style={[{ position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: c + '12' }, aOuter]} />
-            <Animated.View style={[{ position: 'absolute', width: 224, height: 224, borderRadius: 112, borderWidth: 1, borderColor: c + '55', backgroundColor: c + '0F' }, aMid]} />
+            <Animated.View style={[{ position: 'absolute', width: 250, height: 250, borderRadius: 125, backgroundColor: c + '14' }, aMid]} />
+            {/* aurora orb — rotating gradients clipped to a circle */}
             <Animated.View style={[{
-              width: 156, height: 156, borderRadius: 78, alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-              shadowColor: c, shadowOpacity: 0.7, shadowRadius: 34, shadowOffset: { width: 0, height: 0 },
+              width: 232, height: 232, borderRadius: 116, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
+              shadowColor: c, shadowOpacity: 0.65, shadowRadius: 42, shadowOffset: { width: 0, height: 0 },
             }, aInner]}>
-              <LinearGradient colors={[c, '#0A84FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', width: 156, height: 156 }} />
-              {(() => { const I = Icon[practice.icon]; return <I size={42} color="#FFFFFFF2" />; })()}
+              <Animated.View style={[{ position: 'absolute', width: 360, height: 360, left: -64, top: -64 }, aRot1]}>
+                <LinearGradient colors={[c, c + '44', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: 180 }} />
+              </Animated.View>
+              <Animated.View style={[{ position: 'absolute', width: 360, height: 360, left: -64, top: -64, opacity: 0.85 }, aRot2]}>
+                <LinearGradient colors={['#FFFFFF99', c + '66', 'transparent']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ flex: 1, borderRadius: 180 }} />
+              </Animated.View>
+              {/* glassy sheen */}
+              <View pointerEvents="none" style={{ position: 'absolute', top: 26, left: 46, width: 96, height: 58, borderRadius: 48, backgroundColor: '#FFFFFF2E' }} />
+              {(() => { const I = Icon[practice.icon]; return <I size={44} color="#FFFFFFF2" />; })()}
             </Animated.View>
           </View>
 

@@ -122,6 +122,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Ты справишься', titleEn: 'You\'ve got this',
     subRu: 'Минута уверенности в себе', subEn: 'A minute of self-belief',
     minutes: 3,
+    audio: require('../assets/audio/breeze_you_got_this.mp3'),
     steps: [
       { kind: 'say', ru: 'Остановись на минуту. Сделай спокойный вдох. Я здесь, рядом.', en: 'Pause for a minute. Take a calm breath. I\'m here with you.', hold: 2 },
       { kind: 'say', ru: 'Ты уже сделал самое трудное — ты начал. Это сильнее, чем кажется.', en: 'You already did the hardest part — you started. That\'s stronger than it feels.', hold: 3 },
@@ -138,6 +139,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Сорвался — и это ок', titleEn: 'You slipped — and it\'s okay',
     subRu: 'Без вины, мягко вернуться', subEn: 'No guilt, a gentle return',
     minutes: 3,
+    audio: require('../assets/audio/breeze_after_slip.mp3'),
     steps: [
       { kind: 'say', ru: 'Ты закурил. Сделай вдох. Это не провал — это просто момент.', en: 'You smoked. Take a breath. This isn\'t failure — it\'s just a moment.', hold: 2 },
       { kind: 'say', ru: 'Одна сигарета не стирает всё, что ты прошёл. Цифры остаются твоими.', en: 'One cigarette doesn\'t erase all you\'ve done. Your numbers stay yours.', hold: 3 },
@@ -154,6 +156,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Утро без сигарет', titleEn: 'A smoke-free morning',
     subRu: 'Настроить день с утра', subEn: 'Set your day from the start',
     minutes: 3,
+    audio: require('../assets/audio/breeze_morning.mp3'),
     steps: [
       { kind: 'say', ru: 'Доброе утро. Новый день — и он начинается свободным.', en: 'Good morning. A new day — and it begins free.', hold: 2 },
       { kind: 'breathe', ru: 'Сделай глубокий вдох свежего воздуха… и медленный выдох.', en: 'Take a deep breath of fresh air… and a slow exhale.', hold: 3 },
@@ -170,6 +173,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Я больше не курю', titleEn: 'I don\'t smoke anymore',
     subRu: 'Закрепить новую личность', subEn: 'Anchor your new identity',
     minutes: 4,
+    audio: require('../assets/audio/breeze_i_dont_smoke.mp3'),
     steps: [
       { kind: 'say', ru: 'Устройся удобно. Закрой глаза, если хочешь. Дыши спокойно.', en: 'Settle in. Close your eyes if you like. Breathe calmly.', hold: 2 },
       { kind: 'say', ru: 'Курение — это не ты. Это привычка, которую ты сейчас отпускаешь.', en: 'Smoking isn\'t you. It\'s a habit you\'re letting go of now.', hold: 3 },
@@ -186,6 +190,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Отпустить тревогу', titleEn: 'Let anxiety go',
     subRu: 'Снять напряжение без сигареты', subEn: 'Release tension without a cigarette',
     minutes: 4,
+    audio: require('../assets/audio/breeze_let_go_anxiety.mp3'),
     steps: [
       { kind: 'say', ru: 'Тревога — частая причина потянуться за сигаретой. Давай снимем её иначе.', en: 'Anxiety is a common reason to reach for a cigarette. Let\'s ease it another way.', hold: 2 },
       { kind: 'breathe', ru: 'Глубокий вдох носом на четыре… задержи… и долгий выдох ртом.', en: 'Deep breath in for four… hold… and a long exhale through the mouth.', hold: 4 },
@@ -203,6 +208,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Вечер без сигареты', titleEn: 'Evening without a cigarette',
     subRu: 'Сбросить напряжение дня', subEn: 'Let the day\'s tension go',
     minutes: 4,
+    audio: require('../assets/audio/breeze_evening_unwind.mp3'),
     steps: [
       { kind: 'say', ru: 'День закончился. Раньше это был момент «заслуженной» сигареты. Давай отметим конец дня иначе.', en: 'The day is over. This used to be the moment for a "deserved" cigarette. Let\'s mark the day\'s end another way.', hold: 2 },
       { kind: 'breathe', ru: 'Глубокий вдох… и длинный выдох, отпускающий весь день.', en: 'A deep breath in… and a long exhale, letting the whole day go.', hold: 4 },
@@ -219,6 +225,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Тянет за компанию', titleEn: 'Craving in company',
     subRu: 'Когда вокруг курят', subEn: 'When others are smoking',
     minutes: 3,
+    audio: require('../assets/audio/breeze_social_urge.mp3'),
     steps: [
       { kind: 'say', ru: 'Вокруг курят, и тебя тянет за компанию. Это самый сильный триггер — и сейчас мы его обойдём.', en: 'Others are smoking and you feel pulled along. This is the strongest trigger — and we\'ll get past it.', hold: 2 },
       { kind: 'say', ru: 'Сделай шаг назад — мысленно или буквально. Вдохни. Тебе не обязательно делать то, что делают все.', en: 'Take a step back — mentally or literally. Breathe. You don\'t have to do what everyone else does.', hold: 3 },
@@ -235,6 +242,7 @@ export const PRACTICES: AudioPractice[] = [
     titleRu: 'Я молодец', titleEn: 'I\'m doing great',
     subRu: 'Прочувствовать свой прогресс', subEn: 'Savour your progress',
     minutes: 3,
+    audio: require('../assets/audio/breeze_proud.mp3'),
     steps: [
       { kind: 'say', ru: 'Эта минута — только чтобы признать, какой ты молодец. Без «но», без «надо больше».', en: 'This minute is just to recognise how well you\'re doing. No "but", no "should do more".', hold: 2 },
       { kind: 'say', ru: 'Вспомни, сколько раз ты хотел закурить — и не закурил. Каждый раз ты выбирал себя.', en: 'Remember all the times you wanted to smoke — and didn\'t. Each time you chose yourself.', hold: 3 },

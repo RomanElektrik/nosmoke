@@ -30,12 +30,19 @@ const HIDDEN = new Set<string>([
   'urge_surf', 'replace',
 ]);
 
-// Group labels for visual sectioning
-const GROUPS: { ids: string[]; labelRu: string; labelEn: string }[] = [
-  { ids: ['box_breath', 'cyclic_sigh'], labelRu: 'Дыхание',       labelEn: 'Breathing' },
-  { ids: ['halt_check'],                labelRu: 'В момент тяги',  labelEn: 'When the urge hits' },
-  { ids: ['faith'],                     labelRu: 'Поддержка',      labelEn: 'Support' },
-];
+// Top tabs.
+const TABS = [
+  { id: 'audio',   ru: 'Аудиопрактики', en: 'Audio' },
+  { id: 'breath',  ru: 'Дыхание',       en: 'Breathing' },
+  { id: 'support', ru: 'Поддержка',     en: 'Support' },
+] as const;
+type TabId = (typeof TABS)[number]['id'];
+
+// Which voiced audio sessions belong to which tab.
+const CALM_AUDIO = new Set(['calm_now', 'surf', 'release', 'grounding', 'sleep', 'let_go_anxiety', 'evening_unwind']);
+const SUPPORT_AUDIO = new Set(['you_got_this', 'after_slip', 'morning', 'i_dont_smoke', 'social_urge', 'proud']);
+const BREATH_TECH = ['box_breath', 'cyclic_sigh'];
+const SUPPORT_TECH = ['halt_check', 'faith'];
 
 export default function Techniques() {
   const t = useTheme();
@@ -43,6 +50,7 @@ export default function Techniques() {
   const router = useRouter();
   const lang = currentLang();
   const [open, setOpen] = useState<Technique | null>(null);
+  const [tab, setTab] = useState<TabId>('audio');
   const premium = usePremium();
   const navLock = useRef(false);
 
@@ -59,6 +67,11 @@ export default function Techniques() {
     .filter((te) => !HIDDEN.has(te.id))
     .sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
 
+  const calmAudio = PRACTICES.filter((p) => CALM_AUDIO.has(p.id));
+  const supportAudio = PRACTICES.filter((p) => SUPPORT_AUDIO.has(p.id));
+  const breathTech = sorted.filter((te) => BREATH_TECH.includes(te.id));
+  const supportTech = sorted.filter((te) => SUPPORT_TECH.includes(te.id));
+
   function go(te: Technique) {
     if (!te.practice) return;
     Haptics.selectionAsync();
@@ -74,69 +87,48 @@ export default function Techniques() {
   return (
     <SwipeToHome>
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: 14 }}>
           <Text style={{ color: t.text, fontSize: 34, fontWeight: '800', letterSpacing: -0.8 }}>
             {tr('tech.title')}
           </Text>
-          <Text style={{ color: t.textDim, fontSize: 15, marginTop: 4, lineHeight: 21 }}>
-            {lang === 'ru'
-              ? 'Все техники доказательные — наука за каждой.'
-              : 'Every technique is evidence-based — science behind each.'}
-          </Text>
         </View>
 
-        {/* Audio practices — horizontal carousel of premium voiced sessions */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: spacing.lg, marginBottom: 12, marginTop: 6 }}>
-          <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.4 }}>{lang === 'ru' ? 'Аудио с голосом' : 'Audio sessions'}</Text>
+        {/* Segmented tabs */}
+        <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: spacing.lg, marginBottom: 18 }}>
+          {TABS.map((tb) => {
+            const on = tab === tb.id;
+            return (
+              <Pressable key={tb.id} onPress={() => { Haptics.selectionAsync(); setTab(tb.id); }}
+                style={{ flex: 1, paddingVertical: 11, borderRadius: 14, alignItems: 'center',
+                  backgroundColor: on ? t.accent : t.bgElev, borderWidth: 1, borderColor: on ? t.accent : t.border }}>
+                <Text style={{ color: on ? '#fff' : t.textDim, fontWeight: on ? '800' : '600', fontSize: 13 }}>{lang === 'ru' ? tb.ru : tb.en}</Text>
+              </Pressable>
+            );
+          })}
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 12, paddingBottom: 4 }} style={{ marginBottom: 4 }}>
-          {PRACTICES.map((p) => (
-            <Pressable key={p.id} onPress={() => openAudio(p.id)}
-              style={({ pressed }) => ({ width: 220, height: 260, borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.92 : 1 })}>
-              <LinearGradient colors={[p.color, p.color + '80', '#0A0E13']} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1.1 }}
-                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-              <View style={{ position: 'absolute', top: -40, left: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: '#FFFFFF10' }} />
-              <View style={{ position: 'absolute', top: 18, left: 18, width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF22', alignItems: 'center', justifyContent: 'center' }}>
-                {(() => { const I = Icon[p.icon]; return <I size={32} color="#fff" />; })()}
-              </View>
-              <View style={{ position: 'absolute', left: 16, right: 16, bottom: 16, gap: 6 }}>
-                <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: '#0008', alignSelf: 'flex-start' }}>
-                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.4 }}>{p.minutes} {lang === 'ru' ? 'МИН · ГОЛОС' : 'MIN · VOICE'}</Text>
-                </View>
-                <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800', letterSpacing: -0.4 }} numberOfLines={2}>{lang === 'ru' ? p.titleRu : p.titleEn}</Text>
-                <Text style={{ color: '#FFFFFFCC', fontSize: 12, lineHeight: 16 }} numberOfLines={2}>{lang === 'ru' ? p.subRu : p.subEn}</Text>
-              </View>
-              <View style={{ position: 'absolute', top: 18, right: 18, width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
-                <View style={{ width: 0, height: 0, borderTopWidth: 8, borderBottomWidth: 8, borderLeftWidth: 13, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: p.color, marginLeft: 4 }} />
-              </View>
-            </Pressable>
+
+        <Animated.View key={tab} entering={FadeInDown.duration(280)} style={{ paddingHorizontal: spacing.lg, gap: 12 }}>
+          {tab === 'audio' && <BentoAudio items={calmAudio} openAudio={openAudio} lang={lang} />}
+
+          {tab === 'breath' && breathTech.map((te) => (
+            <TechCard key={te.id} te={te} lang={lang} tr={tr}
+              locked={!premium && isTechniquePremium(te.id, te.tags)}
+              onOpen={() => setOpen(te)} onGo={() => go(te)} />
           ))}
-        </ScrollView>
 
-        {/* Technique groups — readable headers, tall colorful cards */}
-        {GROUPS.map((group, gi) => {
-          const items = sorted.filter((te) => group.ids.includes(te.id));
-          if (!items.length) return null;
-          return (
-            <Animated.View key={gi} entering={FadeInDown.delay(gi * 60).duration(300)}>
-              <Text style={{
-                color: t.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.4,
-                marginLeft: spacing.lg, marginBottom: 10, marginTop: gi === 0 ? 22 : 26,
-              }}>
-                {lang === 'ru' ? group.labelRu : group.labelEn}
-              </Text>
-              <View style={{ paddingHorizontal: spacing.lg, gap: 12 }}>
-                {items.map((te) => (
-                  <TechCard key={te.id} te={te} lang={lang} tr={tr}
-                    locked={!premium && isTechniquePremium(te.id, te.tags)}
-                    onOpen={() => setOpen(te)} onGo={() => go(te)} />
-                ))}
-              </View>
-            </Animated.View>
-          );
-        })}
+          {tab === 'support' && (
+            <>
+              <BentoAudio items={supportAudio} openAudio={openAudio} lang={lang} />
+              {supportTech.map((te) => (
+                <TechCard key={te.id} te={te} lang={lang} tr={tr}
+                  locked={!premium && isTechniquePremium(te.id, te.tags)}
+                  onOpen={() => setOpen(te)} onGo={() => go(te)} />
+              ))}
+            </>
+          )}
+        </Animated.View>
       </ScrollView>
 
       <Modal visible={!!open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(null)}>
@@ -150,6 +142,56 @@ export default function Techniques() {
       </Modal>
     </SafeAreaView>
     </SwipeToHome>
+  );
+}
+
+// Bento grid of voiced sessions — alternating full-width and side-by-side rows
+// so the cards come in different sizes (big squares + wide tiles).
+function BentoAudio({ items, openAudio, lang }: {
+  items: typeof PRACTICES; openAudio: (id: string) => void; lang: 'ru' | 'en';
+}) {
+  const rows: (typeof PRACTICES)[] = [];
+  let i = 0; let big = true;
+  while (i < items.length) {
+    if (big) { rows.push([items[i]]); i += 1; }
+    else { rows.push(items.slice(i, i + 2)); i += 2; }
+    big = !big;
+  }
+  return (
+    <>
+      {rows.map((row, ri) => (
+        <View key={ri} style={{ flexDirection: 'row', gap: 12 }}>
+          {row.map((p) => <AudioCard key={p.id} p={p} full={row.length === 1} openAudio={openAudio} lang={lang} />)}
+        </View>
+      ))}
+    </>
+  );
+}
+
+function AudioCard({ p, full, openAudio, lang }: {
+  p: (typeof PRACTICES)[number]; full: boolean; openAudio: (id: string) => void; lang: 'ru' | 'en';
+}) {
+  const I = Icon[p.icon];
+  return (
+    <Pressable onPress={() => openAudio(p.id)}
+      style={({ pressed }) => ({ flex: 1, height: full ? 150 : 192, borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+      <LinearGradient colors={[p.color, p.color + 'AA', '#0A0E13']} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1.1 }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      <View style={{ position: 'absolute', top: -40, right: -36, width: 170, height: 170, borderRadius: 85, backgroundColor: '#FFFFFF12' }} />
+      <View style={{ position: 'absolute', top: 14, left: 14, width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF26', alignItems: 'center', justifyContent: 'center' }}>
+        <I size={28} color="#fff" />
+      </View>
+      <View style={{ position: 'absolute', top: 16, right: 16, width: 34, height: 34, borderRadius: 17, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 0, height: 0, borderTopWidth: 6, borderBottomWidth: 6, borderLeftWidth: 11, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: p.color, marginLeft: 3 }} />
+      </View>
+      <View style={{ position: 'absolute', left: 14, right: 14, bottom: 14, gap: 4 }}>
+        <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: '#0009', alignSelf: 'flex-start' }}>
+          <Text style={{ color: '#fff', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.4 }}>{p.minutes} {lang === 'ru' ? 'МИН · ГОЛОС' : 'MIN · VOICE'}</Text>
+        </View>
+        <Text style={{ color: '#fff', fontSize: full ? 20 : 17, fontWeight: '800', letterSpacing: -0.4 }} numberOfLines={2}>{lang === 'ru' ? p.titleRu : p.titleEn}</Text>
+        {full && <Text style={{ color: '#FFFFFFCC', fontSize: 12.5, lineHeight: 16 }} numberOfLines={1}>{lang === 'ru' ? p.subRu : p.subEn}</Text>}
+      </View>
+    </Pressable>
   );
 }
 
