@@ -3,6 +3,7 @@ import { ScrollView, View, Text, Pressable, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../../lib/theme';
@@ -166,15 +167,24 @@ function AudioCard({ p, openAudio, lang }: {
   p: (typeof PRACTICES)[number]; openAudio: (id: string) => void; lang: 'ru' | 'en';
 }) {
   const tag = AUDIO_TAGS[p.id];
+  const oid = `orb_${p.id}`;
   return (
     <Pressable onPress={() => openAudio(p.id)}
       style={({ pressed }) => ({ height: 210, borderRadius: 26, overflow: 'hidden', opacity: pressed ? 0.93 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
-      {/* dark card */}
-      <LinearGradient colors={['#161B22', '#10141A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      {/* card tinted in its own colour, so cards differ in colour */}
+      <LinearGradient colors={[p.color + '30', '#12161D', '#0F131A']} locations={[0, 0.6, 1]} start={{ x: 0.1, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-      {/* big colour orb, top-right — the one accent */}
-      <View style={{ position: 'absolute', top: -46, right: -36, width: 210, height: 210, borderRadius: 105, backgroundColor: p.color + '26' }} />
-      <View style={{ position: 'absolute', top: -20, right: -10, width: 150, height: 150, borderRadius: 75, backgroundColor: p.color, opacity: 0.92 }} />
+      {/* crisp SVG orb with a soft radial glow — top-right */}
+      <Svg style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+        <Defs>
+          <RadialGradient id={oid} cx="78%" cy="24%" r="58%">
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.4} />
+            <Stop offset="34%" stopColor={p.color} stopOpacity={1} />
+            <Stop offset="100%" stopColor={p.color} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Circle cx="80%" cy="22%" r="44%" fill={`url(#${oid})`} />
+      </Svg>
       {/* text bottom-left */}
       <View style={{ position: 'absolute', left: 20, right: 20, bottom: 18, gap: 8 }}>
         {tag && (
