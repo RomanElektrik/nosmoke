@@ -18,6 +18,7 @@ import { currentLang } from '../../lib/i18n';
 import { useAppState, update } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
 import { getPractice, PRACTICES, practiceScript } from '../../lib/audioPractice';
+import { WaveAurora } from '../../components/WaveAurora';
 import { synthLine, hasVoice, VOICES, geminiVoiceFor } from '../../lib/voice';
 import {
   playFile, speakFallback, ensureSpeaker, claimAudio, releaseAudio, newOwner, stopAudio,
@@ -194,30 +195,6 @@ export default function AudioPlayer() {
   useEffect(() => () => { genRef.current++; releaseAudio(audioId); cancelAnimation(orb); }, []);
   useFocusEffect(useCallback(() => () => { genRef.current++; releaseAudio(audioId); }, []));
 
-  // Iridescent full-screen aurora: two big colour blobs rotate at different
-  // speeds over a dark base → a slow, shimmering, meditative flow.
-  const rot1 = useSharedValue(0);
-  const rot2 = useSharedValue(0);
-  const rot3 = useSharedValue(0);
-  const d1 = useSharedValue(0);
-  const d2 = useSharedValue(0);
-  const d3 = useSharedValue(0);
-  useEffect(() => {
-    rot1.value = withRepeat(withTiming(360, { duration: 13000, easing: Easing.linear }), -1, false);
-    rot2.value = withRepeat(withTiming(-360, { duration: 19000, easing: Easing.linear }), -1, false);
-    rot3.value = withRepeat(withTiming(360, { duration: 27000, easing: Easing.linear }), -1, false);
-    d1.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.sin) }), -1, true);
-    d2.value = withRepeat(withTiming(1, { duration: 8500, easing: Easing.inOut(Easing.sin) }), -1, true);
-    d3.value = withRepeat(withTiming(1, { duration: 11000, easing: Easing.inOut(Easing.sin) }), -1, true);
-    return () => { [rot1, rot2, rot3, d1, d2, d3].forEach(cancelAnimation); };
-  }, []);
-  // Five blobs, each rotating + drifting on different phases → chaotic, organic flow.
-  const aB1 = useAnimatedStyle(() => ({ opacity: 0.55 + d1.value * 0.3, transform: [{ rotate: `${rot1.value}deg` }, { translateX: -40 + d2.value * 90 }, { translateY: 20 - d1.value * 70 }, { scale: 1 + d3.value * 0.2 }] }));
-  const aB2 = useAnimatedStyle(() => ({ opacity: 0.5 + d2.value * 0.3, transform: [{ rotate: `${rot2.value}deg` }, { translateX: 50 - d3.value * 100 }, { translateY: -30 + d2.value * 60 }, { scale: 1.1 - d1.value * 0.18 }] }));
-  const aB3 = useAnimatedStyle(() => ({ opacity: 0.4 + d3.value * 0.3, transform: [{ rotate: `${rot3.value}deg` }, { translateX: -20 + d1.value * 60 }, { translateY: -50 + d3.value * 110 }, { scale: 0.9 + d2.value * 0.25 }] }));
-  const aB4 = useAnimatedStyle(() => ({ opacity: 0.45 + d1.value * 0.25, transform: [{ rotate: `${-rot2.value * 0.8}deg` }, { translateX: 30 - d2.value * 70 }, { translateY: 40 - d1.value * 80 }, { scale: 1.05 + d3.value * 0.15 }] }));
-  const aB5 = useAnimatedStyle(() => ({ opacity: 0.3 + d2.value * 0.25, transform: [{ rotate: `${rot1.value * 0.6}deg` }, { translateX: -60 + d3.value * 120 }, { translateY: 10 + d2.value * 50 }, { scale: 0.85 + d1.value * 0.3 }] }));
-
   if (!practice) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#0B0F14', alignItems: 'center', justifyContent: 'center' }}>
@@ -233,26 +210,10 @@ export default function AudioPlayer() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#06080C' }}>
-      {/* full-screen living aurora — many blobs drift randomly, blurred into a soft flow */}
+      {/* full-screen colourful flowing waves (seamless, never restarts) */}
       <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
-        <LinearGradient colors={[c + '33', '#0A0E13', '#06080C']} locations={[0, 0.5, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-        <Animated.View style={[{ position: 'absolute', width: 540, height: 540, top: -170, left: -160 }, aB1]}>
-          <LinearGradient colors={[c + 'BB', 'transparent']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1, borderRadius: 270 }} />
-        </Animated.View>
-        <Animated.View style={[{ position: 'absolute', width: 480, height: 480, top: -60, right: -180 }, aB2]}>
-          <LinearGradient colors={[c + '99', 'transparent']} start={{ x: 0.3, y: 0 }} end={{ x: 0.7, y: 1 }} style={{ flex: 1, borderRadius: 240 }} />
-        </Animated.View>
-        <Animated.View style={[{ position: 'absolute', width: 560, height: 560, bottom: -200, left: -160 }, aB3]}>
-          <LinearGradient colors={['#FFFFFF42', 'transparent']} start={{ x: 0.4, y: 0 }} end={{ x: 0.6, y: 1 }} style={{ flex: 1, borderRadius: 280 }} />
-        </Animated.View>
-        <Animated.View style={[{ position: 'absolute', width: 440, height: 440, bottom: -120, right: -140 }, aB4]}>
-          <LinearGradient colors={[c + '88', 'transparent']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1, borderRadius: 220 }} />
-        </Animated.View>
-        <Animated.View style={[{ position: 'absolute', width: 380, height: 380, top: 150, left: 40 }, aB5]}>
-          <LinearGradient colors={[c + '77', 'transparent']} start={{ x: 0.4, y: 0 }} end={{ x: 0.6, y: 1 }} style={{ flex: 1, borderRadius: 190 }} />
-        </Animated.View>
-        {/* blur diffuses the blobs into a soft, dreamy aurora */}
-        <BlurView intensity={48} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        <LinearGradient colors={['#0C1018', '#090C12', '#06080C']} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        <WaveAurora color={c} />
       </View>
       <SafeAreaView style={{ flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' }}>
 
