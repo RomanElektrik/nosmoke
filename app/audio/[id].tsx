@@ -51,6 +51,7 @@ export default function AudioPlayer() {
   const [finished, setFinished] = useState(false);
   const [pos, setPos] = useState(0);
   const [dur, setDur] = useState(0);
+  const [showScript, setShowScript] = useState(false);
 
   const idxRef = useRef(0);
   const rateRef = useRef(1);
@@ -193,12 +194,8 @@ export default function AudioPlayer() {
   useEffect(() => () => { genRef.current++; releaseAudio(audioId); cancelAnimation(orb); }, []);
   useFocusEffect(useCallback(() => () => { genRef.current++; releaseAudio(audioId); }, []));
 
-  const aInner = useAnimatedStyle(() => ({ transform: [{ scale: orb.value }] }));
-  const aMid = useAnimatedStyle(() => ({ transform: [{ scale: 1 + (orb.value - 1) * 0.6 }], opacity: 0.55 }));
-  const aOuter = useAnimatedStyle(() => ({ transform: [{ scale: 1 + (orb.value - 1) * 0.32 }], opacity: 0.3 }));
-
-  // Iridescent "aurora": two gradient layers rotate at different speeds inside a
-  // clipped circle → a slow, shimmering, meditative flow instead of a flat pulse.
+  // Iridescent full-screen aurora: two big colour blobs rotate at different
+  // speeds over a dark base → a slow, shimmering, meditative flow.
   const rot1 = useSharedValue(0);
   const rot2 = useSharedValue(0);
   useEffect(() => {
@@ -219,126 +216,101 @@ export default function AudioPlayer() {
   }
 
   const c = practice.color;
-  const isPlaying = recorded ? playing : playing;
+  const isPlaying = playing;
+  const cycleRate = () => { const i = RATES.indexOf(rate); changeRate(RATES[(i + 1) % RATES.length]); };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#070A0E' }}>
-      <LinearGradient colors={[c + '4D', '#0A0E13', '#070A0E']} locations={[0, 0.5, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+    <View style={{ flex: 1, backgroundColor: '#06080C' }}>
+      {/* full-screen flowing aurora — two colour blobs slowly rotating */}
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
+        <LinearGradient colors={[c + '4D', '#0A0E13', '#06080C']} locations={[0, 0.5, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        <Animated.View style={[{ position: 'absolute', width: 560, height: 560, top: -180, left: -150 }, aRot1]}>
+          <LinearGradient colors={[c + '66', 'transparent']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1, borderRadius: 280 }} />
+        </Animated.View>
+        <Animated.View style={[{ position: 'absolute', width: 520, height: 520, bottom: -200, right: -170, opacity: 0.85 }, aRot2]}>
+          <LinearGradient colors={[c + '4D', 'transparent']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1, borderRadius: 260 }} />
+        </Animated.View>
+      </View>
       <SafeAreaView style={{ flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' }}>
 
         {/* Header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 6 }}>
-          <View style={{ width: 38 }} />
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.2 }}>{ru ? practice.titleRu : practice.titleEn}</Text>
-            <Text style={{ color: '#7E90A0', fontSize: 11, marginTop: 2 }}>{ru ? practice.subRu : practice.subEn}</Text>
-          </View>
-          <Pressable onPress={() => router.back()} hitSlop={12} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFFFFF12', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon.close size={18} color="#fff" />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6 }}>
+          <Pressable onPress={() => router.back()} hitSlop={12} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF14', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 24, marginTop: -2 }}>←</Text>
+          </Pressable>
+          <Pressable onPress={() => { Haptics.selectionAsync(); setShowScript((s) => !s); }} hitSlop={12} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: showScript ? '#FFFFFF2E' : '#FFFFFF14', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 19 }}>📖</Text>
           </Pressable>
         </View>
 
-        {/* Breathing rings + (TTS only) caption */}
-        <View {...swipePan.panHandlers} style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 36 }}>
-          <View style={{ width: 300, height: 300, alignItems: 'center', justifyContent: 'center' }}>
-            {/* soft outer glow */}
-            <Animated.View style={[{ position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: c + '12' }, aOuter]} />
-            <Animated.View style={[{ position: 'absolute', width: 250, height: 250, borderRadius: 125, backgroundColor: c + '14' }, aMid]} />
-            {/* aurora orb — rotating gradients clipped to a circle */}
-            <Animated.View style={[{
-              width: 232, height: 232, borderRadius: 116, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
-              shadowColor: c, shadowOpacity: 0.65, shadowRadius: 42, shadowOffset: { width: 0, height: 0 },
-            }, aInner]}>
-              <Animated.View style={[{ position: 'absolute', width: 360, height: 360, left: -64, top: -64 }, aRot1]}>
-                <LinearGradient colors={[c, c + '44', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: 180 }} />
-              </Animated.View>
-              <Animated.View style={[{ position: 'absolute', width: 360, height: 360, left: -64, top: -64, opacity: 0.85 }, aRot2]}>
-                <LinearGradient colors={['#FFFFFF99', c + '66', 'transparent']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ flex: 1, borderRadius: 180 }} />
-              </Animated.View>
-              {/* glassy sheen */}
-              <View pointerEvents="none" style={{ position: 'absolute', top: 26, left: 46, width: 96, height: 58, borderRadius: 48, backgroundColor: '#FFFFFF2E' }} />
-              {(() => { const I = Icon[practice.icon]; return <I size={44} color="#FFFFFFF2" />; })()}
-            </Animated.View>
-          </View>
-
-          {!recorded && (
-            <ScrollView style={{ maxHeight: 120, alignSelf: 'stretch' }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 10 }} showsVerticalScrollIndicator={false}>
-              <Text style={{ color: '#F2F6FA', fontSize: 22, fontWeight: '500', lineHeight: 32, textAlign: 'center', letterSpacing: -0.2 }}>{caption}</Text>
+        {/* Center — title, subtitle, big timer; or the read-along script */}
+        <View {...swipePan.panHandlers} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          {showScript ? (
+            <ScrollView style={{ alignSelf: 'stretch' }} contentContainerStyle={{ paddingVertical: 24, gap: 18 }} showsVerticalScrollIndicator={false}>
+              {steps.map((s, i) => (
+                <Text key={i} style={{ color: '#E8EEF4', fontSize: 18, lineHeight: 27, textAlign: 'center' }}>{ru ? s.ru : s.en}</Text>
+              ))}
             </ScrollView>
+          ) : (
+            <>
+              <Text style={{ color: '#fff', fontSize: 30, fontWeight: '800', letterSpacing: -0.6, textAlign: 'center', paddingHorizontal: 12 }}>{ru ? practice.titleRu : practice.titleEn}</Text>
+              <Text style={{ color: '#FFFFFFA8', fontSize: 15, marginTop: 6, textAlign: 'center', paddingHorizontal: 24, lineHeight: 21 }}>{ru ? practice.subRu : practice.subEn}</Text>
+              {recorded ? (
+                <View style={{ alignItems: 'center', marginTop: 40 }}>
+                  <Text style={{ color: '#fff', fontSize: 66, fontWeight: '300', letterSpacing: 1, fontVariant: ['tabular-nums'] as any }}>{fmt(pos)}</Text>
+                  <Text style={{ color: '#FFFFFF7A', fontSize: 18, marginTop: 2, fontVariant: ['tabular-nums'] as any }}>{fmt(dur)}</Text>
+                </View>
+              ) : (
+                <ScrollView style={{ maxHeight: 170, alignSelf: 'stretch', marginTop: 26 }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 10 }} showsVerticalScrollIndicator={false}>
+                  <Text style={{ color: '#F2F6FA', fontSize: 22, fontWeight: '500', lineHeight: 32, textAlign: 'center', letterSpacing: -0.2 }}>{caption}</Text>
+                </ScrollView>
+              )}
+            </>
           )}
         </View>
 
-        {/* Frosted control panel */}
-        <BlurView intensity={40} tint="dark" style={{ borderRadius: 30, overflow: 'hidden', marginBottom: 6 }}>
-          <View style={{ padding: 18, gap: 16, borderRadius: 30, borderWidth: 1, borderColor: '#FFFFFF14', backgroundColor: '#FFFFFF08' }}>
-
-            {recorded ? (
-              <SeekBar pos={pos} dur={dur} color={c} onScrub={onScrub} />
-            ) : (
-              <View style={{ height: 4, borderRadius: 4, backgroundColor: '#FFFFFF1A', overflow: 'hidden' }}>
-                <View style={{ width: `${total > 1 ? Math.round((finished ? 1 : idx / (total - 1)) * 100) : 0}%`, height: '100%', backgroundColor: c, borderRadius: 4 }} />
-              </View>
-            )}
-
-            {/* transport — ⏮ prev practice / ⏯ play-pause / ⏭ next practice */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 28 }}>
-              <Pressable onPress={() => goPractice(prevP)} hitSlop={8}
-                style={({ pressed }) => ({ width: 54, height: 54, borderRadius: 27, backgroundColor: '#FFFFFF12', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
-                <Icon.skipBack size={26} color="#fff" />
-              </Pressable>
-              <Pressable onPress={recorded ? recToggle : (isPlaying ? ttsPause : ttsPlay)}
-                style={({ pressed }) => ({ width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', opacity: pressed ? 0.9 : 1 })}>
-                <LinearGradient colors={[c, '#0A84FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', width: 80, height: 80 }} />
-                {isPlaying ? (
-                  <View style={{ flexDirection: 'row', gap: 7 }}>
-                    <View style={{ width: 7, height: 27, borderRadius: 3, backgroundColor: '#fff' }} />
-                    <View style={{ width: 7, height: 27, borderRadius: 3, backgroundColor: '#fff' }} />
-                  </View>
-                ) : (
-                  <View style={{ width: 0, height: 0, borderTopWidth: 15, borderBottomWidth: 15, borderLeftWidth: 24, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#fff', marginLeft: 6 }} />
-                )}
-              </Pressable>
-              <Pressable onPress={() => goPractice(nextP)} hitSlop={8}
-                style={({ pressed }) => ({ width: 54, height: 54, borderRadius: 27, backgroundColor: '#FFFFFF12', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
-                <Icon.skipFwd size={26} color="#fff" />
-              </Pressable>
+        {/* Bottom — scrubber + transport */}
+        <View style={{ paddingBottom: 12, gap: 22 }}>
+          {recorded ? (
+            <SeekBar pos={pos} dur={dur} color={c} onScrub={onScrub} />
+          ) : (
+            <View style={{ height: 6, borderRadius: 4, backgroundColor: '#FFFFFF1A', overflow: 'hidden' }}>
+              <View style={{ width: `${total > 1 ? Math.round((finished ? 1 : idx / (total - 1)) * 100) : 0}%`, height: '100%', backgroundColor: c, borderRadius: 4 }} />
             </View>
+          )}
 
-            {/* Next-up hint */}
-            <Text style={{ color: '#7E90A0', fontSize: 11, textAlign: 'center', marginTop: -4 }}>
-              {ru ? 'Дальше: ' : 'Next: '}{ru ? nextP.titleRu : nextP.titleEn}
-            </Text>
-
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* speed */}
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {RATES.map((r) => {
-                const active = r === rate;
-                return (
-                  <Pressable key={r} onPress={() => changeRate(r)}
-                    style={{ flex: 1, paddingVertical: 9, borderRadius: 12, alignItems: 'center', backgroundColor: active ? c + '2E' : '#FFFFFF0D', borderWidth: 1, borderColor: active ? c : '#FFFFFF1A' }}>
-                    <Text style={{ color: active ? '#fff' : '#9FB0C0', fontSize: 13, fontWeight: active ? '700' : '500' }}>{r}×</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {/* voice — TTS mode only (recorded files have a fixed voice) */}
-            {!recorded && (
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {VOICES.map((v) => {
-                  const active = v.id === voiceId;
-                  return (
-                    <Pressable key={v.id} onPress={() => pickVoice(v.id)}
-                      style={{ flex: 1, paddingVertical: 11, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: active ? c + '2E' : '#FFFFFF0D', borderWidth: 1, borderColor: active ? c : '#FFFFFF1A' }}>
-                      <Text style={{ fontSize: 14, color: active ? '#fff' : '#9FB0C0' }}>{v.gender === 'f' ? '♀' : '♂'}</Text>
-                      <Text style={{ color: active ? '#fff' : '#9FB0C0', fontSize: 14, fontWeight: active ? '700' : '500' }}>{ru ? v.ru : v.en}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )}
+            <Pressable onPress={cycleRate} style={({ pressed }) => ({ width: 54, height: 54, borderRadius: 27, backgroundColor: '#FFFFFF12', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>{rate}x</Text>
+            </Pressable>
+            {/* prev practice */}
+            <Pressable onPress={() => goPractice(prevP)} hitSlop={6} style={({ pressed }) => ({ width: 54, height: 54, borderRadius: 27, backgroundColor: '#FFFFFF12', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
+              <Icon.skipBack size={24} color="#fff" />
+            </Pressable>
+            {/* play / pause — warm glow */}
+            <Pressable onPress={recorded ? recToggle : (isPlaying ? ttsPause : ttsPlay)}
+              style={({ pressed }) => ({ width: 84, height: 84, borderRadius: 42, backgroundColor: '#FF8A4C', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.9 : 1,
+                shadowColor: '#FF8A4C', shadowOpacity: 0.6, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } })}>
+              {isPlaying ? (
+                <View style={{ flexDirection: 'row', gap: 7 }}>
+                  <View style={{ width: 7, height: 28, borderRadius: 3, backgroundColor: '#fff' }} />
+                  <View style={{ width: 7, height: 28, borderRadius: 3, backgroundColor: '#fff' }} />
+                </View>
+              ) : (
+                <View style={{ width: 0, height: 0, borderTopWidth: 15, borderBottomWidth: 15, borderLeftWidth: 25, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#fff', marginLeft: 6 }} />
+              )}
+            </Pressable>
+            {/* next practice */}
+            <Pressable onPress={() => goPractice(nextP)} hitSlop={6} style={({ pressed }) => ({ width: 54, height: 54, borderRadius: 27, backgroundColor: '#FFFFFF12', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
+              <Icon.skipFwd size={24} color="#fff" />
+            </Pressable>
+            {/* read-along script */}
+            <Pressable onPress={() => { Haptics.selectionAsync(); setShowScript((s) => !s); }} style={({ pressed }) => ({ width: 54, height: 54, borderRadius: 27, backgroundColor: showScript ? '#FFFFFF26' : '#FFFFFF12', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
+              <Icon.list size={22} color="#fff" />
+            </Pressable>
           </View>
-        </BlurView>
+        </View>
       </SafeAreaView>
     </View>
   );
