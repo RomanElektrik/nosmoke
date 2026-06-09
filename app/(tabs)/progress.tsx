@@ -52,54 +52,60 @@ export default function Progress() {
           const goalPct = hasGoal ? Math.min(1, saved / (p.goalAmount as number)) : 0;
           const goalDays = hasGoal && perDay > 0 ? Math.ceil(Math.max(0, (p.goalAmount as number) - saved) / perDay) : null;
           return (
-            <Pressable onPress={() => go('/goal')} style={({ pressed }) => ({ borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.95 : 1 })}>
-              <LinearGradient colors={['#30D158', '#0A84FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 22, gap: 14 }}>
-                <View style={{ position: 'absolute', top: -40, right: -30, width: 180, height: 180, borderRadius: 90, backgroundColor: '#FFFFFF14' }} />
+            <Pressable onPress={() => go('/goal')} style={({ pressed }) => ({ borderRadius: 28, overflow: 'hidden', opacity: pressed ? 0.96 : 1 })}>
+              <LinearGradient colors={['#10B981', '#0EA5E9', '#6366F1']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 22, gap: 18 }}>
+                {/* soft highlights */}
+                <View style={{ position: 'absolute', top: -70, left: -40, width: 220, height: 220, borderRadius: 110, backgroundColor: '#FFFFFF1F' }} />
+                <View style={{ position: 'absolute', bottom: -90, right: -50, width: 240, height: 240, borderRadius: 120, backgroundColor: '#00000018' }} />
+
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ color: '#FFFFFFE0', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>{ru ? 'Копилка' : 'Money jar'}</Text>
-                  {/* avatar: photo > chosen emoji > piggy */}
-                  {p.goalPhoto
-                    ? <Image source={{ uri: p.goalPhoto }} style={{ width: 40, height: 40, borderRadius: 12 }} />
-                    : <Text style={{ fontSize: 28 }}>{p.goalEmoji ?? '🐷'}</Text>}
-                </View>
-                <Text style={{ color: '#fff', fontSize: 40, fontWeight: '900', letterSpacing: -1.5 }}>
-                  {formatMoney(Math.round(saved), p.currency, ru ? 'ru-RU' : 'en-US')}
-                </Text>
-                {hasGoal ? (
-                  <>
-                    <Text style={{ color: '#FFFFFFE8', fontSize: 15, fontWeight: '700' }}>
-                      {ru ? `Цель: ${p.goalLabel}` : `Goal: ${p.goalLabel}`} · {formatMoney(p.goalAmount as number, p.currency, ru ? 'ru-RU' : 'en-US')}
+                  <View>
+                    <Text style={{ color: '#FFFFFFCC', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.4 }}>{ru ? 'Накоплено' : 'Saved'}</Text>
+                    <Text style={{ color: '#fff', fontSize: 44, fontWeight: '900', letterSpacing: -1.8, marginTop: 4 }}>
+                      {formatMoney(Math.round(saved), p.currency, ru ? 'ru-RU' : 'en-US')}
                     </Text>
-                    <View style={{ gap: 7 }}>
-                      <View style={{ height: 8, borderRadius: 8, backgroundColor: '#FFFFFF33', overflow: 'hidden' }}>
-                        <View style={{ width: `${Math.round(goalPct * 100)}%`, height: '100%', backgroundColor: '#fff', borderRadius: 8 }} />
-                      </View>
-                      <Text style={{ color: '#fff', fontSize: 13.5, fontWeight: '600' }}>
-                        {Math.round(goalPct * 100)}%
-                        {goalPct >= 1
-                          ? (ru ? ' — цель достигнута! 🎉' : ' — goal reached! 🎉')
-                          : goalDays != null ? (ru ? ` · ещё ${goalDays} ${plural(goalDays, ['день', 'дня', 'дней'])}` : ` · ${goalDays} more days`) : ''}
-                      </Text>
+                  </View>
+                  {/* avatar in a ring */}
+                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF2E', borderWidth: 2, borderColor: '#FFFFFF66', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    {p.goalPhoto
+                      ? <Image source={{ uri: p.goalPhoto }} style={{ width: '100%', height: '100%' }} />
+                      : <Text style={{ fontSize: 32 }}>{p.goalEmoji ?? '🐷'}</Text>}
+                  </View>
+                </View>
+
+                {hasGoal ? (
+                  <View style={{ backgroundColor: '#00000026', borderRadius: 18, padding: 14, gap: 9 }}>
+                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }} numberOfLines={1}>
+                      {p.goalLabel} · {formatMoney(p.goalAmount as number, p.currency, ru ? 'ru-RU' : 'en-US')}
+                    </Text>
+                    <View style={{ height: 10, borderRadius: 10, backgroundColor: '#FFFFFF2E', overflow: 'hidden' }}>
+                      <View style={{ width: `${Math.round(goalPct * 100)}%`, height: '100%', backgroundColor: '#fff', borderRadius: 10 }} />
                     </View>
-                  </>
+                    <Text style={{ color: '#FFFFFFE8', fontSize: 13.5, fontWeight: '700' }}>
+                      {Math.round(goalPct * 100)}%
+                      {goalPct >= 1
+                        ? (ru ? ' — цель достигнута! 🎉' : ' — goal reached! 🎉')
+                        : goalDays != null ? (ru ? ` · ещё ${goalDays} ${plural(goalDays, ['день', 'дня', 'дней'])}` : ` · ${goalDays} more days`) : ''}
+                    </Text>
+                  </View>
                 ) : (
-                  <>
-                    <Text style={{ color: '#FFFFFFD0', fontSize: 13.5 }}>
+                  <View style={{ backgroundColor: '#00000026', borderRadius: 18, padding: 14, gap: 9 }}>
+                    <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>
                       {ru ? `${cigsAvoided(p, secs)} сигарет не выкурено` : `${cigsAvoided(p, secs)} cigarettes avoided`}
                     </Text>
                     {rp.next && (
-                      <View style={{ gap: 7, marginTop: 2 }}>
-                        <View style={{ height: 8, borderRadius: 8, backgroundColor: '#FFFFFF33', overflow: 'hidden' }}>
-                          <View style={{ width: `${Math.round(rp.pct * 100)}%`, height: '100%', backgroundColor: '#fff', borderRadius: 8 }} />
+                      <>
+                        <View style={{ height: 10, borderRadius: 10, backgroundColor: '#FFFFFF2E', overflow: 'hidden' }}>
+                          <View style={{ width: `${Math.round(rp.pct * 100)}%`, height: '100%', backgroundColor: '#fff', borderRadius: 10 }} />
                         </View>
-                        <Text style={{ color: '#fff', fontSize: 13.5, fontWeight: '600' }}>
+                        <Text style={{ color: '#FFFFFFE8', fontSize: 13.5, fontWeight: '700' }}>
                           {rp.next.emoji} {ru ? `До «${rp.next.ru}»` : `To "${rp.next.en}"`}
                           {rp.daysToNext != null ? (ru ? ` — ещё ${rp.daysToNext} ${plural(rp.daysToNext, ['день', 'дня', 'дней'])}` : ` — ${rp.daysToNext} more days`) : ''}
                         </Text>
-                      </View>
+                      </>
                     )}
-                    <Text style={{ color: '#FFFFFFC0', fontSize: 12.5, marginTop: 2 }}>{ru ? '＋ Задай свою цель и аватар' : '＋ Set your own goal & avatar'}</Text>
-                  </>
+                    <Text style={{ color: '#FFFFFFC8', fontSize: 12.5 }}>{ru ? '＋ Задай свою цель и аватар' : '＋ Set your own goal & avatar'}</Text>
+                  </View>
                 )}
               </LinearGradient>
             </Pressable>
@@ -214,16 +220,6 @@ function Card({ color, gid, onPress, children }: { color: string; gid: string; o
     <>
       <LinearGradient colors={[color + '2B', '#13171E', '#0F131A']} locations={[0, 0.6, 1]} start={{ x: 0.1, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-      <Svg width={210} height={210} style={{ position: 'absolute', top: -46, right: -42 }}>
-        <Defs>
-          <RadialGradient id={gid} cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.22} />
-            <Stop offset="36%" stopColor={color} stopOpacity={0.9} />
-            <Stop offset="100%" stopColor={color} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Circle cx={105} cy={105} r={96} fill={`url(#${gid})`} />
-      </Svg>
       <View style={{ padding: 18, gap: 14 }}>{children}</View>
     </>
   );
