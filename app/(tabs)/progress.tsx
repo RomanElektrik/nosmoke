@@ -17,6 +17,7 @@ import { moneySaved, cigsAvoided, pricePerCig, formatMoney, formatDuration } fro
 import { rewardProgress } from '../../lib/rewards';
 import { computeInsights, triggerName, worstDayLocalized } from '../../lib/insights';
 import { plural } from '../../lib/identity';
+import { CardAura } from '../../components/CardAura';
 
 export default function Progress() {
   const t = useTheme();
@@ -53,11 +54,8 @@ export default function Progress() {
           const goalDays = hasGoal && perDay > 0 ? Math.ceil(Math.max(0, (p.goalAmount as number) - saved) / perDay) : null;
           return (
             <Pressable onPress={() => go('/goal')} style={({ pressed }) => ({ borderRadius: 28, overflow: 'hidden', opacity: pressed ? 0.96 : 1 })}>
-              <LinearGradient colors={['#10B981', '#0EA5E9', '#6366F1']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 22, gap: 18 }}>
-                {/* soft highlights */}
-                <View style={{ position: 'absolute', top: -70, left: -40, width: 220, height: 220, borderRadius: 110, backgroundColor: '#FFFFFF1F' }} />
-                <View style={{ position: 'absolute', bottom: -90, right: -50, width: 240, height: 240, borderRadius: 120, backgroundColor: '#00000018' }} />
-
+              <CardAura colors={['#10B981', '#0EA5E9', '#6366F1']} />
+              <View style={{ padding: 22, gap: 18 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View>
                     <Text style={{ color: '#FFFFFFCC', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.4 }}>{ru ? 'Накоплено' : 'Saved'}</Text>
@@ -107,7 +105,7 @@ export default function Progress() {
                     <Text style={{ color: '#FFFFFFC8', fontSize: 12.5 }}>{ru ? '＋ Задай свою цель и аватар' : '＋ Set your own goal & avatar'}</Text>
                   </View>
                 )}
-              </LinearGradient>
+              </View>
             </Pressable>
           );
         })()}
