@@ -12,6 +12,7 @@ import { TECHNIQUES, Technique } from '../../lib/techniques';
 import { isTechniquePremium, usePremium } from '../../lib/subscription';
 import { Icon, IconKey } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
+import { PremiumCard } from '../../components/PremiumCard';
 import { PRACTICES } from '../../lib/audioPractice';
 
 const ORDER = [
@@ -59,6 +60,13 @@ const AUDIO_TAGS: Record<string, { ru: string; en: string }> = {
   evening_unwind: { ru: 'ВЕЧЕР',      en: 'EVENING' },
   social_urge:    { ru: 'КОМПАНИЯ',   en: 'SOCIAL' },
   proud:          { ru: 'ГОРДОСТЬ',   en: 'PRIDE' },
+};
+
+const TECH_TAGS: Record<string, { ru: string; en: string }> = {
+  box_breath:  { ru: '4·4·4·4',  en: '4·4·4·4' },
+  cyclic_sigh: { ru: 'ДЫХАНИЕ',  en: 'BREATH' },
+  halt_check:  { ru: '4 НУЖДЫ',  en: 'HALT' },
+  faith:       { ru: 'МОЛИТВА',  en: 'PRAYER' },
 };
 
 export default function Techniques() {
@@ -130,19 +138,23 @@ export default function Techniques() {
 
         <Animated.View key={tab} entering={FadeInDown.duration(280)} style={{ paddingHorizontal: spacing.lg, gap: 12 }}>
           {tab === 'audio' && audioItems.map((p) => (
-            <AudioCard key={p.id} p={p} openAudio={openAudio} lang={lang} />
+            <PremiumCard key={p.id} color={p.color} motif="orb" gid={`a_${p.id}`}
+              tag={lang === 'ru' ? AUDIO_TAGS[p.id]?.ru : AUDIO_TAGS[p.id]?.en}
+              title={lang === 'ru' ? p.titleRu : p.titleEn}
+              sub={lang === 'ru' ? p.subRu : p.subEn}
+              onPress={() => openAudio(p.id)} />
           ))}
 
           {tab === 'breath' && breathTech.map((te) => (
-            <TechCard key={te.id} te={te} lang={lang} tr={tr}
-              locked={!premium && isTechniquePremium(te.id, te.tags)}
-              onOpen={() => setOpen(te)} onGo={() => go(te)} />
+            <PremiumCard key={te.id} color={te.color} motif="rings" gid={`b_${te.id}`}
+              tag={lang === 'ru' ? TECH_TAGS[te.id]?.ru : TECH_TAGS[te.id]?.en}
+              title={tr(te.titleKey)} sub={tr(te.summaryKey)} onPress={() => go(te)} />
           ))}
 
           {tab === 'support' && supportTech.map((te) => (
-            <TechCard key={te.id} te={te} lang={lang} tr={tr}
-              locked={!premium && isTechniquePremium(te.id, te.tags)}
-              onOpen={() => setOpen(te)} onGo={() => go(te)} />
+            <PremiumCard key={te.id} color={te.color} motif="waves" gid={`s_${te.id}`}
+              tag={lang === 'ru' ? TECH_TAGS[te.id]?.ru : TECH_TAGS[te.id]?.en}
+              title={tr(te.titleKey)} sub={tr(te.summaryKey)} onPress={() => go(te)} />
           ))}
         </Animated.View>
       </ScrollView>

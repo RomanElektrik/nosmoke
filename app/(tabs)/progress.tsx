@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { currentLang, useTranslation } from '../../lib/i18n';
 import { useAppState, normalizeReasons } from '../../lib/storage';
@@ -106,11 +107,8 @@ export default function Progress() {
         })()}
 
         {/* ───── ПАТТЕРНЫ ТЯГИ ───── */}
-        <View style={{ borderRadius: radius.xl, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, padding: 18, gap: 14 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Паттерны тяги' : 'Craving patterns'}</Text>
-            <Icon.chart size={22} color={t.info} />
-          </View>
+        <Card color={t.info} gid="pat">
+          <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Паттерны тяги' : 'Craving patterns'}</Text>
           {ins.total < 3 ? (
             <Text style={{ color: t.textDim, fontSize: 14, lineHeight: 21 }}>
               {ru ? 'Отмечай тягу в SOS — здесь появятся твои паттерны: когда тянет, после чего, как держишься.' : 'Log cravings in SOS — your patterns will appear here.'}
@@ -133,17 +131,14 @@ export default function Progress() {
               )}
             </>
           )}
-          <Pressable onPress={() => go('/insights')} style={({ pressed }) => ({ paddingVertical: 11, borderRadius: radius.md, backgroundColor: t.info + '16', alignItems: 'center', opacity: pressed ? 0.8 : 1 })}>
-            <Text style={{ color: t.info, fontWeight: '700', fontSize: 14 }}>{ins.total < 3 ? (ru ? 'Открыть' : 'Open') : (ru ? 'Подробнее' : 'See more')}</Text>
+          <Pressable onPress={() => go('/insights')} style={({ pressed }) => ({ paddingVertical: 11, borderRadius: radius.md, backgroundColor: '#FFFFFF12', alignItems: 'center', opacity: pressed ? 0.8 : 1 })}>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{ins.total < 3 ? (ru ? 'Открыть' : 'Open') : (ru ? 'Подробнее' : 'See more')}</Text>
           </Pressable>
-        </View>
+        </Card>
 
         {/* ───── ПОЧЕМУ Я БРОСАЮ ───── */}
-        <View style={{ borderRadius: radius.xl, backgroundColor: t.accent + '0E', borderWidth: 1, borderColor: t.accent + '33', padding: 18, gap: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Почему я бросаю' : "Why I'm quitting"}</Text>
-            <Icon.heartPulse size={22} color={t.accent} />
-          </View>
+        <Card color={t.accent} gid="why">
+          <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Почему я бросаю' : "Why I'm quitting"}</Text>
           {reasons.length === 0 ? (
             <Text style={{ color: t.textDim, fontSize: 14, lineHeight: 21 }}>{ru ? 'Добавь свои причины — вспомнишь их в момент тяги.' : 'Add your reasons — recall them in a craving.'}</Text>
           ) : (
@@ -156,17 +151,14 @@ export default function Progress() {
               </View>
             ))
           )}
-          <Pressable onPress={() => go('/reasons')} style={({ pressed }) => ({ paddingVertical: 11, borderRadius: radius.md, backgroundColor: t.accent + '18', alignItems: 'center', opacity: pressed ? 0.8 : 1 })}>
-            <Text style={{ color: t.accent, fontWeight: '700', fontSize: 14 }}>{reasons.length === 0 ? (ru ? 'Добавить причины' : 'Add reasons') : (ru ? 'Редактировать' : 'Edit')}</Text>
+          <Pressable onPress={() => go('/reasons')} style={({ pressed }) => ({ paddingVertical: 11, borderRadius: radius.md, backgroundColor: '#FFFFFF12', alignItems: 'center', opacity: pressed ? 0.8 : 1 })}>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{reasons.length === 0 ? (ru ? 'Добавить причины' : 'Add reasons') : (ru ? 'Редактировать' : 'Edit')}</Text>
           </Pressable>
-        </View>
+        </Card>
 
         {/* ───── ЗДОРОВЬЕ — ВЕХИ ВОССТАНОВЛЕНИЯ ───── */}
-        <View style={{ borderRadius: radius.xl, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, padding: 18, gap: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Восстановление' : 'Recovery'}</Text>
-            <Icon.heartPulse size={22} color="#FF453A" />
-          </View>
+        <Card color="#FF453A" gid="rec">
+          <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Восстановление' : 'Recovery'}</Text>
           {MILESTONES.map((m) => {
             const done = secs >= m.at;
             const I = Icon[m.icon];
@@ -182,38 +174,67 @@ export default function Progress() {
               </View>
             );
           })}
-        </View>
+        </Card>
 
         {/* ───── СИМПТОМЫ ───── */}
-        <Pressable onPress={() => go('/symptoms')} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
-          <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#FF2D7822', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon.chart size={22} color="#FF2D78" />
+        <Card color="#FF2D78" gid="sym" onPress={() => go('/symptoms')}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 46, height: 46, borderRadius: 15, backgroundColor: '#FF2D7833', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon.chart size={23} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{ru ? 'Симптомы отмены' : 'Withdrawal symptoms'}</Text>
+              <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{ru ? 'Симптомы отмены' : 'Withdrawal symptoms'}</Text>
               <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>{ru ? 'Что сейчас норма и когда пройдёт' : 'What\'s normal now and when it passes'}</Text>
             </View>
-            <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
+            <Text style={{ color: '#FFFFFFB0', fontSize: 20 }}>›</Text>
           </View>
-        </Pressable>
+        </Card>
 
         {/* ───── ЧТО МНЕ ПОМОГАЕТ (быстрая кастомизация) ───── */}
-        <Pressable onPress={() => go('/coping')} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
-          <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#5AC8FA22', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon.headphones size={22} color="#5AC8FA" />
+        <Card color="#5AC8FA" gid="kit" onPress={() => go('/coping')}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 46, height: 46, borderRadius: 15, backgroundColor: '#5AC8FA33', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon.headphones size={23} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{ru ? 'Что мне помогает' : 'What helps me'}</Text>
+              <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{ru ? 'Что мне помогает' : 'What helps me'}</Text>
               <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>{ru ? `${p.copingMethods?.length ?? 0} приёмов в SOS-аптечке` : `${p.copingMethods?.length ?? 0} moves in your SOS kit`}</Text>
             </View>
-            <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
+            <Text style={{ color: '#FFFFFFB0', fontSize: 20 }}>›</Text>
           </View>
-        </Pressable>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+// Premium section shell — dark card tinted in `color` + a glowing corner orb.
+function Card({ color, gid, onPress, children }: { color: string; gid: string; onPress?: () => void; children: React.ReactNode }) {
+  const body = (
+    <>
+      <LinearGradient colors={[color + '2B', '#13171E', '#0F131A']} locations={[0, 0.6, 1]} start={{ x: 0.1, y: 0 }} end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      <Svg width={210} height={210} style={{ position: 'absolute', top: -46, right: -42 }}>
+        <Defs>
+          <RadialGradient id={gid} cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.22} />
+            <Stop offset="36%" stopColor={color} stopOpacity={0.9} />
+            <Stop offset="100%" stopColor={color} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Circle cx={105} cy={105} r={96} fill={`url(#${gid})`} />
+      </Svg>
+      <View style={{ padding: 18, gap: 14 }}>{children}</View>
+    </>
+  );
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => ({ borderRadius: 26, overflow: 'hidden', opacity: pressed ? 0.93 : 1 })}>
+        {body}
+      </Pressable>
+    );
+  }
+  return <View style={{ borderRadius: 26, overflow: 'hidden' }}>{body}</View>;
 }
 
 function Stat({ t, color, value, label }: any) {
