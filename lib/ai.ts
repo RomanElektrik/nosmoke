@@ -1,5 +1,6 @@
 import type { AppState } from './storage';
 import { secondsClean } from './health';
+import { relapseStatus } from './relapse';
 import { cigsAvoided, moneySaved } from './money';
 import { cravingsSurvived, currentLevel, programToday } from './program';
 import { getStep } from './stepped';
@@ -129,6 +130,7 @@ TECHNIQUE PRIORITIES BY MOMENT:
 - avoided: ${Math.round(cigs)} cig, saved: ${Math.round(money)} ${p.currency}
 - cravings successfully survived: ${survived}
 - slips total: ${state.slips.length}, slips last 7d: ${slips7}
+- smoking status NOW: ${(() => { const r = relapseStatus(state); return r.activelySmoking ? `ACTIVELY SMOKING again (${r.smokeDays7}/7 days). Treat with compassion: this is a relapse, not a one-off. Don't congratulate a "clean streak". Gently support a fresh restart and the next single step.` : `not actively smoking (${r.smokeDays7}/7 recent smoking days)`; })()}
 - last cravings: ${recent.map((c) => `${c.intensity}/10 ${c.outcome}`).join(' | ') || 'none'}
 - has goal: ${p.goalLabel ? `"${p.goalLabel}" for ${p.goalAmount} ${p.currency}` : 'no'}
 - deposit contract: ${p.committedAmount ? `${p.committedAmount} ${p.currency} with ${p.contractPartner ?? 'unnamed'}` : 'no'}

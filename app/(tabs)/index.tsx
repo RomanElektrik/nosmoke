@@ -19,6 +19,8 @@ import { programToday } from '../../lib/program';
 import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped';
 import { todayDoses, isDoseTaken, expectedMedForStep, MED_SAFETY } from '../../lib/medication';
 import { newlyUnlocked, ACHIEVEMENTS, buildContext, achProgress, isAchUnlocked } from '../../lib/achievements';
+import { relapseStatus } from '../../lib/relapse';
+import { scheduleQuitProgram } from '../../lib/notifications';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
 import { ARTICLES, ARTICLE_IMAGES, articleAspect } from '../../lib/articles';
 import { localDateKey } from '../../lib/dates';
@@ -141,6 +143,9 @@ export default function Home() {
               onPress={() => router.push('/symptoms' as any)} />
           </View>
         </View>
+
+        {/* Relapse-aware: if smoking most days, gently offer an honest restart */}
+        <RelapseCard />
 
         {/* One-time prompt: build a personal SOS toolkit of quick craving-busters */}
         {(p.copingMethods?.length ?? 0) === 0 && (
@@ -827,5 +832,60 @@ function MedicationCard() {
         </Text>
       </View>
     </Pressable>
+  );
+}
+
+// Relapse detector → honest fresh start. Shows ONLY when the user has smoked
+// most of the last week. Never resets anything automatically; the user chooses.
+function RelapseCard() {
+  const t = useTheme();
+  const lang = currentLang();
+  const [state] = useAppState();
+  const [dismissed, setDismissed] = useState(false);
+  const p = state.profile;
+  if (!p) return null;
+  const rs = relapseStatus(state);
+  if (!rs.activelySmoking || dismissed) return null;
+
+  async function restart() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const now = Date.now();
+    await update((s) => {
+      if (!s.profile) return s;
+      const prevSince = s.profile.stepEnteredAt ?? s.profile.quitDate ?? now;
+      const slipsOnPrev = s.slips.filter((ts) => ts >= prevSince).length;
+      const hist = s.profile.methodHistory ?? [];
+      const archived = s.profile.currentStep
+        ? [...hist, { stepId: s.profile.currentStep, startedAt: prevSince, endedAt: now, slips: slipsOnPrev, reason: 'restart' }]
+        : hist;
+      return { ...s, profile: { ...s.profile, quitDate: now, stepEnteredAt: now, methodHistory: archived, wantsToQuit: 'yes' as const } };
+    });
+    try { await scheduleQuitProgram(now, lang, p!.wakeHour ?? 8, p!.checkInHour ?? 21); } catch {}
+  }
+
+  return (
+    <View style={{ padding: 18, borderRadius: radius.lg, backgroundColor: t.warn + '12', borderWidth: 1, borderColor: t.warn + '44', gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Icon.feather size={22} color={t.warn} />
+        <Text style={{ color: t.text, fontSize: 16, fontWeight: '800', flex: 1 }}>
+          {lang === 'ru' ? 'Похоже, ты снова куришь' : 'Looks like you\'re smoking again'}
+        </Text>
+      </View>
+      <Text style={{ color: t.textDim, fontSize: 14, lineHeight: 21 }}>
+        {lang === 'ru'
+          ? 'И это часть пути, не провал — у большинства так бывает. Один срыв мы не считаем. Но если куришь почти каждый день, честный новый отсчёт мотивирует сильнее, чем счётчик, который врёт.'
+          : "And that's part of the journey, not a failure — it happens to most. We don't count a single slip. But if you smoke most days, an honest fresh start motivates more than a counter that lies."}
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Pressable onPress={() => { Haptics.selectionAsync(); setDismissed(true); }}
+          style={({ pressed }) => ({ flex: 1, paddingVertical: 12, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, alignItems: 'center', opacity: pressed ? 0.7 : 1 })}>
+          <Text style={{ color: t.textDim, fontWeight: '700', fontSize: 13.5 }}>{lang === 'ru' ? 'Я держусь' : "I'm holding"}</Text>
+        </Pressable>
+        <Pressable onPress={restart}
+          style={({ pressed }) => ({ flex: 1.3, paddingVertical: 12, borderRadius: radius.md, backgroundColor: t.warn, alignItems: 'center', opacity: pressed ? 0.85 : 1 })}>
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13.5 }}>{lang === 'ru' ? 'Начать заново с сегодня' : 'Restart from today'}</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
