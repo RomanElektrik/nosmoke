@@ -15,7 +15,7 @@ function html(auraColor: string, bgColor1: string, bgColor2: string): string {
 <style>
   html,body{margin:0;height:100%;background:#06080c;overflow:hidden}
   #atmo{position:absolute;inset:0;background:radial-gradient(circle at 50% -20%, ${bgColor1}, ${bgColor2});transition:background 1.2s ease}
-  #c{position:absolute;inset:0;width:100%;height:100%;filter:blur(48px) saturate(1.9);opacity:0.8}
+  #c{position:absolute;inset:0;width:100%;height:100%;filter:blur(56px) saturate(1.55);opacity:0.6}
 </style></head><body>
 <div id="atmo"></div>
 <canvas id="c"></canvas>
@@ -32,8 +32,8 @@ function html(auraColor: string, bgColor1: string, bgColor2: string): string {
     P.push({
       x:Math.random()*W,y:Math.random()*H,
       r:(120+Math.random()*180)*DPR,
-      vx:(Math.random()-0.5)*1.0*DPR,vy:(Math.random()-0.5)*1.0*DPR,
-      a:0.3+Math.random()*0.6,da:(Math.random()<0.5?-1:1)*(0.004+Math.random()*0.006),
+      vx:(Math.random()-0.5)*0.8*DPR,vy:(Math.random()-0.5)*0.8*DPR,
+      a:0.22+Math.random()*0.45,da:(Math.random()<0.5?-1:1)*(0.0035+Math.random()*0.005),
       col:col
     });
   }
@@ -45,7 +45,7 @@ function html(auraColor: string, bgColor1: string, bgColor2: string): string {
       p.x+=p.vx;p.y+=p.vy;
       if(p.x<-p.r)p.x=W+p.r;if(p.x>W+p.r)p.x=-p.r;
       if(p.y<-p.r)p.y=H+p.r;if(p.y>H+p.r)p.y=-p.r;
-      p.a+=p.da;if(p.a<0.22){p.a=0.22;p.da*=-1;}if(p.a>0.9){p.a=0.9;p.da*=-1;}
+      p.a+=p.da;if(p.a<0.18){p.a=0.18;p.da*=-1;}if(p.a>0.68){p.a=0.68;p.da*=-1;}
       var g=x.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
       g.addColorStop(0,'rgba('+p.col[0]+','+p.col[1]+','+p.col[2]+','+p.a+')');
       g.addColorStop(1,'rgba('+p.col[0]+','+p.col[1]+','+p.col[2]+',0)');
