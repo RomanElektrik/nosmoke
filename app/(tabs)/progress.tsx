@@ -17,7 +17,7 @@ import { moneySaved, cigsAvoided, pricePerCig, formatMoney, formatDuration } fro
 import { rewardProgress } from '../../lib/rewards';
 import { computeInsights, triggerName, worstDayLocalized } from '../../lib/insights';
 import { plural } from '../../lib/identity';
-import { CardAura } from '../../components/CardAura';
+import { AnimatedAuraBackground } from '../../components/AnimatedAuraBackground';
 
 export default function Progress() {
   const t = useTheme();
@@ -54,7 +54,7 @@ export default function Progress() {
           const goalDays = hasGoal && perDay > 0 ? Math.ceil(Math.max(0, (p.goalAmount as number) - saved) / perDay) : null;
           return (
             <Pressable onPress={() => go('/goal')} style={({ pressed }) => ({ borderRadius: 28, overflow: 'hidden', opacity: pressed ? 0.96 : 1 })}>
-              <CardAura colors={['#10B981', '#0EA5E9', '#6366F1']} />
+              <AnimatedAuraBackground auraColor="#34D399" bgColor1="#0B5563" bgColor2="#1E1B4B" />
               <View style={{ padding: 22, gap: 18 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View>
