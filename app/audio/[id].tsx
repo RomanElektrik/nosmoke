@@ -18,7 +18,18 @@ import { currentLang } from '../../lib/i18n';
 import { useAppState, update } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
 import { getPractice, PRACTICES, practiceScript } from '../../lib/audioPractice';
-import { WaveAurora } from '../../components/WaveAurora';
+import { AnimatedAuraBackground } from '../../components/AnimatedAuraBackground';
+
+// Deep, hue-keeping shades of a practice colour for the aura background.
+function darken(hex: string, amt: number): string {
+  const h = hex.replace('#', '');
+  const f = h.length === 3 ? h.split('').map((x) => x + x).join('') : h;
+  const r = Math.round(parseInt(f.slice(0, 2), 16) * (1 - amt));
+  const g = Math.round(parseInt(f.slice(2, 4), 16) * (1 - amt));
+  const b = Math.round(parseInt(f.slice(4, 6), 16) * (1 - amt));
+  const to = (n: number) => n.toString(16).padStart(2, '0');
+  return `#${to(r)}${to(g)}${to(b)}`;
+}
 import { synthLine, hasVoice, VOICES, geminiVoiceFor } from '../../lib/voice';
 import {
   playFile, speakFallback, ensureSpeaker, claimAudio, releaseAudio, newOwner, stopAudio,
@@ -210,11 +221,8 @@ export default function AudioPlayer() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#06080C' }}>
-      {/* full-screen colourful flowing waves (seamless, never restarts) */}
-      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
-        <LinearGradient colors={['#0C1018', '#090C12', '#06080C']} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-        <WaveAurora color={c} />
-      </View>
+      {/* full-screen iridescent aura (WebView particle field, blurred) */}
+      <AnimatedAuraBackground auraColor={c} bgColor1={darken(c, 0.5)} bgColor2={darken(c, 0.82)} />
       <SafeAreaView style={{ flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'space-between' }}>
 
         {/* Header — back only */}
