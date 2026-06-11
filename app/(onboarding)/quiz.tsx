@@ -15,11 +15,11 @@ const tt = (ru: string, en: string) => (currentLang() === 'ru' ? ru : en);
 
 type StepKind =
   | 'years' | 'perday' | 'pack' | 'type' | 'health'
-  | 'morning' | 'triggers' | 'motivation' | 'method' | 'faith';
+  | 'morning' | 'ftnd' | 'triggers' | 'motivation' | 'method' | 'faith';
 
 const STEPS: StepKind[] = [
   'years', 'perday', 'pack', 'type', 'health',
-  'morning', 'triggers', 'motivation', 'method', 'faith',
+  'morning', 'ftnd', 'triggers', 'motivation', 'method', 'faith',
 ];
 
 // Per-step visual identity + warm sub-line.
@@ -30,6 +30,7 @@ const META: Record<StepKind, { icon: IconKey; color: string; subRu: string; subE
   type:       { icon: 'wind',   color: '#5AC8FA', subRu: 'Сигареты, вейп или IQOS — подход немного разный.',  subEn: 'Cigarettes, vape or IQOS — the approach differs.' },
   health:     { icon: 'heart',  color: '#FF453A', subRu: 'Чтобы безопасно подобрать метод именно под тебя.',  subEn: 'So we can pick a method that is safe for you.' },
   morning:    { icon: 'bolt',   color: '#FF9F0A', subRu: 'Утренняя сигарета многое говорит о зависимости.',   subEn: 'The morning cigarette reveals a lot about dependence.' },
+  ftnd:       { icon: 'gauge',  color: '#FF9F0A', subRu: 'Четыре коротких «да/нет» — и метод подберётся точнее.', subEn: 'Four quick yes/no — for a more precise method match.' },
   triggers:   { icon: 'target', color: '#BF5AF2', subRu: 'Зная триггеры, мы перебьём их заранее.',             subEn: 'Knowing your triggers, we counter them in advance.' },
   motivation: { icon: 'star',   color: '#34C759', subRu: 'Твоё «зачем» — топливо в трудный день.',             subEn: 'Your "why" is fuel for the hard days.' },
   method:     { icon: 'leaf',   color: '#0A84FF', subRu: 'Резко или постепенно — оба пути рабочие.',           subEn: 'Cold turkey or gradual — both paths work.' },
@@ -49,6 +50,7 @@ export default function Quiz() {
   const [currency, setCurrency] = useState(currentLang() === 'ru' ? 'RUB' : 'USD');
   const [type, setType] = useState<Profile['type']>('cigarette');
   const [morning, setMorning] = useState<0 | 1 | 2 | 3>(2);
+  const [ftnd, setFtnd] = useState<Record<'q2' | 'q3' | 'q5' | 'q6', 0 | 1>>({ q2: 0, q3: 0, q5: 0, q6: 0 });
   const [triggers, setTriggers] = useState<Trigger[]>([]);
   const [mots, setMots] = useState<Motivation[]>([]);
   const [method, setMethod] = useState<QuitMethod>('cold_turkey');
@@ -69,12 +71,12 @@ export default function Quiz() {
   }
 
   async function finish() {
-    // Quiz captures the 2 heaviest FTND items — Heaviness of Smoking Index
-    // (HSI, 0–6) — scaled to a 0–10 FTND-equivalent; the precise test refines it.
+    // Full FTND 0–10 (Heatherton 1991): q1 from the morning step, q4 from
+    // cigs/day, q2/q3/q5/q6 from the ftnd step. Thresholds in recommendStep
+    // expect this scale (vault: Stepped-care система.md).
     const q1 = morning === 0 ? 3 : morning === 1 ? 2 : morning === 2 ? 1 : 0;
     const q4 = Number(perday) >= 31 ? 3 : Number(perday) >= 21 ? 2 : Number(perday) >= 11 ? 1 : 0;
-    const hsi = q1 + q4;
-    const fager = Math.round((hsi * 10) / 6);
+    const fager = q1 + q4 + ftnd.q2 + ftnd.q3 + ftnd.q5 + ftnd.q6;
     const profile: Profile = {
       yearsSmoked: Number(years) || 0,
       cigsPerDay: Number(perday) || 0,
@@ -160,6 +162,10 @@ export default function Quiz() {
                 { v: 3, l: tr('onb.morning_later') },
               ]}
               value={morning} onChange={(v) => setMorning(v as 0|1|2|3)} />
+          )}
+          {kind === 'ftnd' && (
+            <FtndStep value={ftnd} onChange={setFtnd} accent={meta.color}
+              sub={tt(META.ftnd.subRu, META.ftnd.subEn)} />
           )}
           {kind === 'triggers' && (
             <Multi title={tr('onb.q_triggers')} sub={tt(META.triggers.subRu, META.triggers.subEn)} accent={meta.color}
@@ -349,6 +355,61 @@ function Multi<T extends string>({ title, sub, options, value, onChange, accent 
               {sel && <Icon.check size={13} color="#fff" />}
               <Text style={{ color: sel ? '#fff' : t.text, fontSize: 15, fontWeight: sel ? '700' : '500' }}>{o.l}</Text>
             </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+// The remaining 4 FTND items (q2/q3/q5/q6 from lib/clinical.ts) as yes/no rows;
+// q1 (morning) and q4 (cigs/day) are already captured by earlier steps.
+function FtndStep({ value, onChange, accent, sub }: {
+  value: Record<'q2' | 'q3' | 'q5' | 'q6', 0 | 1>;
+  onChange: (v: Record<'q2' | 'q3' | 'q5' | 'q6', 0 | 1>) => void;
+  accent: string; sub?: string;
+}) {
+  const t = useTheme();
+  const ru = currentLang() === 'ru';
+  const QS: { id: 'q2' | 'q3' | 'q5' | 'q6'; l: string }[] = ru ? [
+    { id: 'q2', l: 'Сложно не курить там, где это запрещено?' },
+    { id: 'q3', l: 'Труднее всего отказаться от первой утренней сигареты?' },
+    { id: 'q5', l: 'Утром куришь чаще, чем в остальное время дня?' },
+    { id: 'q6', l: 'Куришь, даже когда болеешь и лежишь в постели?' },
+  ] : [
+    { id: 'q2', l: 'Hard not to smoke where it is forbidden?' },
+    { id: 'q3', l: 'The first morning cigarette is the hardest to give up?' },
+    { id: 'q5', l: 'Do you smoke more in the morning than the rest of the day?' },
+    { id: 'q6', l: 'Do you smoke even when ill in bed?' },
+  ];
+  return (
+    <View style={{ gap: 16 }}>
+      <Head title={ru ? 'Ещё четыре вопроса о привычке' : 'Four more habit questions'} sub={sub} />
+      <View style={{ gap: 10 }}>
+        {QS.map((q) => {
+          const yes = value[q.id] === 1;
+          return (
+            <View key={q.id} style={{ padding: 15, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, gap: 10 }}>
+              <Text style={{ color: t.text, fontSize: 15.5, lineHeight: 21, fontWeight: '600' }}>{q.l}</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {([1, 0] as const).map((v) => {
+                  const sel = value[q.id] === v;
+                  return (
+                    <Pressable key={v}
+                      onPress={() => { Haptics.selectionAsync(); onChange({ ...value, [q.id]: v }); }}
+                      style={{
+                        flex: 1, paddingVertical: 11, borderRadius: 999, alignItems: 'center',
+                        backgroundColor: sel ? accent : 'transparent',
+                        borderWidth: 1.5, borderColor: sel ? accent : t.border,
+                      }}>
+                      <Text style={{ color: sel ? '#fff' : t.text, fontWeight: '700', fontSize: 15 }}>
+                        {v === 1 ? (ru ? 'Да' : 'Yes') : (ru ? 'Нет' : 'No')}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
           );
         })}
       </View>

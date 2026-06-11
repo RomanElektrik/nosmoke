@@ -38,10 +38,10 @@ export const STEPS: StepSpec[] = [
     titleEn: 'Cytisine (Tabex)',
     shortRu: 'Растительный препарат, без рецепта',
     shortEn: 'Plant alkaloid, OTC in many countries',
-    whyRu: 'Умеренная зависимость (Фагерстрём 3–4) или первая неудача. Цитизин (Табекс) — растительный препарат, в России без рецепта. Курс 25 дней. По эффекту почти равен варениклину, в разы дешевле.',
-    whyEn: 'Moderate dependence (Fagerström 3–4) or first failure. Cytisine (Tabex) — plant-derived, OTC in Russia. 25-day course. Nearly equal to varenicline, much cheaper.',
+    whyRu: 'Умеренная зависимость (Фагерстрём 3–4) или первая неудача. Цитизин (Табекс) — растительный препарат. Курс 25 дней. Эффективность подтверждена Cochrane, в разы дешевле варениклина.',
+    whyEn: 'Moderate dependence (Fagerström 3–4) or first failure. Cytisine (Tabex) — plant-derived. 25-day course. Cochrane-backed efficacy, much cheaper than varenicline.',
     durationDays: 25,
-    evidenceRu: 'Walker NEJM 2014/2021 RAUORA — RR 2.21 vs плацебо',
+    evidenceRu: 'Cochrane 2023 — RR 1.30 vs плацебо',
     color: '#30D158',
   },
   {
@@ -104,8 +104,9 @@ export function recommendStep(p: Profile): StepLevel {
   const fager = p.fagerstromScore ?? 0;
   const failedColdTurkey = (p.pastAttempts ?? []).filter(a => a.method === 'cold_turkey').length;
 
-  // Low dependence → behavioural. Moderate+ → cytisine (still OTC). Never higher.
-  let base: number = fager <= 3 ? 1 : 2;
+  // Vault thresholds (Stepped-care система.md): L1 = Fagerström 0–2, L2 = 3–4.
+  // Low dependence → behavioural. Moderate+ → cytisine. Never higher.
+  let base: number = fager <= 2 ? 1 : 2;
   if (failedColdTurkey >= 1 && base === 1) base = 2;
   base = Math.min(base, 2); // hard cap — no Rx auto-recommendation
 
@@ -150,9 +151,20 @@ export function escalationSuggestion(state: AppState): Escalation {
   const since = state.profile?.stepEnteredAt ?? state.profile?.quitDate ?? now;
   const daysOnStep = Math.floor((now - since) / 86400_000);
 
-  const slips7 = state.slips.filter((t) => t > now - 7 * 86400_000).length;
-  const checkSmoked7 = state.checkIns.filter((c) => c.smoked && new Date(c.date).getTime() > now - 7 * 86400_000).length;
-  const total = slips7 + checkSmoked7;
+  // Count distinct smoking DAYS, like relapse.ts: 'YYYY-MM-DD' must be parsed
+  // as local midnight (bare new Date('YYYY-MM-DD') is UTC), and a slip plus a
+  // check-in on the same day is one event, not two.
+  const weekAgo = now - 7 * 86400_000;
+  const smokedDays = new Set<string>();
+  for (const t of state.slips) {
+    if (t > weekAgo) smokedDays.add(new Date(t).toDateString());
+  }
+  for (const c of state.checkIns) {
+    if (c.smoked && new Date(c.date + 'T00:00:00').getTime() > weekAgo) {
+      smokedDays.add(new Date(c.date + 'T00:00:00').toDateString());
+    }
+  }
+  const total = smokedDays.size;
 
   if (total >= 3 || (daysOnStep >= 14 && total >= 2)) {
     return {

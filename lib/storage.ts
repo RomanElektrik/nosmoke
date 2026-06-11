@@ -184,17 +184,19 @@ const initial: AppState = {
 };
 
 let cache: AppState | null = null;
+let loading: Promise<AppState> | null = null;
 const listeners = new Set<(s: AppState) => void>();
 
 export async function loadState(): Promise<AppState> {
   if (cache) return cache;
-  try {
-    const raw = await AsyncStorage.getItem(KEY);
-    cache = raw ? { ...initial, ...JSON.parse(raw) } : initial;
-  } catch {
-    cache = initial;
+  // Memoize the in-flight read: _layout and every mounted screen's useAppState
+  // race here on cold start — they must all share one AsyncStorage read.
+  if (!loading) {
+    loading = AsyncStorage.getItem(KEY)
+      .then((raw) => (cache = raw ? { ...initial, ...JSON.parse(raw) } : initial))
+      .catch(() => (cache = initial));
   }
-  return cache!;
+  return loading;
 }
 
 export async function saveState(next: AppState) {
@@ -203,9 +205,18 @@ export async function saveState(next: AppState) {
   listeners.forEach((l) => l(next));
 }
 
-export async function update(mut: (s: AppState) => AppState) {
-  const cur = await loadState();
-  await saveState(mut(cur));
+// Mutations are serialized through a promise queue: a bare read-modify-write
+// loses concurrent updates (two callers read the same state, the second write
+// erases the first — e.g. a logged slip silently disappearing).
+let writeQueue: Promise<unknown> = Promise.resolve();
+
+export function update(mut: (s: AppState) => AppState): Promise<void> {
+  const job = writeQueue.then(async () => {
+    const cur = await loadState();
+    await saveState(mut(cur));
+  });
+  writeQueue = job.catch(() => {});
+  return job;
 }
 
 export function useAppState() {
@@ -223,6 +234,7 @@ export function useAppState() {
 
 export async function reset() {
   cache = initial;
+  loading = null;
   await AsyncStorage.removeItem(KEY);
   listeners.forEach((l) => l(initial));
 }
