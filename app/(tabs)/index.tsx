@@ -4,37 +4,37 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, cancelAnimation } from 'react-native-reanimated';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, currentLang } from '../../lib/i18n';
 import { useAppState, update } from '../../lib/storage';
-import { secondsClean, nextMilestone, progressFor } from '../../lib/health';
-import {
-  moneySaved, cigsAvoided,
-  formatMoneyLive, formatCigs, formatDuration,
-} from '../../lib/money';
-import { identityHeadline, plural, triggerLabel, relevantPlan } from '../../lib/identity';
+import { secondsClean } from '../../lib/health';
+import { moneySaved, cigsAvoided, formatMoneyLive, formatCigs } from '../../lib/money';
+import { identityHeadline, plural } from '../../lib/identity';
 import { Icon } from '../../components/Icon';
 import { programToday } from '../../lib/program';
 import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped';
 import { todayDoses, isDoseTaken, expectedMedForStep, MED_SAFETY } from '../../lib/medication';
-import { newlyUnlocked, ACHIEVEMENTS, buildContext, achProgress, isAchUnlocked } from '../../lib/achievements';
+import { newlyUnlocked } from '../../lib/achievements';
 import { relapseStatus } from '../../lib/relapse';
 import { scheduleQuitProgram } from '../../lib/notifications';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
-import { ARTICLES, ARTICLE_IMAGES, articleAspect } from '../../lib/articles';
-import { localDateKey } from '../../lib/dates';
+import { ARTICLES, ARTICLE_IMAGES } from '../../lib/articles';
 
 export default function Home() {
   const t = useTheme();
   const router = useRouter();
   const { t: tr } = useTranslation();
   const [state] = useAppState();
+  // Slow 60s tick. The whole Home used to re-render every SECOND, recomputing
+  // programToday/escalation/relapse on each tick. The live counter and money
+  // tick inside LiveHero with their own 1s timer; Home itself needs time only
+  // to re-check the pending-method auto-activation below.
   const [now, setNow] = useState(Date.now());
   const [unlockQueue, setUnlockQueue] = useState<string[]>([]);
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    const id = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(id);
   }, []);
 
@@ -78,12 +78,8 @@ export default function Home() {
 
   if (!state.profile) return null;
   const p = state.profile;
-  const secs = secondsClean(p.quitDate, now);
-  const next = nextMilestone(secs);
   const lang = currentLang();
   const localeStr = lang === 'ru' ? 'ru-RU' : 'en-US';
-
-  const days = Math.floor(secs / 86400);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
@@ -98,31 +94,8 @@ export default function Home() {
           {greeting(lang)}
         </Text>
 
-        {/* Breathing drop */}
-        <BreathingDrop secs={secs} lang={lang} />
-
-        {/* Identity hero — the heart of the positioning. Evolves with days. */}
-        <Text style={{
-          color: t.text, fontSize: 18, fontWeight: '700', textAlign: 'center',
-          lineHeight: 25, marginTop: 8, paddingHorizontal: 14, letterSpacing: -0.3,
-        }}>
-          {identityHeadline(secs, lang)}
-        </Text>
-        {/* Concrete wins — no card frame, just two stats with a color divider.
-            Breaks the "everything looks like another bordered row" feel. */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 4 }}>
-          <Pressable onPress={() => router.push('/goal' as any)} style={{ alignItems: 'center', flex: 1, paddingVertical: 8 }}>
-            <Text style={{ color: t.accent, fontSize: 26, fontWeight: '900', letterSpacing: -0.6 }}>
-              {formatMoneyLive(moneySaved(p, secs), p.currency, localeStr)}
-            </Text>
-            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4, fontWeight: '600' }}>{lang === 'ru' ? 'сэкономлено' : 'saved'}</Text>
-          </Pressable>
-          <View style={{ width: 1, height: 36, backgroundColor: t.border }} />
-          <Pressable onPress={() => router.push('/journal')} style={{ alignItems: 'center', flex: 1, paddingVertical: 8 }}>
-            <Text style={{ color: t.warn, fontSize: 26, fontWeight: '900', letterSpacing: -0.6 }}>{formatCigs(cigsAvoided(p, secs))}</Text>
-            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4, fontWeight: '600' }}>{lang === 'ru' ? 'не выкурено' : 'avoided'}</Text>
-          </Pressable>
-        </View>
+        {/* Live ticking region (counter + money) — isolated with its own timer */}
+        <LiveHero p={p} lang={lang} localeStr={localeStr} />
 
         {/* Primary navigation — 3 tiles in one row inside a shared container
             with dividers, so they read as a single block (not floating icons).
@@ -256,6 +229,46 @@ function dropHeadline(secs: number, lang: 'ru' | 'en'): { big: string; unit: str
   return { big: lang === 'ru' ? 'Старт' : 'Start', unit: lang === 'ru' ? 'ты начал' : 'you began' };
 }
 
+// The only part of Home that ticks every second: streak counter, identity
+// headline and the two live stats. Keeping the timer here means the rest of
+// Home (method/escalation/relapse cards) re-renders once a minute, not 60×.
+function LiveHero({ p, lang, localeStr }: { p: NonNullable<ReturnType<typeof useAppState>[0]['profile']>; lang: 'ru' | 'en'; localeStr: string }) {
+  const t = useTheme();
+  const router = useRouter();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const secs = secondsClean(p.quitDate, now);
+  return (
+    <>
+      <BreathingDrop secs={secs} lang={lang} />
+      {/* Identity hero — the heart of the positioning. Evolves with days. */}
+      <Text style={{
+        color: t.text, fontSize: 18, fontWeight: '700', textAlign: 'center',
+        lineHeight: 25, marginTop: 8, paddingHorizontal: 14, letterSpacing: -0.3,
+      }}>
+        {identityHeadline(secs, lang)}
+      </Text>
+      {/* Concrete wins — two stats with a colour divider. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 4 }}>
+        <Pressable onPress={() => router.push('/goal' as any)} style={{ alignItems: 'center', flex: 1, paddingVertical: 8 }}>
+          <Text style={{ color: t.accent, fontSize: 26, fontWeight: '900', letterSpacing: -0.6 }}>
+            {formatMoneyLive(moneySaved(p, secs), p.currency, localeStr)}
+          </Text>
+          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4, fontWeight: '600' }}>{lang === 'ru' ? 'сэкономлено' : 'saved'}</Text>
+        </Pressable>
+        <View style={{ width: 1, height: 36, backgroundColor: t.border }} />
+        <Pressable onPress={() => router.push('/journal')} style={{ alignItems: 'center', flex: 1, paddingVertical: 8 }}>
+          <Text style={{ color: t.warn, fontSize: 26, fontWeight: '900', letterSpacing: -0.6 }}>{formatCigs(cigsAvoided(p, secs))}</Text>
+          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4, fontWeight: '600' }}>{lang === 'ru' ? 'не выкурено' : 'avoided'}</Text>
+        </Pressable>
+      </View>
+    </>
+  );
+}
+
 function BreathingDrop({ secs, lang }: { secs: number; lang: 'ru' | 'en' }) {
   const t = useTheme();
   const scale = useSharedValue(1);
@@ -267,6 +280,7 @@ function BreathingDrop({ secs, lang }: { secs: number; lang: 'ru' | 'en' }) {
       withTiming(1.05, { duration: 2750, easing: Easing.inOut(Easing.ease) }),
       -1, true,
     );
+    return () => cancelAnimation(scale);
   }, []);
 
   const aCore = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -361,17 +375,6 @@ function KnowledgeSection() {
   );
 }
 
-function SectionLabel({ text }: { text: string }) {
-  const t = useTheme();
-  return (
-    <Text style={{
-      color: t.text, fontSize: 19, fontWeight: '800', letterSpacing: -0.4,
-      marginLeft: 2, marginTop: 12, marginBottom: 2,
-    }}>
-      {text}
-    </Text>
-  );
-}
 
 // Square help card (2-up grid)
 // Launcher item — circular icon shell + label. Lives inside a grouped 2×2
@@ -389,263 +392,6 @@ function SquareCard({ icon, title, sub, color, onPress }: { icon: any; title: st
       </View>
       <Text style={{ color: t.text, fontSize: 14, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>{title}</Text>
       {!!sub && <Text style={{ color: t.textDim, fontSize: 11, textAlign: 'center' }} numberOfLines={1}>{sub}</Text>}
-    </Pressable>
-  );
-}
-
-// Identity ritual — the signature feature. A once-a-day affirmation of the
-// new self. NEVER punishes: a missed day doesn't reset anything; we count
-// unique affirmed days. Reinforces quitter-identity (the #1 success predictor).
-function IdentityRitualCard() {
-  const t = useTheme();
-  const lang = currentLang();
-  const [state] = useAppState();
-  const log = state.identityLog ?? [];
-  const today = localDateKey();
-  const doneToday = log.includes(today);
-  const count = new Set(log).size;
-  const statement = state.profile?.identityStatement?.trim();
-
-  async function affirm() {
-    if (doneToday) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await update((s) => {
-      const cur = s.identityLog ?? [];
-      return cur.includes(today) ? s : { ...s, identityLog: [...cur, today] };
-    });
-  }
-
-  return (
-    <Pressable onPress={affirm} disabled={doneToday}>
-      <View style={{
-        padding: 16, borderRadius: radius.lg,
-        backgroundColor: doneToday ? t.accentSoft : t.accent + '14',
-        borderWidth: 1, borderColor: t.accent + (doneToday ? '55' : '40'),
-        flexDirection: 'row', alignItems: 'center', gap: 14,
-      }}>
-        <View style={{ width: 50, height: 50, borderRadius: 16, backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon.check size={26} color={t.accent} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
-            {doneToday
-              ? (lang === 'ru' ? 'Сегодня подтверждено' : 'Affirmed today')
-              : (lang === 'ru' ? 'Скажи: «Я не курю»' : 'Say: "I don\'t smoke"')}
-          </Text>
-          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
-            {statement
-              ? (lang === 'ru' ? `Я становлюсь ${statement}` : `I'm becoming ${statement}`)
-              : count > 0
-                ? (lang === 'ru' ? `${count} ${plural(count, ['день', 'дня', 'дней'])} подтверждаю` : `${count} ${count === 1 ? 'day' : 'days'} affirmed`)
-                : (lang === 'ru' ? 'Один тап в день — закрепи, кто ты' : 'One tap a day — anchor who you are')}
-          </Text>
-        </View>
-        {!doneToday && <Text style={{ color: t.accent, fontSize: 22, fontWeight: '700' }}>→</Text>}
-      </View>
-    </Pressable>
-  );
-}
-
-// If-then plan surfacing — shows the most relevant plan one tap away, or a
-// CTA to build the first one. Matches by the user's most frequent recent trigger.
-function IfThenCard() {
-  const t = useTheme();
-  const router = useRouter();
-  const lang = currentLang();
-  const [state] = useAppState();
-  const plans = state.ifThens ?? [];
-
-  if (plans.length === 0) {
-    return (
-      <Pressable onPress={() => router.push('/plans' as any)}>
-        <View style={{
-          padding: 16, borderRadius: radius.lg,
-          backgroundColor: t.card, borderWidth: 1, borderStyle: 'dashed', borderColor: t.accent + '60',
-          flexDirection: 'row', alignItems: 'center', gap: 12,
-        }}>
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: t.accent + '20', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon.target size={22} color={t.accent} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>
-              {lang === 'ru' ? 'Создай план «если — то»' : 'Build an if-then plan'}
-            </Text>
-            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
-              {lang === 'ru' ? 'Готовый ответ на тягу — заранее' : 'A ready answer to cravings — in advance'}
-            </Text>
-          </View>
-          <Text style={{ color: t.accent, fontSize: 18 }}>›</Text>
-        </View>
-      </Pressable>
-    );
-  }
-
-  const plan = relevantPlan(plans, state.cravings)!;
-
-  return (
-    <Pressable onPress={() => router.push('/plans' as any)}>
-      <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, gap: 8 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Icon.target size={16} color={t.accent} />
-          <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, flex: 1 }}>
-            {lang === 'ru' ? 'Твой план' : 'Your plan'}{plan.category ? ` · ${triggerLabel(plan.category, lang)}` : ''}
-          </Text>
-          <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
-        </View>
-        <Text style={{ color: t.text, fontSize: 14, lineHeight: 21 }}>
-          <Text style={{ color: t.accent, fontWeight: '700' }}>{lang === 'ru' ? 'Если ' : 'If '}</Text>
-          {plan.trigger}
-          <Text style={{ color: t.warn, fontWeight: '700' }}>{lang === 'ru' ? ' → то ' : ' → then '}</Text>
-          {plan.action}
-        </Text>
-      </View>
-    </Pressable>
-  );
-}
-
-// Active savings goal — surfaces /goal contents on home so the user
-// actually sees the jar they set up.
-function GoalCard() {
-  const t = useTheme();
-  const router = useRouter();
-  const lang = currentLang();
-  const [state] = useAppState();
-  const [, setNow] = useState(Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const p = state.profile;
-  if (!p?.goalAmount || !p.goalLabel) return null;
-  const secs = secondsClean(p.quitDate);
-  const saved = moneySaved(p, secs);
-  const pct = Math.min(1, saved / p.goalAmount);
-  const remaining = Math.max(0, p.goalAmount - saved);
-  return (
-    <Pressable onPress={() => router.push('/goal' as any)} style={({ pressed }) => ({ marginTop: 14, opacity: pressed ? 0.94 : 1 })}>
-      <View style={{ borderRadius: radius.xl, overflow: 'hidden' }}>
-        <LinearGradient colors={[t.accent + '20', t.accent + '06']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ padding: 18, borderRadius: radius.xl, borderWidth: 1, borderColor: t.accent + '30' }}>
-          {/* Piggy bank + label */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF14', borderWidth: 1, borderColor: t.accent + '50', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              {p.goalPhoto
-                ? <Image source={{ uri: p.goalPhoto }} style={{ width: '100%', height: '100%' }} />
-                : <Text style={{ fontSize: 36 }}>{p.goalEmoji ?? '🐷'}</Text>}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: t.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-                {lang === 'ru' ? 'Копим на' : 'Saving for'}
-              </Text>
-              <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', marginTop: 3, letterSpacing: -0.3 }} numberOfLines={1}>
-                {p.goalLabel}
-              </Text>
-              <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 3 }}>
-                {remaining > 0
-                  ? `${lang === 'ru' ? 'осталось' : 'left'} ${Math.round(remaining).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')} ${p.currency}`
-                  : (lang === 'ru' ? 'Цель достигнута! 🎉' : 'Goal reached! 🎉')}
-              </Text>
-            </View>
-          </View>
-          {/* Progress bar with savings/total under it */}
-          <View style={{ marginTop: 14, gap: 8 }}>
-            <View style={{ height: 10, borderRadius: 10, backgroundColor: '#00000026', overflow: 'hidden' }}>
-              <LinearGradient colors={[t.accent, '#5E5CE6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 10 }} />
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ color: t.text, fontSize: 13, fontWeight: '700' }}>
-                {Math.round(saved).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')} {p.currency}
-              </Text>
-              <Text style={{ color: t.accent, fontSize: 13, fontWeight: '800' }}>
-                {Math.round(pct * 100)}%
-              </Text>
-            </View>
-          </View>
-        </LinearGradient>
-      </View>
-    </Pressable>
-  );
-}
-
-// Closest locked achievement — "something to look forward to".
-function NearAchievement() {
-  const t = useTheme();
-  const router = useRouter();
-  const lang = currentLang();
-  const [state] = useAppState();
-  const ctx = buildContext(state);
-  const stored = state.achievements ?? {};
-
-  const locked = ACHIEVEMENTS
-    .filter((a) => !stored[a.id] && !isAchUnlocked(a, ctx))
-    .map((a) => ({ a, prog: achProgress(a, ctx) }))
-    .sort((x, y) => y.prog - x.prog);
-
-  if (locked.length === 0) return null;
-  const { a, prog } = locked[0];
-  const I = Icon[a.icon];
-
-  return (
-    <Pressable onPress={() => router.push('/(tabs)/awards')}>
-      <View style={{
-        padding: 14, borderRadius: radius.lg,
-        backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
-        flexDirection: 'row', alignItems: 'center', gap: 12,
-      }}>
-        <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: a.color + '20', alignItems: 'center', justifyContent: 'center' }}>
-          <I size={23} color={a.color} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-            {lang === 'ru' ? 'Скоро достижение' : 'Almost there'}
-          </Text>
-          <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', marginTop: 2 }} numberOfLines={1}>
-            {lang === 'ru' ? a.titleRu : a.titleEn}
-          </Text>
-          <View style={{ height: 5, borderRadius: 5, backgroundColor: t.border, overflow: 'hidden', marginTop: 6 }}>
-            <View style={{ width: `${prog * 100}%`, height: '100%', backgroundColor: a.color }} />
-          </View>
-        </View>
-        <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-// Single prioritised "do this now" card.
-function TodayFocus() {
-  const t = useTheme();
-  const router = useRouter();
-  const lang = currentLang();
-  const [state] = useAppState();
-  if (!state.profile) return null;
-
-  // No more daily "did you smoke today?" check-in — it was annoying.
-  // Default action is always a 5-minute breathing practice.
-  const action = {
-    label: lang === 'ru' ? '5 минут дыхания' : '5 minutes of breathing',
-    sub: lang === 'ru' ? 'Снизит тягу и стресс прямо сейчас' : 'Lowers craving and stress right now',
-    href: '/practice/cyclic_sigh', color: t.info, icon: Icon.wind,
-  };
-
-  const I = action.icon;
-  return (
-    <Pressable onPress={() => { Haptics.selectionAsync(); router.push(action.href as any); }}>
-      <View style={{
-        padding: 16, borderRadius: radius.lg,
-        backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
-        flexDirection: 'row', alignItems: 'center', gap: 14,
-      }}>
-        <View style={{ width: 50, height: 50, borderRadius: 16, backgroundColor: action.color + '20', alignItems: 'center', justifyContent: 'center' }}>
-          <I size={26} color={action.color} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>{action.label}</Text>
-          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>{action.sub}</Text>
-        </View>
-        <Text style={{ color: t.textDim, fontSize: 20 }}>›</Text>
-      </View>
     </Pressable>
   );
 }
