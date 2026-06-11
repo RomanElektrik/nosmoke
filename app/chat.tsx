@@ -33,6 +33,7 @@ export default function ChatScreen() {
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -70,9 +71,11 @@ export default function ChatScreen() {
       router.push('/paywall' as any);
       return;
     }
+    const prev = history;
     const next: ChatMessage[] = [...history, { role: 'user', content: text }];
     setHistory(next);
     setInput('');
+    setSendError(null);
     setLoading(true);
     try {
       // Stream tokens in for a faster, alive feel; fall back to one-shot on error.
@@ -94,9 +97,14 @@ export default function ChatScreen() {
           return { ...s, aiUsage: { date: day, count: cur + 1 } };
         });
       }
-    } catch (e: any) {
-      const errMsg = e?.message ?? (lang === 'ru' ? 'Ошибка соединения' : 'Connection error');
-      setHistory([...next, { role: 'assistant' as const, content: errMsg }]);
+    } catch {
+      // Never show raw error text ("proxy 502") as a coach message — roll the
+      // bubble back, return the draft to the input and offer a retry.
+      setHistory(prev);
+      setInput(text);
+      setSendError(lang === 'ru'
+        ? 'Не получилось отправить. Проверь интернет и попробуй ещё раз.'
+        : 'Could not send. Check your connection and try again.');
     } finally {
       setLoading(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
@@ -112,7 +120,8 @@ export default function ChatScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: 10 }}>
-          <Pressable onPress={() => router.back()} hitSlop={20}>
+          <Pressable onPress={() => router.back()} hitSlop={20}
+            accessibilityRole="button" accessibilityLabel={lang === 'ru' ? 'Назад' : 'Back'}>
             <Text style={{ color: t.accent, fontSize: 17 }}>←</Text>
           </Pressable>
           <View style={{
@@ -166,6 +175,21 @@ export default function ChatScreen() {
               <Text style={{ color: t.textDim }}>{tr('coach.thinking')}</Text>
             </View>
           )}
+          {/* Starter chips: a blank input in front of a "coach" stalls people —
+              one tap gives them an opening line. Only while the chat is fresh. */}
+          {!loading && history.length <= 1 && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+              {(lang === 'ru'
+                ? ['Тянет курить прямо сейчас', 'Я сорвался', 'Просто поговорить']
+                : ['Craving right now', 'I slipped', 'Just talk']
+              ).map((c) => (
+                <Pressable key={c} onPress={() => { Haptics.selectionAsync(); setInput(c); }}
+                  style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: meta.color + '16', borderWidth: 1, borderColor: meta.color + '44' }}>
+                  <Text style={{ color: meta.color, fontSize: 14, fontWeight: '600' }}>{c}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </ScrollView>
 
         {!premium && remaining !== null && (
@@ -189,6 +213,19 @@ export default function ChatScreen() {
           </Pressable>
         )}
 
+        {sendError && (
+          <Pressable onPress={send} style={{
+            marginHorizontal: spacing.md, marginBottom: 8, padding: 12, borderRadius: 12,
+            backgroundColor: t.danger + '14', borderWidth: 1, borderColor: t.danger + '44',
+            flexDirection: 'row', alignItems: 'center', gap: 8,
+          }}>
+            <Text style={{ color: t.danger, fontSize: 13, flex: 1, lineHeight: 18 }}>{sendError}</Text>
+            <Text style={{ color: t.danger, fontSize: 13, fontWeight: '800' }}>
+              {lang === 'ru' ? 'Повторить' : 'Retry'}
+            </Text>
+          </Pressable>
+        )}
+
         <View style={{ flexDirection: 'row', gap: 8, padding: spacing.md, paddingTop: 0 }}>
           <TextInput
             value={input} onChangeText={setInput}
@@ -199,6 +236,7 @@ export default function ChatScreen() {
               backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, maxHeight: 120, fontSize: 15,
             }} />
           <Pressable onPress={send} disabled={!input.trim() || loading}
+            accessibilityRole="button" accessibilityLabel={lang === 'ru' ? 'Отправить' : 'Send'}
             style={{ backgroundColor: input.trim() ? meta.color : t.border, paddingHorizontal: 18, justifyContent: 'center', borderRadius: 18 }}>
             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 18 }}>↑</Text>
           </Pressable>

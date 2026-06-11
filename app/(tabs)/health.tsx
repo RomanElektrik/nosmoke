@@ -145,6 +145,7 @@ function Hero({ m, secs, lang, tr }: { m: Milestone; secs: number; lang: 'ru' | 
 
 function ReachedCard({ m, tr, onPress }: { m: Milestone; tr: any; onPress: () => void }) {
   const t = useTheme();
+  const lang = currentLang();
   const IconComp = Icon[m.icon];
   return (
     <Pressable onPress={onPress}>
@@ -161,10 +162,10 @@ function ReachedCard({ m, tr, onPress }: { m: Milestone; tr: any; onPress: () =>
             {tr(m.titleKey)}
           </Text>
           <Text style={{ color: m.color, fontSize: 12, fontWeight: '700', marginTop: 3 }}>
-            {'✓ '}{m.at < 3600 ? `${Math.round(m.at / 60)} мин` :
-              m.at < 86400 ? `${Math.round(m.at / 3600)} ч` :
-              m.at < 86400 * 30 ? `${Math.round(m.at / 86400)} дн` :
-              `${Math.round(m.at / 86400 / 30)} мес`}
+            {'✓ '}{m.at < 3600 ? `${Math.round(m.at / 60)} ${lang === 'ru' ? 'мин' : 'min'}` :
+              m.at < 86400 ? `${Math.round(m.at / 3600)} ${lang === 'ru' ? 'ч' : 'h'}` :
+              m.at < 86400 * 30 ? `${Math.round(m.at / 86400)} ${lang === 'ru' ? 'дн' : 'd'}` :
+              `${Math.round(m.at / 86400 / 30)} ${lang === 'ru' ? 'мес' : 'mo'}`}
           </Text>
         </View>
         <Icon.arrowRight size={16} color={t.textDim} />

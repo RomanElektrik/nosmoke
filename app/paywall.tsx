@@ -76,8 +76,8 @@ export default function Paywall() {
     Alert.alert(
       lang === 'ru' ? 'Подключение оплаты в разработке' : 'Payments not yet wired',
       lang === 'ru'
-        ? 'Реальная подписка появится в следующей версии. Сейчас можно включить Премиум локально для теста.'
-        : 'Real subscriptions ship in the next release. For now, you can flip the dev toggle below.',
+        ? 'Подписка появится в следующей версии приложения.'
+        : 'Subscriptions are coming in the next release.',
     );
   }
 
@@ -207,8 +207,9 @@ export default function Paywall() {
             : 'Subscription auto-renews. Cancel anytime in Apple ID settings.'}
         </Text>
 
-        {/* Dev mode toggle */}
-        <View style={{
+        {/* Dev mode toggle — dev builds only, never in TestFlight/production:
+            a visible toggle would hand out premium for free AND fail review. */}
+        {__DEV__ && <View style={{
           marginTop: 14, padding: 14, borderRadius: radius.md,
           backgroundColor: t.warn + '12', borderWidth: 1, borderColor: t.warn + '40', gap: 10,
         }}>
@@ -232,7 +233,7 @@ export default function Paywall() {
                 : (lang === 'ru' ? 'Включить Премиум (dev)' : 'Enable Premium (dev)')}
             </Text>
           </Pressable>
-        </View>
+        </View>}
       </ScrollView>
     </SafeAreaView>
   );

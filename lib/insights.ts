@@ -43,8 +43,8 @@ export function computeInsights(cravings: CravingLog[]): Insights {
   if (total >= 6) {
     const sorted = [...cravings].sort((a, b) => a.ts - b.ts);
     const n = Math.floor(total / 3);
-    const early = sorted.slice(0, n).reduce((a, c) => a + c.intensity, 0) / n;
-    const late = sorted.slice(-n).reduce((a, c) => a + c.intensity, 0) / n;
+    const early = sorted.slice(0, n).reduce((a, c) => a + (c.intensity || 0), 0) / n;
+    const late = sorted.slice(-n).reduce((a, c) => a + (c.intensity || 0), 0) / n;
     if (late < early - 0.6) intensityTrend = 'down';
     else if (late > early + 0.6) intensityTrend = 'up';
   }

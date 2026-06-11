@@ -12,15 +12,20 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export async function requestPermissions() {
-  const { status } = await Notifications.getPermissionsAsync();
-  if (status !== 'granted') await Notifications.requestPermissionsAsync();
+// Returns whether notifications are actually allowed, so callers can stop
+// promising reminders that will never arrive.
+export async function requestPermissions(): Promise<boolean> {
+  let { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') {
+    status = (await Notifications.requestPermissionsAsync()).status;
+  }
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }
+  return status === 'granted';
 }
 
 type T = (ru: string, en: string) => string;
@@ -48,8 +53,16 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
   };
 
   // ---------- DAY 1 — every 2.5h, anti-craving --------------
-  for (let h = 1; h <= 18; h += 2.5) {
-    await schedule(at(0, h),
+  // Anchor to max(quitDate, now): with an evening onboarding all quitDate-based
+  // slots land in the past and day 1 — the riskiest day — gets zero support.
+  // Night slots (22:00–07:59 local) are skipped, the wave continues next morning.
+  const acuteStart = Math.max(quitDateMs, now);
+  for (let h = 1; h <= 24; h += 2.5) {
+    const slot = acuteStart + h * 3600_000;
+    const localHour = new Date(slot).getHours();
+    if (localHour >= 22 || localHour < 8) continue;
+    if (slot >= quitDateMs + 2 * 86400_000) break; // stay within the acute window
+    await schedule(slot,
       t('Тяга — это волна. 4 минуты — и пройдёт.', 'A craving is a wave. 4 minutes — and it passes.'),
       t('Открой SOS — 60 секунд дыхания. Просто попробуй.', 'Tap SOS — 60s breathing. Just try.'),
     );

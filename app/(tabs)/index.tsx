@@ -807,6 +807,9 @@ function MedicationCard() {
     );
   }
 
+  // Course not started yet (start date in the future) → courseDay <= 0 and
+  // dosesForDay would fall through to the full default schedule. Hide instead.
+  if (state.profile?.medicationStartedAt && state.profile.medicationStartedAt > Date.now()) return null;
   const medInfo = todayDoses(state, lang);
   if (medInfo.schedule.length === 0) return null;
 
