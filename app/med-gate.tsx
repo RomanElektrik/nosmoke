@@ -8,18 +8,32 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
-import { update } from '../lib/storage';
+import { update, useAppState, type HealthFlag } from '../lib/storage';
 import { Icon } from '../components/Icon';
-import { MED_SAFETY, type Medication } from '../lib/medication';
+import { MED_SAFETY, blockingFlags, type Medication } from '../lib/medication';
+
+const FLAG_LABELS: Record<HealthFlag, { ru: string; en: string }> = {
+  pregnant:        { ru: 'беременность / грудное вскармливание', en: 'pregnancy / breastfeeding' },
+  heart_disease:   { ru: 'болезни сердца и сосудов', en: 'heart or vascular disease' },
+  seizures:        { ru: 'судороги / эпилепсия', en: 'seizures / epilepsy' },
+  psychiatric:     { ru: 'психическое расстройство', en: 'psychiatric condition' },
+  eating_disorder: { ru: 'расстройство пищевого поведения', en: 'eating disorder' },
+  kidney:          { ru: 'тяжёлые болезни почек', en: 'severe kidney disease' },
+};
 
 export default function MedGate() {
   const t = useTheme();
   const router = useRouter();
   const lang = currentLang();
   const { med } = useLocalSearchParams<{ med: Medication }>();
+  const [state] = useAppState();
 
   const [noContra, setNoContra] = useState(false);
   const [hasRx, setHasRx] = useState(false);
+
+  // Hard block on declared health flags (CLAUDE.md rule 5): a dangerous
+  // combination disables activation entirely — a checkbox can't override it.
+  const blocked = med && MED_SAFETY[med] ? blockingFlags(med, state.profile?.healthFlags) : [];
 
   if (!med || !MED_SAFETY[med]) {
     return (
@@ -41,7 +55,7 @@ export default function MedGate() {
   const warning = lang === 'ru' ? info.warningRu : info.warningEn;
   const rxNote = lang === 'ru' ? info.rxNoteRu : info.rxNoteEn;
 
-  const canActivate = noContra && hasRx;
+  const canActivate = noContra && hasRx && blocked.length === 0;
 
   async function activate() {
     if (!canActivate || !med) return;
@@ -78,6 +92,20 @@ export default function MedGate() {
             ? 'Это не назначение. Приложение помогает вести расписание препарата, который тебе подобрал врач — прочитай и подтверди два пункта.'
             : 'This is not a prescription. The app helps you track a medication chosen by your doctor — please read and confirm two points.'}
         </Text>
+
+        {/* Hard block — user declared a contraindicated condition in onboarding */}
+        {blocked.length > 0 && (
+          <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: '#FF453A1F', borderWidth: 1.5, borderColor: '#FF453A', gap: 8 }}>
+            <Text style={{ color: '#FF453A', fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+              {lang === 'ru' ? 'Этот препарат тебе недоступен' : 'This medication is not available to you'}
+            </Text>
+            <Text style={{ color: t.text, fontSize: 14.5, lineHeight: 21 }}>
+              {lang === 'ru'
+                ? `В анкете ты указал: ${blocked.map((f) => FLAG_LABELS[f].ru).join(', ')}. С таким состоянием начинать этот препарат через приложение нельзя — это вопрос только для очной консультации с врачом.`
+                : `You indicated: ${blocked.map((f) => FLAG_LABELS[f].en).join(', ')}. With this condition the app cannot help you start this medication — it is strictly a decision for an in-person doctor visit.`}
+            </Text>
+          </View>
+        )}
 
         {/* Rx status */}
         <View style={{ padding: 14, borderRadius: radius.lg, backgroundColor: (info.rxRequired ? '#FF453A' : '#FF9500') + '14', borderWidth: 1, borderColor: (info.rxRequired ? '#FF453A' : '#FF9500') + '44', gap: 6 }}>

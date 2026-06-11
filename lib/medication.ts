@@ -4,10 +4,26 @@
 // • Bupropion SR — FDA Zyban label.
 // • Varenicline — FDA Chantix label.
 
-import type { AppState, StepLevel } from './storage';
+import type { AppState, StepLevel, HealthFlag } from './storage';
 import { localDateKey } from './dates';
 
 export type Medication = 'cytisine' | 'bupropion' | 'varenicline';
+
+// Health flags from onboarding that HARD-BLOCK a medication (CLAUDE.md rule 5:
+// dangerous combinations must block step activation, not just be listed).
+// Sources: Tabex SmPC (CVD), FDA Zyban label (seizures, eating disorders),
+// FDA Chantix label (neuropsychiatric caution), all — pregnancy.
+export const MED_BLOCKING_FLAGS: Record<Medication, HealthFlag[]> = {
+  cytisine: ['pregnant', 'heart_disease'],
+  bupropion: ['pregnant', 'seizures', 'eating_disorder'],
+  varenicline: ['pregnant', 'psychiatric', 'kidney'],
+};
+
+// Which of the user's declared flags block this medication. Empty = clear.
+export function blockingFlags(med: Medication, flags?: HealthFlag[]): HealthFlag[] {
+  if (!flags?.length) return [];
+  return MED_BLOCKING_FLAGS[med].filter((f) => flags.includes(f));
+}
 
 // Какой препарат соответствует ступени программы.
 // L1 — без препарата; L2 — цитизин; L3 — бупропион; L4/L5 — варениклин.
@@ -124,9 +140,24 @@ export type ScheduledDose = {
   noteEn?: string;
 };
 
+// Total course length in days — after this the schedule ENDS (no more doses).
+// Cytisine: 25-day Tabex course. Bupropion: 8 weeks (Zyban). Varenicline:
+// 24 weeks covers the extended L5 course (standard L4 = 12 weeks; the doctor
+// decides the actual stop date — we just stop nagging past the maximum).
+export const COURSE_DAYS: Record<Medication, number> = {
+  cytisine: 25,
+  bupropion: 56,
+  varenicline: 168,
+};
+
 // Returns dose plan for a given day (1-based) of the medication course.
 // Anchor — usually 08:00 morning.
 export function dosesForDay(med: Medication, dayNumber: number, startHour = 8): ScheduledDose[] {
+  // Before the course starts or after it ends — no doses. Without this the
+  // cytisine schedule ran forever (day 40, 60…) and day<=0 fell through to
+  // the full day-1 plan.
+  if (dayNumber < 1 || dayNumber > COURSE_DAYS[med]) return [];
+
   if (med === 'cytisine') {
     // Sopharma Tabex manufacturer schedule (1.5 mg tablets):
     // d1-3: 1 tab × 6/day (every 2h)

@@ -67,7 +67,9 @@ export default function Home() {
             ...s.profile,
             currentStep: stepId,
             stepEnteredAt: startMs,
-            quitDate: startMs,
+            // quitDate intentionally NOT reset (same invariant as the immediate
+            // branch in transition.tsx) — a scheduled method switch must never
+            // wipe the streak the user accumulated while waiting.
             pendingMethod: undefined,
             pendingQuitDate: undefined,
           },

@@ -8,7 +8,7 @@ import { useTheme } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
 import { computeInsights } from '../lib/insights';
 import * as Notifications from 'expo-notifications';
-import { scheduleCravingNudge } from '../lib/notifications';
+import { scheduleCravingNudge, scheduleQuitProgram, scheduleMedicationDoses } from '../lib/notifications';
 import { currentLang } from '../lib/i18n';
 import '../lib/i18n';
 
@@ -35,11 +35,21 @@ export default function Root() {
           } : prev.profile,
         }));
       }
-      // Re-schedule the personal craving nudge from the latest logged data.
+      // Rebuild the full notification plan on every launch. This keeps
+      // medication-dose reminders alive past the 7-day scheduling window
+      // (they were planned once at med-gate and silently died on day 8),
+      // refreshes language after a switch, and re-anchors day-1 support.
+      // scheduleQuitProgram cancels everything first, so order matters:
+      // program → med doses → craving nudge.
       try {
         if (s.profile?.onboardingComplete) {
+          const lang = currentLang();
+          await scheduleQuitProgram(s.profile.quitDate, lang, 8, s.profile.checkInHour ?? 21);
+          if (s.profile.medication && s.profile.medicationStartedAt) {
+            await scheduleMedicationDoses(lang, s.profile.medication, s.profile.medicationStartedAt);
+          }
           const ins = computeInsights(s.cravings ?? []);
-          await scheduleCravingNudge(ins.peakHourStart, currentLang());
+          await scheduleCravingNudge(ins.peakHourStart, lang);
         }
       } catch {}
       setReady(true);
@@ -50,7 +60,8 @@ export default function Root() {
   // of dropping the user on Home. The url rides in the notification payload.
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
-      const url = resp.notification.request.content.data?.url;
+      const data = resp.notification.request.content.data as { url?: string; route?: string } | undefined;
+      const url = data?.url ?? data?.route;
       if (typeof url === 'string' && url.startsWith('/')) {
         setTimeout(() => router.push(url as any), 300);
       }

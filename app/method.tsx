@@ -11,7 +11,7 @@ import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
 import type { StepLevel } from '../lib/storage';
-import { STEPS, recommendStep, getStep } from '../lib/stepped';
+import { STEPS, recommendStep, getStep, pharmaBlocked } from '../lib/stepped';
 import { Icon } from '../components/Icon';
 
 export default function MethodScreen() {
@@ -22,9 +22,23 @@ export default function MethodScreen() {
   const [state] = useAppState();
   const current = state.profile?.currentStep;
   const recommended = state.profile ? recommendStep(state.profile) : undefined;
+  // Pregnancy / breastfeeding: behavioural support is first-line — the quick
+  // switcher must not offer pharma steps (this screen used to bypass the gate
+  // that recommendStep / escalation / transition all enforce).
+  const noPharma = pharmaBlocked(state.profile);
 
   function pick(id: StepLevel) {
     if (id === current) return;
+    if (noPharma && id !== 'L1_behavioral') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        lang === 'ru' ? 'Недоступно при беременности' : 'Not available during pregnancy',
+        lang === 'ru'
+          ? 'При беременности и грудном вскармливании первая линия — поведенческая поддержка. Вопрос о препаратах решает только врач.'
+          : 'During pregnancy or breastfeeding, behavioural support is first-line. Medication is a decision for your doctor only.',
+      );
+      return;
+    }
     const target = getStep(id);
     Haptics.selectionAsync();
     Alert.alert(
@@ -78,13 +92,14 @@ export default function MethodScreen() {
         {STEPS.map((s) => {
           const isCurrent = current === s.id;
           const isRecommended = recommended === s.id;
+          const locked = noPharma && s.id !== 'L1_behavioral';
           return (
             <Pressable key={s.id} onPress={() => pick(s.id)}>
               <View style={{
                 padding: 16, borderRadius: radius.lg,
                 backgroundColor: isCurrent ? s.color + '14' : t.bgElev,
                 borderWidth: 2, borderColor: isCurrent ? s.color : 'transparent',
-                gap: 8,
+                gap: 8, opacity: locked ? 0.45 : 1,
               }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <View style={{

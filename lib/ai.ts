@@ -3,7 +3,7 @@ import { secondsClean } from './health';
 import { relapseStatus } from './relapse';
 import { cigsAvoided, moneySaved } from './money';
 import { cravingsSurvived, currentLevel, programToday } from './program';
-import { getStep } from './stepped';
+import { getStep, preQuitGraceEnd, methodQuitDay } from './stepped';
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 export type CoachMode = 'support' | 'analyze_slip' | 'daily_task';
@@ -136,6 +136,7 @@ TECHNIQUE PRIORITIES BY MOMENT:
 - deposit contract: ${p.committedAmount ? `${p.committedAmount} ${p.currency} with ${p.contractPartner ?? 'unnamed'}` : 'no'}
 - medication: ${p.medication ?? 'none chosen'}${p.medication && p.medicationStartedAt ? ` (since day ${Math.floor((Date.now() - p.medicationStartedAt) / 86400_000) + 1})` : ''}
 - current step: ${p.currentStep ? `${getStep(p.currentStep).index} (${getStep(p.currentStep).titleEn})` : 'unset'}
+- protocol phase: ${(() => { const g = preQuitGraceEnd(p); if (Date.now() < g) { const qd = methodQuitDay(p.currentStep); return `PRE-QUIT PREPARATION — smoking is still ALLOWED per the medication protocol until quit day (day ${qd} of the course). If the user says they smoked, this is NOT a lapse: reassure, do not run slip analysis, remind that the quit day is coming.`; } return 'past quit day — abstinence phase, a smoked cigarette is a lapse'; })()}
 - track day: ${programToday(state).day} of ${programToday(state).total}
 - today's track focus: ${(() => { const d = programToday(state).data; return d ? (locale === 'ru' ? d.focusRu : d.focusEn) : '—'; })()}
 - today's medication action: ${(() => { const d = programToday(state).data; return (d as any)?.medRu ? (locale === 'ru' ? (d as any).medRu : (d as any).medEn) : 'none'; })()}
