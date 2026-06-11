@@ -3,6 +3,7 @@
 import { ScrollView, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { currentLang } from '../../lib/i18n';
@@ -58,36 +59,44 @@ export default function AwardsTab() {
                   const unlocked = !!stored[a.id] || isAchUnlocked(a, ctx);
                   const prog = achProgress(a, ctx);
                   const I = Icon[a.icon];
+                  const gid = `ach_${a.id}`;
                   return (
-                    <View key={a.id} style={{ width: '47.8%', borderRadius: radius.xl, overflow: 'hidden', height: 170, ...(unlocked ? { shadowColor: a.color, shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } } : {}) }}>
-                      {/* Background — saturated for unlocked, muted for locked */}
-                      {unlocked ? (
-                        <LinearGradient colors={[a.color, a.color + 'AA', '#0A0E13']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1.2 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-                      ) : (
-                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, borderRadius: radius.xl }} />
-                      )}
-                      {/* Soft halo */}
-                      {unlocked && <View style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: '#FFFFFF14' }} />}
-                      {/* Icon */}
-                      <View style={{ position: 'absolute', top: 14, left: 14, width: 50, height: 50, borderRadius: 25, backgroundColor: unlocked ? '#FFFFFF22' : a.color + '14', alignItems: 'center', justifyContent: 'center' }}>
-                        <I size={26} color={unlocked ? '#fff' : a.color + '70'} />
+                    // Same visual language as the audio/technique cards: dark
+                    // base, colour-tinted gradient, crisp SVG orb glow.
+                    <View key={a.id} style={{ width: '47.8%', borderRadius: radius.xl, overflow: 'hidden', height: 178, ...(unlocked ? { shadowColor: a.color, shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } } : {}) }}>
+                      <LinearGradient
+                        colors={unlocked ? [a.color + '4D', '#12161D', '#0F131A'] : ['#161B23', '#10141B']}
+                        locations={unlocked ? [0, 0.62, 1] : [0, 1]}
+                        start={{ x: 0.1, y: 0 }} end={{ x: 1, y: 1 }}
+                        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+                      <Svg style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+                        <Defs>
+                          <RadialGradient id={gid} cx="74%" cy="20%" r="60%">
+                            <Stop offset="0" stopColor="#FFFFFF" stopOpacity={unlocked ? 0.38 : 0.06} />
+                            <Stop offset="36%" stopColor={a.color} stopOpacity={unlocked ? 1 : 0.18} />
+                            <Stop offset="100%" stopColor={a.color} stopOpacity={0} />
+                          </RadialGradient>
+                        </Defs>
+                        <Circle cx="76%" cy="18%" r="46%" fill={`url(#${gid})`} />
+                      </Svg>
+                      {/* Icon bottom of orb zone */}
+                      <View style={{ position: 'absolute', top: 14, left: 14, width: 44, height: 44, borderRadius: 15, backgroundColor: unlocked ? '#FFFFFF1E' : '#FFFFFF0A', alignItems: 'center', justifyContent: 'center' }}>
+                        <I size={24} color={unlocked ? '#fff' : a.color + '66'} />
                       </View>
-                      {/* Lock indicator for locked */}
                       {!unlocked && (
-                        <View style={{ position: 'absolute', top: 14, right: 14, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: t.border }}>
-                          <Text style={{ color: t.textDim, fontSize: 10, fontWeight: '800' }}>{Math.round(prog * 100)}%</Text>
+                        <View style={{ position: 'absolute', top: 16, right: 12, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: '#00000055' }}>
+                          <Text style={{ color: '#9AA5B1', fontSize: 10, fontWeight: '800' }}>{Math.round(prog * 100)}%</Text>
                         </View>
                       )}
-                      {/* Text */}
-                      <View style={{ position: 'absolute', left: 12, right: 12, bottom: 12, gap: 4 }}>
-                        <Text style={{ color: unlocked ? '#fff' : t.text, fontSize: 14, fontWeight: '800', letterSpacing: -0.2 }} numberOfLines={2}>
+                      <View style={{ position: 'absolute', left: 14, right: 14, bottom: 13, gap: 4 }}>
+                        <Text style={{ color: unlocked ? '#F2F6FA' : '#B8C2CC', fontSize: 14.5, fontWeight: '800', letterSpacing: -0.2 }} numberOfLines={2}>
                           {ru ? a.titleRu : a.titleEn}
                         </Text>
-                        <Text style={{ color: unlocked ? '#FFFFFFC8' : t.textDim, fontSize: 11, lineHeight: 14 }} numberOfLines={2}>
+                        <Text style={{ color: unlocked ? '#C7D0DACC' : '#7C8794', fontSize: 11, lineHeight: 14 }} numberOfLines={2}>
                           {ru ? a.descRu : a.descEn}
                         </Text>
                         {!unlocked && (
-                          <View style={{ height: 4, borderRadius: 4, backgroundColor: t.border, overflow: 'hidden', marginTop: 4 }}>
+                          <View style={{ height: 4, borderRadius: 4, backgroundColor: '#FFFFFF14', overflow: 'hidden', marginTop: 4 }}>
                             <View style={{ width: `${prog * 100}%`, height: '100%', backgroundColor: a.color, borderRadius: 4 }} />
                           </View>
                         )}
