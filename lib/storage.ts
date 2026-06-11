@@ -224,17 +224,28 @@ function migrateChats(s: AppState): AppState {
   return { ...s, chats };
 }
 
-// 6-axis weekly body recovery survey — visible proof that quitting works.
+// Weekly body recovery survey — visible proof that quitting works.
+// New entries use a 0–10 scale (scale: 10); legacy entries were 1–5 and are
+// доubled at display time. mood/craving axes added later — optional.
 export type SymptomLog = {
   date: string;        // YYYY-MM-DD (local)
   ts: number;          // ms when submitted
-  cough: number;       // 1 (плохо) … 5 (отлично) — кашель
+  cough: number;       // higher = better
   breath: number;      // дыхание
   taste: number;       // вкус
   smell: number;       // запах
   sleep: number;       // сон
   energy: number;      // энергия
+  mood?: number;       // настроение
+  craving?: number;    // свобода от тяги (выше = тяга слабее)
+  scale?: 10;          // present on new 0–10 entries; absent = legacy 1–5
 };
+
+// Normalize any stored symptom value to the 0–10 display scale.
+export function symptomTo10(log: SymptomLog, v: number | undefined): number {
+  if (v == null) return 0;
+  return log.scale === 10 ? v : v * 2;
+}
 
 const KEY = 'qs:state:v1';
 

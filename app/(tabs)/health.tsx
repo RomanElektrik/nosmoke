@@ -228,6 +228,16 @@ function DetailSheet({ m, secs, lang, onClose }: { m: Milestone; secs: number; l
             {reached ? (lang === 'ru' ? 'Достигнуто' : 'Reached') : tr('health.in', { time: formatDuration(m.at - secs, lang) })}
           </Text>
         </View>
+        {!reached && (
+          <View style={{ gap: 6, marginTop: 2 }}>
+            <View style={{ height: 8, borderRadius: 999, backgroundColor: t.border, overflow: 'hidden' }}>
+              <View style={{ width: `${Math.round(progressFor(m, secs) * 100)}%`, height: '100%', backgroundColor: m.color, borderRadius: 999 }} />
+            </View>
+            <Text style={{ color: t.textDim, fontSize: 12 }}>
+              {lang === 'ru' ? `Пройдено ${Math.round(progressFor(m, secs) * 100)}%` : `${Math.round(progressFor(m, secs) * 100)}% there`}
+            </Text>
+          </View>
+        )}
         <Text style={{ color: t.text, fontSize: 16, lineHeight: 24, marginTop: 4 }}>{tr(m.bodyKey)}</Text>
         <Text style={{ color: t.textDim, fontSize: 12, marginTop: 12 }}>{tr('health.source', { src: m.source })}</Text>
         <Pressable onPress={onClose}

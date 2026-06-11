@@ -684,14 +684,16 @@ function StatusCheckCard() {
       <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 19 }}>
         {lang === 'ru' ? 'Спрашиваю редко — но честный ответ помогает мне быть полезнее. Никакого осуждения.' : 'I ask rarely — an honest answer helps me help you. No judgment.'}
       </Text>
+      {/* No emoji in the button labels — 💪 broke vertical alignment on some
+          devices and read as «криво написанный текст» */}
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Pressable onPress={holding}
-          style={({ pressed }) => ({ flex: 1, paddingVertical: 13, borderRadius: radius.md, backgroundColor: t.accent, alignItems: 'center', opacity: pressed ? 0.85 : 1 })}>
-          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>{lang === 'ru' ? 'Держусь 💪' : "Holding 💪"}</Text>
+          style={({ pressed }) => ({ flex: 1, paddingVertical: 14, borderRadius: radius.md, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.85 : 1 })}>
+          <Text numberOfLines={1} style={{ color: '#fff', fontWeight: '800', fontSize: 14.5 }}>{lang === 'ru' ? 'Держусь' : 'Holding'}</Text>
         </Pressable>
         <Pressable onPress={smoked}
-          style={({ pressed }) => ({ flex: 1, paddingVertical: 13, borderRadius: radius.md, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, alignItems: 'center', opacity: pressed ? 0.7 : 1 })}>
-          <Text style={{ color: t.textDim, fontWeight: '700', fontSize: 14 }}>{lang === 'ru' ? 'Закурил' : 'I smoked'}</Text>
+          style={({ pressed }) => ({ flex: 1, paddingVertical: 14, borderRadius: radius.md, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
+          <Text numberOfLines={1} style={{ color: t.textDim, fontWeight: '700', fontSize: 14.5 }}>{lang === 'ru' ? 'Закурил' : 'I smoked'}</Text>
         </Pressable>
       </View>
     </View>

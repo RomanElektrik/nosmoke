@@ -10,23 +10,27 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
-import { useAppState, update, type SymptomLog } from '../lib/storage';
+import { useAppState, update, symptomTo10, type SymptomLog } from '../lib/storage';
 import { localDateKey } from '../lib/dates';
 import { Icon } from '../components/Icon';
 
-const AXES = [
-  { k: 'cough',  ru: 'Кашель',   en: 'Cough',     icon: 'pulse'  as const, color: '#FF9F0A' },
-  { k: 'breath', ru: 'Дыхание',  en: 'Breathing', icon: 'wind'   as const, color: '#5AC8FA' },
-  { k: 'taste',  ru: 'Вкус',     en: 'Taste',     icon: 'sparkle' as const, color: '#34C759' },
-  { k: 'smell',  ru: 'Запах',    en: 'Smell',     icon: 'leaf'   as const, color: '#30D158' },
-  { k: 'sleep',  ru: 'Сон',      en: 'Sleep',     icon: 'star'   as const, color: '#BF5AF2' },
-  { k: 'energy', ru: 'Энергия',  en: 'Energy',    icon: 'bolt'   as const, color: '#FF453A' },
+export const AXES = [
+  { k: 'cough',   ru: 'Кашель',          en: 'Cough',       icon: 'pulse'  as const, color: '#FF9F0A' },
+  { k: 'breath',  ru: 'Дыхание',         en: 'Breathing',   icon: 'wind'   as const, color: '#5AC8FA' },
+  { k: 'taste',   ru: 'Вкус',            en: 'Taste',       icon: 'sparkle' as const, color: '#34C759' },
+  { k: 'smell',   ru: 'Запах',           en: 'Smell',       icon: 'leaf'   as const, color: '#30D158' },
+  { k: 'sleep',   ru: 'Сон',             en: 'Sleep',       icon: 'star'   as const, color: '#BF5AF2' },
+  { k: 'energy',  ru: 'Энергия',         en: 'Energy',      icon: 'bolt'   as const, color: '#FF453A' },
+  { k: 'mood',    ru: 'Настроение',      en: 'Mood',        icon: 'heart'  as const, color: '#FF2D78' },
+  { k: 'craving', ru: 'Свобода от тяги', en: 'Urge freedom', icon: 'flame' as const, color: '#FF9500' },
 ] as const;
 
 type AxisKey = typeof AXES[number]['k'];
 
 const SCALE_RU = ['Очень плохо', 'Плохо', 'Норм', 'Хорошо', 'Отлично'];
 const SCALE_EN = ['Very bad', 'Bad', 'OK', 'Good', 'Great'];
+const scaleLabel = (v: number, ru: boolean) =>
+  (ru ? SCALE_RU : SCALE_EN)[Math.min(4, Math.floor(v / 2.2))];
 
 const WEEK_MS = 7 * 86400_000;
 
@@ -67,7 +71,7 @@ export default function Symptoms() {
             <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' }}>
               {lang === 'ru' ? 'Динамика' : 'Trend'}
             </Text>
-            {AXES.map((a) => (
+            {AXES.filter((a) => logs.some((l) => l[a.k as AxisKey] != null)).map((a) => (
               <AxisRow key={a.k} axis={a} logs={logs} lang={lang} />
             ))}
           </View>
@@ -92,7 +96,7 @@ function SurveyCard({ canFillNow, daysSinceLast, lang }: { canFillNow: boolean; 
   const t = useTheme();
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState<Record<AxisKey, number>>({
-    cough: 3, breath: 3, taste: 3, smell: 3, sleep: 3, energy: 3,
+    cough: 5, breath: 5, taste: 5, smell: 5, sleep: 5, energy: 5, mood: 5, craving: 5,
   });
 
   async function save() {
@@ -100,6 +104,7 @@ function SurveyCard({ canFillNow, daysSinceLast, lang }: { canFillNow: boolean; 
     const entry: SymptomLog = {
       date: localDateKey(),
       ts: Date.now(),
+      scale: 10,
       ...values,
     };
     await update((s) => ({ ...s, symptoms: [...(s.symptoms ?? []), entry] }));
@@ -130,7 +135,7 @@ function SurveyCard({ canFillNow, daysSinceLast, lang }: { canFillNow: boolean; 
                 : (lang === 'ru' ? `Следующая запись через ${waitDays} дн.` : `Next entry in ${waitDays} days`)}
             </Text>
             <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
-              {lang === 'ru' ? '6 вопросов · 30 секунд' : '6 questions · 30 seconds'}
+              {lang === 'ru' ? '8 вопросов · 40 секунд' : '8 questions · 40 seconds'}
             </Text>
           </View>
           {canFillNow && <Text style={{ color: t.accent, fontSize: 20, fontWeight: '700' }}>→</Text>}
@@ -154,20 +159,20 @@ function SurveyCard({ canFillNow, daysSinceLast, lang }: { canFillNow: boolean; 
                 {lang === 'ru' ? a.ru : a.en}
               </Text>
               <Text style={{ color: a.color, fontSize: 12, fontWeight: '700' }}>
-                {(lang === 'ru' ? SCALE_RU : SCALE_EN)[v - 1]}
+                {v}/10 · {scaleLabel(v, lang === 'ru')}
               </Text>
             </View>
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              {[1, 2, 3, 4, 5].map((n) => (
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              {Array.from({ length: 11 }, (_, n) => (
                 <TouchableOpacity key={n} activeOpacity={0.7}
                   onPress={() => { Haptics.selectionAsync(); setValues((p) => ({ ...p, [a.k]: n })); }}
                   style={{
-                    flex: 1, paddingVertical: 12, borderRadius: 10,
+                    flex: 1, paddingVertical: 11, borderRadius: 8,
                     backgroundColor: n <= v ? a.color : t.bgElev,
                     borderWidth: 1, borderColor: n <= v ? a.color : t.border,
                     alignItems: 'center',
                   }}>
-                  <Text pointerEvents="none" style={{ color: n <= v ? '#fff' : t.textDim, fontWeight: '700' }}>{n}</Text>
+                  <Text pointerEvents="none" style={{ color: n <= v ? '#fff' : t.textDim, fontWeight: '700', fontSize: 10.5 }}>{n}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -191,9 +196,12 @@ function SurveyCard({ canFillNow, daysSinceLast, lang }: { canFillNow: boolean; 
 function AxisRow({ axis, logs, lang }: { axis: typeof AXES[number]; logs: SymptomLog[]; lang: 'ru' | 'en' }) {
   const t = useTheme();
   const I = Icon[axis.icon];
-  const recent = logs.slice(-12);
-  const last = recent[recent.length - 1]?.[axis.k as AxisKey] ?? 0;
-  const first = recent[0]?.[axis.k as AxisKey] ?? 0;
+  // Only entries that have this axis (mood/craving were added later).
+  const recent = logs.filter((l) => l[axis.k as AxisKey] != null).slice(-12);
+  const lastLog = recent[recent.length - 1];
+  const firstLog = recent[0];
+  const last = lastLog ? symptomTo10(lastLog, lastLog[axis.k as AxisKey]) : 0;
+  const first = firstLog ? symptomTo10(firstLog, firstLog[axis.k as AxisKey]) : 0;
   const delta = last - first;
   const maxBar = 60;
 
@@ -209,7 +217,7 @@ function AxisRow({ axis, logs, lang }: { axis: typeof AXES[number]; logs: Sympto
         <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', flex: 1 }}>
           {lang === 'ru' ? axis.ru : axis.en}
         </Text>
-        <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{last}/5</Text>
+        <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{last}/10</Text>
         {recent.length >= 2 && delta !== 0 && (
           <Text style={{ color: delta > 0 ? '#30D158' : '#FF453A', fontSize: 12, fontWeight: '700' }}>
             {delta > 0 ? '+' : ''}{delta}
@@ -219,10 +227,10 @@ function AxisRow({ axis, logs, lang }: { axis: typeof AXES[number]; logs: Sympto
       {/* Bar chart of recent entries */}
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: maxBar }}>
         {recent.map((e, i) => {
-          const v = e[axis.k as AxisKey];
+          const v = symptomTo10(e, e[axis.k as AxisKey]);
           return (
             <View key={i} style={{
-              flex: 1, height: (v / 5) * maxBar,
+              flex: 1, height: (v / 10) * maxBar,
               backgroundColor: axis.color + (v >= last ? 'cc' : '55'),
               borderRadius: 4,
               minHeight: 4,

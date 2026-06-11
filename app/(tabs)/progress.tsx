@@ -10,7 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { currentLang, useTranslation } from '../../lib/i18n';
-import { useAppState, normalizeReasons } from '../../lib/storage';
+import { useAppState, normalizeReasons, symptomTo10 } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
 import { secondsClean, MILESTONES } from '../../lib/health';
 import { moneySaved, cigsAvoided, pricePerCig, formatMoney, formatDuration, formatCigs } from '../../lib/money';
@@ -112,6 +112,57 @@ export default function Progress() {
             </Pressable>
           );
         })()}
+
+        {/* ───── САМОЧУВСТВИЕ ───── важный трекер, который раньше жил только
+            за кнопкой «Симптомы» и нигде не отображался */}
+        <Card color="#FF2D78" gid="symp" onPress={() => go('/symptoms')}>
+          <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Самочувствие' : 'How you feel'}</Text>
+          {(() => {
+            const logs = state.symptoms ?? [];
+            if (logs.length === 0) {
+              return (
+                <Text style={{ color: t.textDim, fontSize: 14, lineHeight: 21 }}>
+                  {ru ? 'Отметь самочувствие — раз в несколько дней, 40 секунд. Здесь появится динамика: дыхание, сон, настроение.' : 'Log how you feel — every few days, 40 seconds. Your trend will appear here.'}
+                </Text>
+              );
+            }
+            const lastLog = logs[logs.length - 1];
+            const prevLog = logs.length > 1 ? logs[logs.length - 2] : null;
+            const KEY_AXES = [
+              { k: 'breath' as const, ru: 'Дыхание', en: 'Breath', color: '#5AC8FA' },
+              { k: 'energy' as const, ru: 'Энергия', en: 'Energy', color: '#FF453A' },
+              { k: 'sleep' as const, ru: 'Сон', en: 'Sleep', color: '#BF5AF2' },
+            ];
+            return (
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {KEY_AXES.map((a) => {
+                  const cur = symptomTo10(lastLog, lastLog[a.k]);
+                  const prev = prevLog ? symptomTo10(prevLog, prevLog[a.k]) : null;
+                  const delta = prev != null ? cur - prev : 0;
+                  return (
+                    <View key={a.k} style={{ flex: 1, backgroundColor: '#00000033', borderRadius: 14, padding: 12, gap: 3 }}>
+                      <Text style={{ color: t.textDim, fontSize: 11.5, fontWeight: '700' }} numberOfLines={1}>{ru ? a.ru : a.en}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                        <Text style={{ color: a.color, fontSize: 20, fontWeight: '900' }}>{cur}</Text>
+                        <Text style={{ color: t.textDim, fontSize: 11 }}>/10</Text>
+                        {delta !== 0 && (
+                          <Text style={{ color: delta > 0 ? '#30D158' : '#FF453A', fontSize: 12, fontWeight: '800' }}>
+                            {delta > 0 ? '↑' : '↓'}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          })()}
+          <Text style={{ color: '#FF2D78', fontSize: 13.5, fontWeight: '700' }}>
+            {(state.symptoms?.length ?? 0) === 0
+              ? (ru ? 'Отметить самочувствие →' : 'Log how you feel →')
+              : (ru ? 'Вся динамика →' : 'Full trend →')}
+          </Text>
+        </Card>
 
         {/* ───── ПАТТЕРНЫ ТЯГИ ───── */}
         <Card color={t.info} gid="pat">
