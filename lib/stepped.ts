@@ -113,6 +113,24 @@ export function recommendStep(p: Profile): StepLevel {
   return STEPS[Math.max(0, Math.min(STEPS.length - 1, base - 1))].id;
 }
 
+// 1-based day within the course when the user actually stops smoking.
+// Until then smoking is part of the protocol (Tabex: quit day = 5, smoking
+// allowed days 1–4; bupropion/varenicline titration: quit day = 8) — a smoked
+// cigarette in this window is NOT a lapse and must not trigger escalation or
+// the relapse detector.
+export function methodQuitDay(step?: StepLevel): number {
+  if (step === 'L2_nrt_light') return 5;
+  if (step === 'L3_nrt_combo' || step === 'L4_pharma' || step === 'L5_intensive') return 8;
+  return 1;
+}
+
+// End of the pre-quit window (ms). Before this moment smoking is per-protocol.
+export function preQuitGraceEnd(p?: Profile | null): number {
+  if (!p?.currentStep) return 0;
+  const start = p.stepEnteredAt ?? p.quitDate ?? 0;
+  return start + (methodQuitDay(p.currentStep) - 1) * 86400_000;
+}
+
 export function nextStep(current: StepLevel): StepLevel | null {
   const s = STEPS.find((x) => x.id === current);
   if (!s) return null;
@@ -151,10 +169,15 @@ export function escalationSuggestion(state: AppState): Escalation {
   const since = state.profile?.stepEnteredAt ?? state.profile?.quitDate ?? now;
   const daysOnStep = Math.floor((now - since) / 86400_000);
 
+  // Pre-quit window (e.g. Tabex days 1–4): smoking is allowed by the protocol,
+  // so nothing in this period may count toward escalation.
+  const graceEnd = preQuitGraceEnd(state.profile);
+  if (now < graceEnd) return { yes: false, intensity: 'none' };
+
   // Count distinct smoking DAYS, like relapse.ts: 'YYYY-MM-DD' must be parsed
   // as local midnight (bare new Date('YYYY-MM-DD') is UTC), and a slip plus a
   // check-in on the same day is one event, not two.
-  const weekAgo = now - 7 * 86400_000;
+  const weekAgo = Math.max(now - 7 * 86400_000, graceEnd);
   const smokedDays = new Set<string>();
   for (const t of state.slips) {
     if (t > weekAgo) smokedDays.add(new Date(t).toDateString());

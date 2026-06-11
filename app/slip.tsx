@@ -10,7 +10,7 @@ import { useAppState, update } from '../lib/storage';
 import { chat } from '../lib/ai';
 import { extractLinks, stripLinks } from '../lib/aiLinks';
 import { cravingsSurvived } from '../lib/program';
-import { escalationSuggestion, getStep } from '../lib/stepped';
+import { escalationSuggestion, getStep, preQuitGraceEnd, methodQuitDay } from '../lib/stepped';
 import { Icon } from '../components/Icon';
 
 // Lapse Recovery Protocol — Marlatt RP, AVE-aware:
@@ -74,6 +74,47 @@ export default function Slip() {
       setAdvice(lang === 'ru' ? 'ИИ недоступен. Шаг на 48 ч: дыхание 5 минут утром + замена ритуала на каждый позыв. Только это.' : 'AI unavailable. 48h step: 5-min breath in the morning + ritual replacement on every urge. Just that.');
     }
     setLoadingAi(false);
+  }
+
+  // Pre-quit protocol window (Tabex days 1–4, bupropion/varenicline titration):
+  // smoking here is PART OF THE PLAN. Don't run the lapse protocol, don't shame
+  // — explain the schedule and send the user back. Escalation and the relapse
+  // detector ignore this window too (lib/stepped.ts, lib/relapse.ts).
+  const graceEnd = preQuitGraceEnd(state.profile);
+  if (Date.now() < graceEnd && state.profile?.currentStep) {
+    const spec = getStep(state.profile.currentStep);
+    const quitDay = methodQuitDay(state.profile.currentStep);
+    const startMs = state.profile.stepEnteredAt ?? state.profile.quitDate ?? Date.now();
+    const courseDay = Math.floor((Date.now() - startMs) / 86400_000) + 1;
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+        <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: 18, paddingBottom: 40 }}>
+          <LinearGradient colors={[spec.color + '38', spec.color + '08']}
+            style={{ width: 96, height: 96, borderRadius: 28, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon.shield size={56} color={spec.color} />
+          </LinearGradient>
+          <Text style={{ color: t.text, fontSize: 30, fontWeight: '700', letterSpacing: -0.6 }}>
+            {lang === 'ru' ? 'Это не срыв — ты идёшь по плану.' : 'Not a lapse — you are on schedule.'}
+          </Text>
+          <Text style={{ color: t.text, fontSize: 16, lineHeight: 23 }}>
+            {lang === 'ru'
+              ? `Сейчас день ${courseDay} подготовки (${spec.titleRu}). По схеме курить пока можно — день отказа наступит на день ${quitDay}. Препарат уже работает: тяга будет слабеть сама.`
+              : `This is preparation day ${courseDay} (${spec.titleEn}). Smoking is still allowed by the schedule — your quit day is day ${quitDay}. The medication is already working: cravings will fade on their own.`}
+          </Text>
+          <Text style={{ color: t.textDim, fontSize: 14, lineHeight: 21 }}>
+            {lang === 'ru'
+              ? 'Мы не считаем это срывом — счётчики и план не пострадали. Просто продолжай принимать по схеме.'
+              : "We don't count this as a slip — your counters and plan are untouched. Just keep following the schedule."}
+          </Text>
+          <Pressable onPress={() => { Haptics.selectionAsync(); router.replace('/(tabs)'); }}
+            style={({ pressed }) => ({ marginTop: 8, paddingVertical: 18, borderRadius: radius.xl, backgroundColor: spec.color, alignItems: 'center', opacity: pressed ? 0.9 : 1 })}>
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+              {lang === 'ru' ? 'Понятно, продолжаю' : 'Got it, carrying on'}
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </SafeAreaView>
+    );
   }
 
   // Step 0 — defuse AVE

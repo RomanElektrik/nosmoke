@@ -6,6 +6,7 @@
 
 import type { AppState } from './storage';
 import { localDateKey } from './dates';
+import { preQuitGraceEnd } from './stepped';
 
 const DAY = 86400_000;
 
@@ -21,21 +22,26 @@ export function relapseStatus(state: AppState): RelapseStatus {
   const quit = state.profile?.quitDate ?? now;
   const daysSinceQuit = Math.floor((now - quit) / DAY);
 
+  // Pre-quit protocol window (Tabex days 1–4, bupropion/varenicline titration):
+  // smoking there is per-protocol, not a relapse — ignore those events entirely.
+  const graceEnd = preQuitGraceEnd(state.profile);
+
   const days = new Set<string>();
   let lastSmokeTs: number | null = null;
   const note = (ts: number) => { if (lastSmokeTs == null || ts > lastSmokeTs) lastSmokeTs = ts; };
+  const counts = (ts: number) => now - ts < 7 * DAY && ts >= graceEnd;
 
   for (const c of state.checkIns ?? []) {
     if (!c.smoked) continue;
     // c.date is a localDateKey; keep it if within the last 7 days.
     const d = new Date(c.date + 'T00:00:00');
-    if (!isNaN(d.getTime()) && now - d.getTime() < 7 * DAY) { days.add(c.date); note(d.getTime()); }
+    if (!isNaN(d.getTime()) && counts(d.getTime())) { days.add(c.date); note(d.getTime()); }
   }
   for (const ts of state.slips ?? []) {
-    if (now - ts < 7 * DAY) { days.add(localDateKey(new Date(ts))); note(ts); }
+    if (counts(ts)) { days.add(localDateKey(new Date(ts))); note(ts); }
   }
   for (const cr of state.cravings ?? []) {
-    if (cr.outcome === 'smoked' && now - cr.ts < 7 * DAY) { days.add(localDateKey(new Date(cr.ts))); note(cr.ts); }
+    if (cr.outcome === 'smoked' && counts(cr.ts)) { days.add(localDateKey(new Date(cr.ts))); note(cr.ts); }
   }
 
   const smokeDays7 = days.size;
