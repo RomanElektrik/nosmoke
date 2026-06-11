@@ -10,8 +10,8 @@ import { currentLang } from '../../lib/i18n';
 import { useAppState } from '../../lib/storage';
 import { secondsClean } from '../../lib/health';
 import { programToday, methodFocus } from '../../lib/program';
-import { getTrack } from '../../lib/tracks';
-import { getStep } from '../../lib/stepped';
+import { getTrack, trackDay } from '../../lib/tracks';
+import { getStep, methodQuitDay } from '../../lib/stepped';
 import { Icon } from '../../components/Icon';
 
 export default function PathTab() {
@@ -74,19 +74,15 @@ export default function PathTab() {
                 ? (lang === 'ru' ? today.data.focusRu : today.data.focusEn)
                 : (focus ? (lang === 'ru' ? focus.lineRu : focus.lineEn) : (lang === 'ru' ? step.titleRu : step.titleEn))}
             </Text>
-            {/* dot track */}
-            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-              {track.days.map((d) => {
-                const done = today.day > d.day;
-                const isNow = today.day === d.day;
-                return (
-                  <View key={d.day} style={{
-                    width: isNow ? 15 : 11, height: isNow ? 15 : 11, borderRadius: 999,
-                    backgroundColor: done || isNow ? t.accent : t.border,
-                    ...(isNow ? { borderWidth: 4, borderColor: t.accentSoft } : {}),
-                  }} />
-                );
-              })}
+            {/* progress bar — with all course days shown below, dots got crowded */}
+            <View style={{ marginTop: 6, gap: 6 }}>
+              <View style={{ height: 8, borderRadius: 999, backgroundColor: t.border, overflow: 'hidden' }}>
+                <LinearGradient colors={[t.accent, t.accent + 'AA']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={{ width: `${Math.min(100, (today.day / total) * 100)}%`, height: '100%', borderRadius: 999 }} />
+              </View>
+              <Text style={{ color: t.textDim, fontSize: 12 }}>
+                {lang === 'ru' ? `Пройдено ${Math.min(today.day, total)} из ${total} дней` : `${Math.min(today.day, total)} of ${total} days done`}
+              </Text>
             </View>
           </Pressable>
         )}
@@ -100,41 +96,79 @@ export default function PathTab() {
         </Text>
 
         <View style={{ gap: 8 }}>
-          {track.days.map((d) => {
-            const past = today.day > d.day;
-            const isToday = today.day === d.day;
-            const future = today.day < d.day;
-            const peak = d.day === 3;
+          {Array.from({ length: total }, (_, i) => i + 1).map((dayN) => {
+            // EVERY day of the course is shown: authored days get full cards,
+            // in-between days get compact rows (trackDay falls back to a
+            // synthetic focus for them).
+            const authored = track.days.find((x) => x.day === dayN);
+            const d = authored ?? (stepId ? trackDay(stepId, dayN) : null);
+            if (!d) return null;
+            const past = today.day > dayN;
+            const isToday = today.day === dayN;
+            const future = today.day < dayN;
+            const peak = dayN === 3 && stepId === 'L1_behavioral';
+            const quitDay = stepId ? methodQuitDay(stepId) : 1;
+            const isQuitDay = quitDay > 1 && dayN === quitDay;
             const accentColor = peak ? t.danger : (isToday ? t.accent : (past ? t.accent : t.textDim));
+
+            // Compact row for filler days — keeps a 25/84-day list scannable.
+            if (!authored && !isToday && !isQuitDay) {
+              return (
+                <Pressable key={dayN} disabled={future} onPress={() => { Haptics.selectionAsync(); router.push(`/day/${dayN}` as any); }}>
+                  <View style={{
+                    flexDirection: 'row', gap: 12, alignItems: 'center',
+                    paddingVertical: 9, paddingHorizontal: 14, borderRadius: radius.md,
+                    backgroundColor: 'transparent', opacity: future ? 0.4 : 1,
+                  }}>
+                    <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: past ? t.accentSoft : t.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {past
+                        ? <Icon.check size={14} color={t.accent} />
+                        : <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '700' }}>{dayN}</Text>}
+                    </View>
+                    <Text style={{ color: future ? t.textDim : t.text, fontSize: 13.5, flex: 1 }} numberOfLines={1}>
+                      {lang === 'ru' ? d.focusRu : d.focusEn}
+                    </Text>
+                    {!future && <Text style={{ color: t.textDim, fontSize: 16 }}>›</Text>}
+                  </View>
+                </Pressable>
+              );
+            }
+
+            const ringColor = isQuitDay ? (step?.color ?? t.accent) : t.accent;
             return (
-              <Pressable key={d.day} disabled={future} onPress={() => {
+              <Pressable key={dayN} disabled={future} onPress={() => {
                 Haptics.selectionAsync();
-                router.push(`/day/${d.day}` as any);
+                router.push(`/day/${dayN}` as any);
               }}>
                 <View style={{
                   flexDirection: 'row', gap: 12, alignItems: 'center',
                   padding: isToday ? 16 : 14, borderRadius: radius.lg,
-                  backgroundColor: isToday ? t.accent + '16' : t.card,
-                  borderWidth: isToday ? 1.5 : 1,
-                  borderColor: isToday ? t.accent : t.border,
-                  opacity: future ? 0.5 : 1,
+                  backgroundColor: isToday ? t.accent + '16' : (isQuitDay ? ringColor + '12' : t.card),
+                  borderWidth: isToday || isQuitDay ? 1.5 : 1,
+                  borderColor: isToday ? t.accent : (isQuitDay ? ringColor + '88' : t.border),
+                  opacity: future ? 0.55 : 1,
                   ...(isToday ? { shadowColor: t.accent, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6 } : {}),
                 }}>
                   <View style={{
                     width: isToday ? 52 : 46, height: isToday ? 52 : 46, borderRadius: isToday ? 16 : 14,
-                    backgroundColor: isToday ? t.accent : (past ? t.accentSoft : t.border),
+                    backgroundColor: isToday ? t.accent : (isQuitDay ? ringColor : (past ? t.accentSoft : t.border)),
                     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
-                    {past
+                    {past && !isQuitDay
                       ? <Icon.check size={20} color={t.accent} />
-                      : <Text style={{ color: isToday ? '#fff' : accentColor, fontSize: isToday ? 20 : 17, fontWeight: '800' }}>{d.day}</Text>}
+                      : <Text style={{ color: isToday || isQuitDay ? '#fff' : accentColor, fontSize: isToday ? 20 : 17, fontWeight: '800' }}>{dayN}</Text>}
                   </View>
                   <View style={{ flex: 1, gap: 3 }}>
                     {isToday && (
                       <Text style={{ color: t.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>{lang === 'ru' ? 'Сегодня' : 'Today'}</Text>
                     )}
+                    {isQuitDay && (
+                      <Text style={{ color: ringColor, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
+                        {lang === 'ru' ? 'День отказа' : 'Quit day'}
+                      </Text>
+                    )}
                     <Text style={{ color: future ? t.textDim : t.text, fontSize: isToday ? 16 : 15, fontWeight: '700', lineHeight: 21 }} numberOfLines={2}>
-                      {lang === 'ru' ? `День ${d.day} — ${d.focusRu}` : `Day ${d.day} — ${d.focusEn}`}
+                      {lang === 'ru' ? `День ${dayN} — ${d.focusRu}` : `Day ${dayN} — ${d.focusEn}`}
                     </Text>
                     {isToday && (
                       <Text style={{ color: t.accent, fontSize: 13, fontWeight: '700', marginTop: 2 }}>{lang === 'ru' ? 'Что тебя ждёт сегодня →' : 'What today holds →'}</Text>

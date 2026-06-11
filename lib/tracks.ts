@@ -502,22 +502,53 @@ export function getTrack(stepId: StepLevel | undefined): Track {
   return TRACKS[stepId ?? 'L1_behavioral'];
 }
 
+// Rotating copy for days without authored content — one static «hold the
+// course» repeated 60× reads as laziness; four variants keep the list alive.
+const FILLERS = [
+  {
+    focusRu: 'Закрепляем привычку', focusEn: 'Locking the habit in',
+    scienceRu: 'Каждый день без сигареты ослабляет старые нейронные связи и укрепляет новые. Это буквально перестройка мозга.',
+    scienceEn: 'Every smoke-free day weakens the old wiring and strengthens the new. This is literal brain remodelling.',
+    taskRu: 'Один осознанный перерыв вместо перекура — выйди, подыши, вернись.',
+    taskEn: 'One mindful break instead of a smoke break — step out, breathe, come back.',
+  },
+  {
+    focusRu: 'Тело продолжает восстанавливаться', focusEn: 'The body keeps healing',
+    scienceRu: 'Восстановление идёт даже в «тихие» дни: лёгкие очищаются, сосуды расслабляются, сон выравнивается.',
+    scienceEn: 'Healing continues even on quiet days: lungs clear, vessels relax, sleep stabilises.',
+    taskRu: 'Загляни в «Здоровье» — посмотри, какая веха ближайшая.',
+    taskEn: 'Open Health — see which milestone is next.',
+  },
+  {
+    focusRu: 'Обычный день — это победа', focusEn: 'An ordinary day is a win',
+    scienceRu: 'Большинство срывов случается в «обычные» дни, когда кажется, что можно расслабиться. Лёгкая бдительность — твой друг.',
+    scienceEn: 'Most slips happen on “ordinary” days when it feels safe to relax. Light vigilance is your friend.',
+    taskRu: 'Вспомни свой главный триггер и реши заранее, что сделаешь вместо сигареты.',
+    taskEn: 'Recall your top trigger and decide in advance what you’ll do instead.',
+  },
+  {
+    focusRu: 'Посмотри, сколько уже за спиной', focusEn: 'Look how far you’ve come',
+    scienceRu: 'Чувство прогресса — одно из самых сильных подкреплений. Деньги в копилке и чистые дни — твои факты, не мнения.',
+    scienceEn: 'A sense of progress is one of the strongest reinforcers. Saved money and clean days are facts, not opinions.',
+    taskRu: 'Открой копилку и прикинь, на что уже хватает.',
+    taskEn: 'Open the jar and see what it already buys.',
+  },
+];
+
 // Find day content for the user's current day on this method.
 export function trackDay(stepId: StepLevel | undefined, day: number): TrackDay {
   const tr = getTrack(stepId);
   const exact = tr.days.find((d) => d.day === day);
   if (exact) return exact;
-  // Fallback: closest preceding day
+  // Synthetic filler with rotating copy; the medication line is carried over
+  // from the closest preceding authored day (the dose schedule still applies).
   const prev = [...tr.days].reverse().find((d) => d.day < day);
-  if (prev) return prev;
-  // Generic synth
+  const f = FILLERS[day % FILLERS.length];
   return {
     day,
-    focusRu: 'Удерживай курс.',
-    focusEn: 'Hold the course.',
-    scienceRu: 'Каждый день закрепляет новое поведение.',
-    scienceEn: 'Every day wires the new behaviour deeper.',
-    taskRu: 'Сделай чек-ин дня.',
-    taskEn: 'Do today’s check-in.',
+    focusRu: f.focusRu, focusEn: f.focusEn,
+    scienceRu: f.scienceRu, scienceEn: f.scienceEn,
+    taskRu: f.taskRu, taskEn: f.taskEn,
+    medRu: prev?.medRu, medEn: prev?.medEn,
   };
 }

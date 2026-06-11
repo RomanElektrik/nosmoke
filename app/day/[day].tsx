@@ -6,11 +6,13 @@ import { ScrollView, View, Text, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { useTheme, spacing, radius, type Theme } from '../../lib/theme';
 import { currentLang } from '../../lib/i18n';
 import { useAppState } from '../../lib/storage';
 import { trackDay, getTrack } from '../../lib/tracks';
-import { getStep } from '../../lib/stepped';
+import { getStep, methodQuitDay } from '../../lib/stepped';
 import { programToday } from '../../lib/program';
 import { Icon, type IconKey } from '../../components/Icon';
 
@@ -32,6 +34,8 @@ export default function DayDetail() {
   const isToday = day === todayN;
   const isPast = day < todayN;
   const peak = day === 3;
+  const quitDayN = methodQuitDay(stepId);
+  const isQuitDay = quitDayN > 1 && day === quitDayN;
 
   const focus = ru ? d.focusRu : d.focusEn;
   const science = ru ? d.scienceRu : d.scienceEn;
@@ -74,20 +78,50 @@ export default function DayDetail() {
           </Text>
         </View>
 
-        {/* Hero */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 2 }}>
-          <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: c + '24', alignItems: 'center', justifyContent: 'center' }}>
-            {isPast ? <Icon.check size={30} color={c} /> : <Text style={{ color: c, fontSize: 26, fontWeight: '800' }}>{day}</Text>}
-          </View>
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text style={{ color: t.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.5 }}>{ru ? `День ${day}` : `Day ${day}`}</Text>
-            <Text style={{ color: t.textDim, fontSize: 14, lineHeight: 19 }}>{focus}</Text>
-          </View>
-          {isToday && (
-            <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: c + '24' }}>
-              <Text style={{ color: c, fontSize: 11, fontWeight: '800' }}>{ru ? 'СЕГОДНЯ' : 'TODAY'}</Text>
+        {/* Hero — premium dark card with the step-colour orb (same language as
+            the audio/technique cards) */}
+        <View style={{ borderRadius: 26, overflow: 'hidden', marginTop: 2 }}>
+          <LinearGradient colors={[c + '30', '#12161D', '#0F131A']} locations={[0, 0.6, 1]}
+            start={{ x: 0.1, y: 0 }} end={{ x: 1, y: 1 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+          <Svg style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+            <Defs>
+              <RadialGradient id="day_orb" cx="80%" cy="18%" r="58%">
+                <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.35} />
+                <Stop offset="34%" stopColor={c} stopOpacity={1} />
+                <Stop offset="100%" stopColor={c} stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Circle cx="82%" cy="16%" r="42%" fill="url(#day_orb)" />
+          </Svg>
+          <View style={{ padding: 20, gap: 10 }}>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: '#00000055' }}>
+                <Text style={{ color: '#FFFFFFCC', fontSize: 10.5, fontWeight: '800', letterSpacing: 1 }}>
+                  {isToday ? (ru ? 'СЕГОДНЯ' : 'TODAY') : isPast ? (ru ? 'ПРОЙДЕН' : 'DONE') : (ru ? 'ВПЕРЕДИ' : 'AHEAD')}
+                </Text>
+              </View>
+              {isQuitDay && (
+                <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: '#FFFFFF22', borderWidth: 1, borderColor: '#FFFFFF44' }}>
+                  <Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '800', letterSpacing: 1 }}>
+                    {ru ? 'ДЕНЬ ОТКАЗА' : 'QUIT DAY'}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
+            <Text style={{ color: '#F2F6FA', fontSize: 32, fontWeight: '800', letterSpacing: -0.8 }}>
+              {ru ? `День ${day}` : `Day ${day}`}
+            </Text>
+            <Text style={{ color: '#C7D0DA', fontSize: 15, lineHeight: 21 }} numberOfLines={2}>{focus}</Text>
+            <View style={{ marginTop: 4, gap: 5 }}>
+              <View style={{ height: 6, borderRadius: 999, backgroundColor: '#FFFFFF1E', overflow: 'hidden' }}>
+                <View style={{ width: `${Math.min(100, (day / track.totalDays) * 100)}%`, height: '100%', borderRadius: 999, backgroundColor: '#fff' }} />
+              </View>
+              <Text style={{ color: '#9AA5B1', fontSize: 12 }}>
+                {ru ? `День ${day} из ${track.totalDays}` : `Day ${day} of ${track.totalDays}`}
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Reassurance */}
