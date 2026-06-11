@@ -37,7 +37,15 @@ function html(auraColor: string, bgColor1: string, bgColor2: string): string {
       col:col
     });
   }
+  // Pause the rAF loop while the page is hidden (app backgrounded) — the blur
+  // recompute every frame is the single biggest battery cost of this screen.
+  var running=true;
+  document.addEventListener('visibilitychange',function(){
+    var was=running;running=!document.hidden;
+    if(running&&!was)requestAnimationFrame(frame);
+  });
   function frame(){
+    if(!running)return;
     x.clearRect(0,0,W,H);
     x.globalCompositeOperation='screen';
     for(var i=0;i<N;i++){
@@ -57,9 +65,17 @@ function html(auraColor: string, bgColor1: string, bgColor2: string): string {
 </script></body></html>`;
 }
 
+// Colours are interpolated straight into the <script> — accept only literal
+// hex so a non-colour string can never become script inside the WebView.
+const HEX = /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
+const safe = (c: string, fallback: string) => (HEX.test(c) ? c : fallback);
+
 export const AnimatedAuraBackground = memo(function AnimatedAuraBackground({
   auraColor, bgColor1, bgColor2,
 }: { auraColor: string; bgColor1: string; bgColor2: string }) {
+  auraColor = safe(auraColor, '#4FC3F7');
+  bgColor1 = safe(bgColor1, '#0B2735');
+  bgColor2 = safe(bgColor2, '#06080c');
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <WebView

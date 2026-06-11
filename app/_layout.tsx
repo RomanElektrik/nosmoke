@@ -7,6 +7,7 @@ import { loadState, update, useAppState } from '../lib/storage';
 import { useTheme } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
 import { computeInsights } from '../lib/insights';
+import * as Notifications from 'expo-notifications';
 import { scheduleCravingNudge } from '../lib/notifications';
 import { currentLang } from '../lib/i18n';
 import '../lib/i18n';
@@ -43,6 +44,18 @@ export default function Root() {
       } catch {}
       setReady(true);
     });
+  }, []);
+
+  // Tapping a push routes to the tool it promised (SOS, chat, health) instead
+  // of dropping the user on Home. The url rides in the notification payload.
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
+      const url = resp.notification.request.content.data?.url;
+      if (typeof url === 'string' && url.startsWith('/')) {
+        setTimeout(() => router.push(url as any), 300);
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   const hasProfile = !!state.profile?.onboardingComplete;

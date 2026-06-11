@@ -44,10 +44,12 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
   const at = (dayOffset: number, hour: number, minute = 0) =>
     quitDateMs + dayOffset * 86400_000 + hour * 3600_000 + minute * 60_000;
 
-  const schedule = async (date: number, title: string, body: string) => {
+  // `url` rides in the payload — the response listener in app/_layout.tsx
+  // routes there, so a push lands the user in the right tool, not on Home.
+  const schedule = async (date: number, title: string, body: string, url?: string) => {
     if (date <= now) return;
     await Notifications.scheduleNotificationAsync({
-      content: { title, body },
+      content: { title, body, data: url ? { url } : undefined },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(date) },
     });
   };
@@ -65,6 +67,7 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
     await schedule(slot,
       t('Тяга — это волна. 4 минуты — и пройдёт.', 'A craving is a wave. 4 minutes — and it passes.'),
       t('Открой SOS — 60 секунд дыхания. Просто попробуй.', 'Tap SOS — 60s breathing. Just try.'),
+      '/craving',
     );
   }
 
@@ -90,11 +93,14 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
     t('Ты прошёл самое сложное. Завтра легче.', 'You made it through the hardest. Tomorrow is easier.'),
   );
 
-  // ---------- DAYS 2–7 — evening reflection --------------
+  // ---------- DAYS 2–7 — proactive evening check-in --------------
+  // Days 3–7 are the retention cliff: the push opens a ready conversation with
+  // the coach instead of dropping the user on a blank journal.
   for (let d = 1; d <= 6; d++) {
     await schedule(at(d, 21),
-      t(`День ${d + 1} · итог`, `Day ${d + 1} · review`),
-      t('Открой дневник тяги — какие триггеры сработали?', 'Open the journal — which triggers fired?'),
+      t(`День ${d + 1} · как ты?`, `Day ${d + 1} · how are you?`),
+      t('Бриз рядом. Расскажи, как прошёл день — одно сообщение.', 'Breeze is here. Tell me about your day — one message.'),
+      '/chat?mode=support',
     );
   }
 
@@ -115,6 +121,7 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
     await schedule(quitDateMs + m.at * 1000,
       t('Веха достигнута', 'Milestone reached'),
       t('В разделе «Здоровье» — новое восстановление.', 'In Health — a new recovery just unlocked.'),
+      '/(tabs)/health',
     );
   }
 
