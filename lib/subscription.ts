@@ -14,6 +14,9 @@ export const FREE_TECHNIQUE_IDS = new Set([
 
 export const FREE_ARTICLE_COUNT = 5;
 
+/** First N audio practices (by PRACTICES order) are free; the rest are premium. */
+export const FREE_PRACTICE_COUNT = 3;
+
 /** Only cold-turkey is free; tapering & pharmacotherapy steps are premium. */
 export function isStepPremium(stepId: string | undefined): boolean {
   if (!stepId) return false;

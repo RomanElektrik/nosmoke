@@ -8,11 +8,14 @@ import { useTheme, spacing, radius } from '../lib/theme';
 import { useAppState } from '../lib/storage';
 import { Icon } from '../components/Icon';
 import { computeInsights, triggerName, worstDayLocalized } from '../lib/insights';
+import { usePremium } from '../lib/subscription';
+import * as Haptics from 'expo-haptics';
 
 export default function Insights() {
   const t = useTheme();
   const router = useRouter();
   const [state] = useAppState();
+  const premium = usePremium();
   const ru = (state.profile?.language ?? 'ru') === 'ru';
   const ins = computeInsights(state.cravings);
   const worstDay = worstDayLocalized(state.cravings, ru);
@@ -65,6 +68,31 @@ export default function Insights() {
                 sub={ru ? 'Чаще всего тянет в эти часы — будь готов' : 'You crave most in these hours — be ready'} />
             )}
 
+            {/* Deep analytics is a promised premium feature — soft gate: free
+                users keep the hero stat + peak time, the rest sits behind a
+                paywall card (not a hard redirect). */}
+            {!premium ? (
+              <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/paywall' as any); }}
+                style={({ pressed }) => ({ padding: 18, borderRadius: radius.lg, backgroundColor: '#FFD60A12', borderWidth: 1, borderColor: '#FFD60A44', gap: 8, opacity: pressed ? 0.9 : 1 })}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Icon.star size={16} color="#FFD60A" />
+                  <Text style={{ color: '#FFD60A', fontSize: 12, fontWeight: '800', letterSpacing: 1 }}>
+                    {ru ? 'ПРЕМИУМ' : 'PREMIUM'}
+                  </Text>
+                </View>
+                <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
+                  {ru ? 'Полная аналитика паттернов' : 'Full pattern analytics'}
+                </Text>
+                <Text style={{ color: t.textDim, fontSize: 13.5, lineHeight: 19 }}>
+                  {ru ? 'Сложный день недели, твои триггеры, тренд силы тяги и почасовая карта — в Премиуме.'
+                      : 'Hardest weekday, your triggers, intensity trend and the hourly map — in Premium.'}
+                </Text>
+                <Text style={{ color: '#FFD60A', fontSize: 14, fontWeight: '800' }}>
+                  {ru ? 'Открыть →' : 'Unlock →'}
+                </Text>
+              </Pressable>
+            ) : (
+            <>
             {/* Worst day */}
             {worstDay && (
               <Row t={t} icon={Icon.cal7} color="#FF2D78"
@@ -113,6 +141,8 @@ export default function Insights() {
                 <Text style={{ color: t.textDim, fontSize: 10 }}>23</Text>
               </View>
             </View>
+            </>
+            )}
           </>
         )}
       </ScrollView>

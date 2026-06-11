@@ -9,7 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, currentLang } from '../../lib/i18n';
 import { TECHNIQUES, Technique } from '../../lib/techniques';
-import { isTechniquePremium, usePremium } from '../../lib/subscription';
+import { isTechniquePremium, usePremium, FREE_PRACTICE_COUNT } from '../../lib/subscription';
 import { Icon, IconKey } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
 import { PremiumCard } from '../../components/PremiumCard';
@@ -85,6 +85,13 @@ export default function Techniques() {
     navLock.current = true;
     setTimeout(() => { navLock.current = false; }, 700);
     Haptics.selectionAsync();
+    // First FREE_PRACTICE_COUNT practices are free, the rest are premium —
+    // these recordings are the most expensive content to produce.
+    const idx = PRACTICES.findIndex((p) => p.id === pid);
+    if (!premium && idx >= FREE_PRACTICE_COUNT) {
+      router.push('/paywall' as any);
+      return;
+    }
     router.push(`/audio/${pid}` as any);
   }
 
@@ -137,8 +144,9 @@ export default function Techniques() {
         </View>
 
         <Animated.View key={tab} entering={FadeInDown.duration(280)} style={{ paddingHorizontal: spacing.lg, gap: 12 }}>
-          {tab === 'audio' && audioItems.map((p) => (
-            <AudioCard key={p.id} p={p} openAudio={openAudio} lang={lang} />
+          {tab === 'audio' && audioItems.map((p, i) => (
+            <AudioCard key={p.id} p={p} openAudio={openAudio} lang={lang}
+              locked={!premium && i >= FREE_PRACTICE_COUNT} />
           ))}
 
           {tab === 'breath' && breathTech.map((te) => (
@@ -171,8 +179,8 @@ export default function Techniques() {
 
 // Full-width voiced-session card — gradient per practice colour, name + short
 // description, play affordance. No "voice" badge (it's obviously audio here).
-function AudioCard({ p, openAudio, lang }: {
-  p: (typeof PRACTICES)[number]; openAudio: (id: string) => void; lang: 'ru' | 'en';
+function AudioCard({ p, openAudio, lang, locked }: {
+  p: (typeof PRACTICES)[number]; openAudio: (id: string) => void; lang: 'ru' | 'en'; locked?: boolean;
 }) {
   const tag = AUDIO_TAGS[p.id];
   const oid = `orb_${p.id}`;
@@ -195,11 +203,18 @@ function AudioCard({ p, openAudio, lang }: {
       </Svg>
       {/* text bottom-left */}
       <View style={{ position: 'absolute', left: 20, right: 20, bottom: 18, gap: 8 }}>
-        {tag && (
-          <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: '#00000055' }}>
-            <Text style={{ color: '#FFFFFFCC', fontSize: 10.5, fontWeight: '800', letterSpacing: 1 }}>{lang === 'ru' ? tag.ru : tag.en}</Text>
-          </View>
-        )}
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {tag && (
+            <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: '#00000055' }}>
+              <Text style={{ color: '#FFFFFFCC', fontSize: 10.5, fontWeight: '800', letterSpacing: 1 }}>{lang === 'ru' ? tag.ru : tag.en}</Text>
+            </View>
+          )}
+          {locked && (
+            <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: '#FFD60A22', borderWidth: 1, borderColor: '#FFD60A55', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ color: '#FFD60A', fontSize: 10.5, fontWeight: '800', letterSpacing: 1 }}>PRO</Text>
+            </View>
+          )}
+        </View>
         <Text style={{ color: '#F2F6FA', fontSize: 25, fontWeight: '800', letterSpacing: -0.6, lineHeight: 29 }} numberOfLines={2}>{lang === 'ru' ? p.titleRu : p.titleEn}</Text>
         <Text style={{ color: '#9AA5B1', fontSize: 14, lineHeight: 18 }} numberOfLines={1}>{lang === 'ru' ? p.subRu : p.subEn}</Text>
       </View>

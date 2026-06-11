@@ -35,23 +35,23 @@ const PLANS: Plan[] = [
     badge: { ru: 'Один раз', en: 'One-time' } },
 ];
 
+// Every line here must be ACTUALLY gated in code — promising features that are
+// free (or don't exist) is an App Store 2.3.1 reject and a refund magnet.
 const FEATURES_RU = [
-  { i: 'spark' as const, t: 'Безлимит ИИ-помощника' },
-  { i: 'toolbox' as const, t: 'Все техники и практики' },
-  { i: 'leaf' as const, t: 'Все программы: НЗТ, цитизин, варениклин' },
+  { i: 'spark' as const, t: 'Безлимит разговоров с Бризом' },
+  { i: 'headphones' as const, t: 'Все аудиопрактики' },
+  { i: 'toolbox' as const, t: 'Все техники' },
   { i: 'feather' as const, t: 'Все статьи и материалы' },
-  { i: 'pulse' as const, t: 'Расширенная аналитика и графики' },
-  { i: 'shield' as const, t: 'Депозит-контракт для мотивации' },
-  { i: 'star' as const, t: 'Премиум-темы и иконки' },
+  { i: 'pulse' as const, t: 'Аналитика паттернов тяги' },
+  { i: 'leaf' as const, t: 'Персональное сопровождение курса' },
 ];
 const FEATURES_EN = [
-  { i: 'spark' as const, t: 'Unlimited AI assistant' },
-  { i: 'toolbox' as const, t: 'All techniques and practices' },
-  { i: 'leaf' as const, t: 'All programs: NRT, cytisine, varenicline' },
+  { i: 'spark' as const, t: 'Unlimited Breeze conversations' },
+  { i: 'headphones' as const, t: 'All audio practices' },
+  { i: 'toolbox' as const, t: 'All techniques' },
   { i: 'feather' as const, t: 'All articles and content' },
-  { i: 'pulse' as const, t: 'Extended analytics and charts' },
-  { i: 'shield' as const, t: 'Commitment contract for motivation' },
-  { i: 'star' as const, t: 'Premium themes and icons' },
+  { i: 'pulse' as const, t: 'Craving pattern analytics' },
+  { i: 'leaf' as const, t: 'Personal course companion' },
 ];
 
 export default function Paywall() {
