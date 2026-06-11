@@ -150,13 +150,56 @@ export type AppState = {
   reframes: ReframeEntry[];
   checkIns: DailyCheckIn[];
   chatHistory?: { role: 'user' | 'assistant'; content: string; ts: number }[]; // legacy
-  chatHistories?: Partial<Record<'support' | 'analyze_slip' | 'daily_task', { role: 'user' | 'assistant'; content: string; ts: number }[]>>;
+  chatHistories?: Partial<Record<'support' | 'analyze_slip' | 'daily_task', { role: 'user' | 'assistant'; content: string; ts: number }[]>>; // legacy → migrated into `chats`
+  chats?: ChatThread[];      // messenger-style threads, see migrateChats()
   doseLogs?: { date: string; doseNumber: number; takenAt: number }[];
   achievements?: Record<string, number>;       // achievement id → unlocked-at ms
   aiUsage?: { date: string; count: number };   // free-tier AI counter — resets daily
   symptoms?: SymptomLog[];                     // weekly body-recovery survey
   identityLog?: string[];                      // localDateKey[] of identity affirmations — never punishes
 };
+
+// Messenger-style chat threads. Each thread has a persona (coach character)
+// and keeps its own history; `mode` survives for legacy deep-links.
+export type PersonaId = 'breeze' | 'pragmatic' | 'cbt' | 'drill';
+export type ChatThread = {
+  id: string;
+  persona: PersonaId;
+  mode: 'support' | 'analyze_slip' | 'daily_task';
+  title?: string;            // auto: first ~40 chars of the first user message
+  createdAt: number;
+  updatedAt: number;
+  messages: { role: 'user' | 'assistant'; content: string; ts: number }[];
+};
+
+export const MAX_CHAT_THREADS = 20;
+export const MAX_THREAD_MESSAGES = 60;
+
+export function newThreadId(): string {
+  return `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// One-time: old per-mode chatHistories become legacy threads. The old field is
+// kept (not written to anymore) so a rollback build still finds its data.
+function migrateChats(s: AppState): AppState {
+  if (s.chats || !s.chatHistories) return s.chats ? s : { ...s, chats: [] };
+  const chats: ChatThread[] = [];
+  for (const mode of ['support', 'analyze_slip', 'daily_task'] as const) {
+    const msgs = s.chatHistories[mode];
+    if (!msgs?.length) continue;
+    const last = msgs[msgs.length - 1].ts || Date.now();
+    chats.push({
+      id: `legacy_${mode}`,
+      persona: 'breeze',
+      mode,
+      title: msgs.find((m) => m.role === 'user')?.content.slice(0, 40),
+      createdAt: msgs[0].ts || last,
+      updatedAt: last,
+      messages: msgs,
+    });
+  }
+  return { ...s, chats };
+}
 
 // 6-axis weekly body recovery survey — visible proof that quitting works.
 export type SymptomLog = {
@@ -193,7 +236,7 @@ export async function loadState(): Promise<AppState> {
   // race here on cold start — they must all share one AsyncStorage read.
   if (!loading) {
     loading = AsyncStorage.getItem(KEY)
-      .then((raw) => (cache = raw ? { ...initial, ...JSON.parse(raw) } : initial))
+      .then((raw) => (cache = migrateChats(raw ? { ...initial, ...JSON.parse(raw) } : initial)))
       .catch(() => (cache = initial));
   }
   return loading;

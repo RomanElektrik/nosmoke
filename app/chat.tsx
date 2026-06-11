@@ -8,8 +8,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
-import { useAppState, update } from '../lib/storage';
+import { useAppState, update, newThreadId, MAX_CHAT_THREADS, MAX_THREAD_MESSAGES, type ChatThread, type PersonaId } from '../lib/storage';
 import { chat, chatStream, ChatMessage, CoachMode } from '../lib/ai';
+import { getPersona } from '../lib/personas';
 import { Icon, type IconKey } from '../components/Icon';
 import { FREE_AI_DAILY_LIMIT, aiRemainingToday, todayKey, usePremium } from '../lib/subscription';
 import { extractLinks, stripLinks } from '../lib/aiLinks';
@@ -25,11 +26,19 @@ export default function ChatScreen() {
   const router = useRouter();
   const { t: tr } = useTranslation();
   const lang = currentLang();
-  const params = useLocalSearchParams<{ mode?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; threadId?: string; persona?: string }>();
   const mode = (params.mode as CoachMode) || 'support';
-  const meta = MODE_META[mode];
 
   const [state] = useAppState();
+  // Resolve the thread: explicit threadId wins; a bare mode deep-link (SOS,
+  // pushes) reuses the freshest thread with that mode or creates one.
+  const [threadId, setThreadId] = useState<string | null>(params.threadId ?? null);
+  const thread: ChatThread | undefined = (state.chats ?? []).find((c) => c.id === threadId);
+  const persona = getPersona(thread?.persona ?? (params.persona as PersonaId | undefined));
+  const meta = mode !== 'support'
+    ? MODE_META[mode]
+    : { icon: persona.icon, color: persona.color, ru: persona.nameRu, en: persona.nameEn };
+
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,13 +46,35 @@ export default function ChatScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    const persisted = state.chatHistories?.[mode] ?? [];
-    if (persisted.length > 0) {
-      setHistory(persisted.map((m) => ({ role: m.role, content: m.content })));
+    if (params.threadId) {
+      const found = (state.chats ?? []).find((c) => c.id === params.threadId);
+      setThreadId(params.threadId);
+      setHistory(found?.messages.length
+        ? found.messages.map((m) => ({ role: m.role, content: m.content }))
+        : [{ role: 'assistant', content: tr('coach.first_msg') }]);
+      return;
+    }
+    // mode deep-link: reuse the freshest thread with this mode, else create one
+    const existing = [...(state.chats ?? [])]
+      .filter((c) => c.mode === mode)
+      .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    if (existing) {
+      setThreadId(existing.id);
+      setHistory(existing.messages.length
+        ? existing.messages.map((m) => ({ role: m.role, content: m.content }))
+        : [{ role: 'assistant', content: tr('coach.first_msg') }]);
     } else {
+      const id = newThreadId();
+      const now = Date.now();
+      const fresh: ChatThread = {
+        id, persona: (params.persona as PersonaId) || 'breeze', mode,
+        createdAt: now, updatedAt: now, messages: [],
+      };
+      update((s) => ({ ...s, chats: [fresh, ...(s.chats ?? [])].slice(0, MAX_CHAT_THREADS) }));
+      setThreadId(id);
       setHistory([{ role: 'assistant', content: tr('coach.first_msg') }]);
     }
-  }, [mode]);
+  }, [params.threadId, mode]);
 
   // Scroll to last message on mount and when history changes.
   useEffect(() => {
@@ -52,12 +83,17 @@ export default function ChatScreen() {
   }, [history.length]);
 
   async function persist(next: ChatMessage[]) {
+    const id = threadId;
+    if (!id) return;
     await update((s) => ({
       ...s,
-      chatHistories: {
-        ...(s.chatHistories ?? {}),
-        [mode]: next.slice(-30).map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content, ts: Date.now() })),
-      },
+      chats: (s.chats ?? []).map((c) => c.id !== id ? c : {
+        ...c,
+        updatedAt: Date.now(),
+        title: c.title ?? next.find((m) => m.role === 'user')?.content.slice(0, 40),
+        messages: next.slice(-MAX_THREAD_MESSAGES)
+          .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content, ts: Date.now() })),
+      }),
     }));
   }
 
@@ -83,9 +119,9 @@ export default function ChatScreen() {
       try {
         reply = await chatStream(state, lang, mode, next, (partial) => {
           if (partial) setHistory([...next, { role: 'assistant', content: partial }]);
-        });
+        }, persona.id);
       } catch {
-        reply = await chat(state, lang, mode, next);
+        reply = await chat(state, lang, mode, next, persona.id);
       }
       const final = [...next, { role: 'assistant' as const, content: reply || '…' }];
       setHistory(final);
@@ -112,8 +148,13 @@ export default function ChatScreen() {
   }
 
   async function clearChat() {
+    const id = threadId;
     setHistory([{ role: 'assistant', content: tr('coach.first_msg') }]);
-    await update((s) => ({ ...s, chatHistories: { ...(s.chatHistories ?? {}), [mode]: [] } }));
+    if (!id) return;
+    await update((s) => ({
+      ...s,
+      chats: (s.chats ?? []).map((c) => c.id !== id ? c : { ...c, messages: [], title: undefined, updatedAt: Date.now() }),
+    }));
   }
 
   return (

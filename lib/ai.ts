@@ -4,6 +4,8 @@ import { relapseStatus } from './relapse';
 import { cigsAvoided, moneySaved } from './money';
 import { cravingsSurvived, currentLevel, programToday } from './program';
 import { getStep, preQuitGraceEnd, methodQuitDay } from './stepped';
+import { getPersona } from './personas';
+import type { PersonaId } from './storage';
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 export type CoachMode = 'support' | 'analyze_slip' | 'daily_task';
@@ -20,7 +22,7 @@ const FALLBACK = 'openai/gpt-4o-mini';
 // model. A small, fast model keeps the back-and-forth snappy.
 const CALL_MODEL = process.env.EXPO_PUBLIC_CALL_MODEL || 'google/gemini-2.5-flash-lite';
 
-export function buildSystemPrompt(state: AppState, locale: 'ru' | 'en', mode: PromptMode): string {
+export function buildSystemPrompt(state: AppState, locale: 'ru' | 'en', mode: PromptMode, personaId?: PersonaId): string {
   const p = state.profile;
   const lang = locale === 'ru' ? 'Russian' : 'English';
   if (!p) return `You are an empathic, evidence-based smoking cessation coach. Reply in ${lang}.`;
@@ -98,13 +100,17 @@ EXCUSE COUNTERS (use ONLY if user voices that excuse, never preemptively):
 - "лучше позже" / "later" → «Позже не будет легче. Сейчас — это и есть позже из прошлого раза.»
 - "один не справлюсь" / "alone" → «Контракт + помощник + лекарства = команда.»
 
-TECHNIQUE PRIORITIES BY MOMENT:
-- Acute craving → cyclic sighing 5 min OR urge surfing 3–5 min.
-- Morning hot-zone → cyclic sighing before coffee + swap morning ritual.
-- Slip just happened → defuse AVE → identify trigger → ONE 48-hour step.
-- Day 1–3 (peak withdrawal) → reassurance + dose support, name day 3 as biological peak.
-- Day 4–14 → CBT reframing, if-then plans, behavioral substitution.
-- 2+ slips in a week → propose pharmacotherapy discussion with a clinician.`;
+CONVERSATION & TECHNIQUE RULES (critical):
+- DEFAULT BEHAVIOR IS LISTENING, not prescribing. Most turns: reflect what the user said, validate, ask at most one short question, or simply keep the conversation going. A technique is the exception, not the rule.
+- Offer a concrete technique AT MOST once every 3–4 turns, and ONLY when the user signals an acute urge right now or directly asks for help. Never open the conversation with a technique.
+- NEVER suggest the same technique twice in a row. Check your previous messages in this conversation: if you already suggested breathing / urge surfing / anything, pick something different or offer nothing.
+- Breathing exercises (cyclic sighing, box breathing) are ONLY appropriate when the user describes acute PHYSICAL agitation right now (racing heart, shaking, panic) AND you have not suggested breathing in this conversation. They are NOT a default answer to cravings, boredom, sadness, or routine check-ins.
+- When a technique IS warranted, vary the toolbox and match it to what the user actually described: urge surfing, HALT check, grounding 5-4-3-2-1, cognitive reframe, a 2-minute walk, cold water, texting a friend, journaling the trigger, the money jar, an if-then plan.
+- TIMING CONTEXT (background knowledge, not a script):
+  - Slip just happened → defuse AVE first, then identify the trigger, then ONE small 48-hour step.
+  - Day 1–3 → reassurance; name day 3 as the biological peak; no technique unless asked.
+  - Day 4–14 → reframing and habit substitution fit best.
+  - 2+ slips in a week → gently raise discussing pharmacotherapy with a clinician.`;
 
   const days = Math.floor(secs / 86400);
   const phase = days < 1 ? 'DAY 1 — acute, peak risk, every craving matters'
@@ -147,12 +153,13 @@ TECHNIQUE PRIORITIES BY MOMENT:
 - past attempts: ${(p.pastAttempts ?? []).map(a => `${a.method}/${a.longestDays}d`).join('; ') || 'none'}`;
 
   const modeBlock = mode === 'support'
-    ? 'Mode: SUPPORT. The user feels pulled to smoke. Offer one immediate technique tailored to archetype + one validating sentence.'
+    ? 'Mode: SUPPORT. The user opened a conversation — they may be craving, venting, or just wanting to talk. FIRST listen and reflect; understand what is actually going on before doing anything else. Do NOT offer a technique in your first reply unless the user describes an acute urge happening right now. Follow the CONVERSATION & TECHNIQUE RULES strictly.'
     : mode === 'analyze_slip'
       ? 'Mode: SLIP ANALYSIS. The user just slipped. No shame. Identify the trigger, propose ONE specific 48h adjustment.'
       : 'Mode: DAILY TASK. Give ONE concrete micro-task for today, ≤2 min, tailored to triggers and archetype.';
 
-  return [role, ctx, modeBlock].join('\n\n');
+  const personaBlock = getPersona(personaId).promptBlock;
+  return [role, personaBlock, ctx, modeBlock].join('\n\n');
 }
 
 async function callDirect(key: string, messages: ChatMessage[], model: string, maxTokens = 600): Promise<string> {
@@ -194,7 +201,7 @@ function parseSSE(raw: string): string {
 // caller can fall back to the non-streaming chat().
 export function chatStream(
   state: AppState, locale: 'ru' | 'en', mode: PromptMode, history: ChatMessage[],
-  onToken: (fullSoFar: string) => void,
+  onToken: (fullSoFar: string) => void, personaId?: PersonaId,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const userKey = state.profile?.openrouterKey?.trim();
@@ -204,7 +211,7 @@ export function chatStream(
     const isCall = mode === 'call';
     const model = isCall ? CALL_MODEL : (userModel || ENV_MODEL || DEFAULT_MODEL);
     const maxTokens = isCall ? 120 : 600;
-    const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(state, locale, mode) }, ...history];
+    const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(state, locale, mode, personaId) }, ...history];
     try {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', 'https://openrouter.ai/api/v1/chat/completions');
@@ -236,7 +243,7 @@ async function callProxy(messages: ChatMessage[], locale: string): Promise<strin
   return data.content ?? data.message ?? '';
 }
 
-export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMode, history: ChatMessage[]): Promise<string> {
+export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMode, history: ChatMessage[], personaId?: PersonaId): Promise<string> {
   const userKey = state.profile?.openrouterKey?.trim();
   const userModel = state.profile?.openrouterModel?.trim();
   const key = userKey || ENV_KEY;
@@ -252,7 +259,7 @@ export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMod
       : 'To enable the coach — open "Me" → "AI coach" and paste your OpenRouter key (get one free at openrouter.ai → Keys).';
   }
   const messages: ChatMessage[] = [
-    { role: 'system', content: buildSystemPrompt(state, locale, mode) },
+    { role: 'system', content: buildSystemPrompt(state, locale, mode, personaId) },
     ...history,
   ];
   if (key) {
