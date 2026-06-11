@@ -24,7 +24,7 @@ import type { Trigger } from '../lib/storage';
 import { nextDueDose, MED_SAFETY } from '../lib/medication';
 import { resolveCoping } from '../lib/coping';
 
-type Phase = 'choose' | 'wave' | 'breath' | 'log' | 'win';
+type Phase = 'choose' | 'wave' | 'breath' | 'log' | 'win' | 'after';
 type IconC = ComponentType<{ size?: number; color?: string }>;
 
 export default function Craving() {
@@ -77,7 +77,7 @@ export default function Craving() {
 
         {/* ───────────────────────── WAVE TIMER (HERO) ───────────────────────── */}
         {phase === 'wave' && (
-          <WaveTimer onDone={() => setPhase('win')} onBack={() => setPhase('choose')} ru={ru} t={t} />
+          <WaveTimer onDone={() => setPhase('after')} onBack={() => setPhase('choose')} ru={ru} t={t} />
         )}
 
         {/* ───────────────────────── BREATHE ───────────────────────── */}
@@ -240,6 +240,35 @@ export default function Craving() {
               <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>{tr('common.save')}</Text>
             </Pressable>
           </>
+        )}
+
+        {/* ─────────────────────── AFTER WAVE ───────────────────────
+            Don't assume success: ask, and keep the script going. "Still craving"
+            flows straight into the coach instead of dumping back to the menu. */}
+        {phase === 'after' && (
+          <View style={{ alignItems: 'center', paddingVertical: 40, gap: 16 }}>
+            <Text style={{ color: t.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.6, textAlign: 'center' }}>
+              {ru ? '3 минуты позади.' : '3 minutes done.'}
+            </Text>
+            <Text style={{ color: t.textDim, fontSize: 16, textAlign: 'center', lineHeight: 23 }}>
+              {ru ? 'Как сейчас — отпустило?' : 'How is it now — has it passed?'}
+            </Text>
+            <Pressable onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPhase('win'); }}
+              style={({ pressed }) => ({ marginTop: 10, paddingVertical: 18, paddingHorizontal: 44, borderRadius: radius.xl, backgroundColor: t.accent, opacity: pressed ? 0.9 : 1, alignSelf: 'stretch', alignItems: 'center' })}>
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>{ru ? 'Отпустило' : 'It passed'}</Text>
+            </Pressable>
+            <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support' as any); }}
+              style={({ pressed }) => ({ paddingVertical: 16, paddingHorizontal: 44, borderRadius: radius.xl, borderWidth: 1.5, borderColor: t.info + '66', backgroundColor: t.info + '14', opacity: pressed ? 0.85 : 1, alignSelf: 'stretch', alignItems: 'center' })}>
+              <Text style={{ color: t.info, fontWeight: '800', fontSize: 16 }}>
+                {ru ? 'Ещё держит — поговорить с Бризом' : 'Still holding — talk to Breeze'}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => setPhase('breath')} style={{ paddingVertical: 8 }}>
+              <Text style={{ color: t.textDim, fontSize: 14 }}>
+                {ru ? 'Ещё минуту подышать' : 'One more minute of breathing'}
+              </Text>
+            </Pressable>
+          </View>
         )}
 
         {/* ───────────────────────── WIN ───────────────────────── */}
