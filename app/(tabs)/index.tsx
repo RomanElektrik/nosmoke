@@ -20,6 +20,7 @@ import { relapseStatus } from '../../lib/relapse';
 import { scheduleQuitProgram } from '../../lib/notifications';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
 import { ARTICLES, ARTICLE_IMAGES } from '../../lib/articles';
+import { usePremium, FREE_ARTICLE_COUNT } from '../../lib/subscription';
 
 export default function Home() {
   const t = useTheme();
@@ -327,46 +328,44 @@ function BreathingDrop({ secs, lang }: { secs: number; lang: 'ru' | 'en' }) {
   );
 }
 
-// Knowledge — 3 rotating coping articles + link to the full list.
+// Knowledge — ALL articles inline as compact rows (no extra «Все» tap; the user
+// just keeps scrolling). The free-tier article gate still applies.
 function KnowledgeSection() {
   const t = useTheme();
   const router = useRouter();
   const lang = currentLang();
-  const start = Math.floor(Date.now() / 86400_000) % ARTICLES.length;
-  const featured = [0, 1, 2].map((i) => ARTICLES[(start + i) % ARTICLES.length]);
+  const premium = usePremium();
+  const freeIds = new Set(ARTICLES.slice(0, FREE_ARTICLE_COUNT).map((a) => a.id));
 
   return (
     <View style={{ gap: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
-        <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', letterSpacing: -0.4, marginLeft: 2 }}>
-          {lang === 'ru' ? 'Знание' : 'Knowledge'}
-        </Text>
-        <Pressable onPress={() => router.push('/articles' as any)} hitSlop={8}>
-          <Text style={{ color: t.accent, fontSize: 14, fontWeight: '700' }}>
-            {lang === 'ru' ? 'Все' : 'All'}
-          </Text>
-        </Pressable>
-      </View>
-      {featured.map((a) => {
+      <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', letterSpacing: -0.4, marginLeft: 2, marginTop: 12 }}>
+        {lang === 'ru' ? 'Знание' : 'Knowledge'}
+      </Text>
+      {ARTICLES.map((a) => {
         const I = Icon[a.icon];
         const img = ARTICLE_IMAGES[a.id];
+        const locked = !premium && !freeIds.has(a.id);
         return (
-          <Pressable key={a.id} onPress={() => router.push(`/article/${a.id}` as any)}
-            style={{
-              backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
-              borderRadius: radius.lg, overflow: 'hidden',
-            }}>
-            {/* Taller (210), no crop — matches the /articles list */}
+          <Pressable key={a.id}
+            onPress={() => router.push((locked ? '/paywall' : `/article/${a.id}`) as any)}
+            style={({ pressed }) => ({
+              flexDirection: 'row', backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
+              borderRadius: radius.lg, overflow: 'hidden', opacity: pressed ? 0.85 : 1,
+            })}>
             {img
-              ? <Image source={img} style={{ width: '100%', height: 210 }} resizeMode="cover" />
-              : <View style={{ width: '100%', height: 210, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
-                  <I size={48} color={a.color} />
+              ? <Image source={img} style={{ width: 96, height: 96 }} resizeMode="cover" />
+              : <View style={{ width: 96, height: 96, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
+                  <I size={32} color={a.color} />
                 </View>}
-            <View style={{ padding: 14 }}>
-              <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.3 }} numberOfLines={2}>
-                {lang === 'ru' ? a.titleRu : a.titleEn}
-              </Text>
-              <Text style={{ color: t.textDim, fontSize: 13, marginTop: 4, lineHeight: 19 }} numberOfLines={2}>
+            <View style={{ flex: 1, padding: 12, justifyContent: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', letterSpacing: -0.2, flex: 1 }} numberOfLines={2}>
+                  {lang === 'ru' ? a.titleRu : a.titleEn}
+                </Text>
+                {locked && <Icon.star size={13} color="#FFD60A" />}
+              </View>
+              <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 3, lineHeight: 17 }} numberOfLines={2}>
                 {lang === 'ru' ? a.leadRu : a.leadEn}
               </Text>
             </View>

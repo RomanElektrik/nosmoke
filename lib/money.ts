@@ -26,15 +26,35 @@ export function formatMoney(amount: number, currency: string = 'RUB', locale: st
   }
 }
 
+function plural(n: number, forms: [string, string, string]): string {
+  const n10 = n % 10, n100 = n % 100;
+  if (n10 === 1 && n100 !== 11) return forms[0];
+  if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) return forms[1];
+  return forms[2];
+}
+
 export function formatDuration(secs: number, locale: 'ru' | 'en' = 'ru'): string {
   const d = Math.floor(secs / 86400);
   const h = Math.floor((secs % 86400) / 3600);
   const m = Math.floor((secs % 3600) / 60);
+  // Long spans get humane units — «5000 д» reads like a bug,
+  // «13 лет 8 мес» reads like a milestone.
+  const years = Math.floor(d / 365);
+  const months = Math.floor((d % 365) / 30);
   if (locale === 'en') {
+    if (d >= 365) return months > 0 ? `${years}y ${months}mo` : `${years}y`;
+    if (d >= 60) return `${Math.floor(d / 30)}mo`;
+    if (d >= 7) return `${d}d`;
     if (d >= 1) return `${d}d ${h}h`;
     if (h >= 1) return `${h}h ${m}m`;
     return `${m}m`;
   }
+  if (d >= 365) {
+    const y = `${years} ${plural(years, ['год', 'года', 'лет'])}`;
+    return months > 0 ? `${y} ${months} мес` : y;
+  }
+  if (d >= 60) return `${Math.floor(d / 30)} мес`;
+  if (d >= 7) return `${d} дн`;
   if (d >= 1) return `${d} д ${h} ч`;
   if (h >= 1) return `${h} ч ${m} м`;
   return `${m} мин`;

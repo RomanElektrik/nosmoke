@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { loadState, update, useAppState } from '../lib/storage';
+import { loadState, update, useAppState, seedReasonsFromMotivations } from '../lib/storage';
 import { useTheme } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
 import { computeInsights } from '../lib/insights';
@@ -34,6 +34,17 @@ export default function Root() {
             checkInHour: prev.profile.checkInHour ?? 21,
           } : prev.profile,
         }));
+      }
+      // «Почему я бросаю» starts from the onboarding answers — seed once if
+      // the board is empty but motivations were given.
+      if (s.profile) {
+        const seeded = seedReasonsFromMotivations(s.profile);
+        if (seeded) {
+          await update((prev) => ({
+            ...prev,
+            profile: prev.profile ? { ...prev.profile, reasons: seeded } : prev.profile,
+          }));
+        }
       }
       // Rebuild the full notification plan on every launch. This keeps
       // medication-dose reminders alive past the 7-day scheduling window

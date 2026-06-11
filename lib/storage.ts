@@ -99,6 +99,29 @@ export function normalizeReasons(reasons?: (Reason | string)[]): Reason[] {
   return reasons.map((r) => (typeof r === 'string' ? { text: r } : r)).filter((r) => r.text?.trim());
 }
 
+// The onboarding asks «зачем бросаешь?» (motivations) but the «Почему я бросаю»
+// board started empty — the answers never made it there. Seed reasons from
+// motivations once, when the board has nothing of its own.
+const MOTIVATION_REASONS: Record<Motivation, { emoji: string; ru: string; en: string; color: string }> = {
+  health:  { emoji: '❤️', ru: 'Здоровье', en: 'My health', color: '#FF453A' },
+  money:   { emoji: '💰', ru: 'Деньги — себе, а не дыму', en: 'Money for me, not smoke', color: '#30D158' },
+  family:  { emoji: '👨‍👩‍👧', ru: 'Ради близких', en: 'For my family', color: '#FF9F0A' },
+  sport:   { emoji: '🏃', ru: 'Форма и дыхание', en: 'Fitness and breath', color: '#0A84FF' },
+  smell:   { emoji: '🌿', ru: 'Свежий запах и вкус', en: 'Fresh smell and taste', color: '#34D399' },
+  control: { emoji: '🎯', ru: 'Контроль над собой', en: 'Being in control', color: '#BF5AF2' },
+  faith:   { emoji: '✝️', ru: 'Вера и чистота', en: 'Faith and purity', color: '#FF9500' },
+};
+
+export function seedReasonsFromMotivations(p: Profile): Reason[] | null {
+  if (normalizeReasons(p.reasons).length > 0 || !p.motivations?.length) return null;
+  const en = p.language === 'en';
+  const seeded = p.motivations
+    .map((m) => MOTIVATION_REASONS[m])
+    .filter(Boolean)
+    .map((r) => ({ text: en ? r.en : r.ru, emoji: r.emoji, color: r.color }));
+  return seeded.length ? seeded : null;
+}
+
 export type HealthFlag =
   | 'pregnant'        // беременность / грудное вскармливание
   | 'seizures'        // судороги / эпилепсия

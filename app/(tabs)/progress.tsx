@@ -13,7 +13,7 @@ import { currentLang, useTranslation } from '../../lib/i18n';
 import { useAppState, normalizeReasons } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
 import { secondsClean, MILESTONES } from '../../lib/health';
-import { moneySaved, cigsAvoided, pricePerCig, formatMoney, formatDuration } from '../../lib/money';
+import { moneySaved, cigsAvoided, pricePerCig, formatMoney, formatDuration, formatCigs } from '../../lib/money';
 import { rewardProgress } from '../../lib/rewards';
 import { computeInsights, triggerName, worstDayLocalized } from '../../lib/insights';
 import { plural } from '../../lib/identity';
@@ -92,7 +92,7 @@ export default function Progress() {
                 ) : (
                   <View style={{ backgroundColor: '#00000026', borderRadius: 18, padding: 14, gap: 9 }}>
                     <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>
-                      {ru ? `${cigsAvoided(p, secs)} сигарет не выкурено` : `${cigsAvoided(p, secs)} cigarettes avoided`}
+                      {ru ? `${formatCigs(cigsAvoided(p, secs))} сигарет не выкурено` : `${formatCigs(cigsAvoided(p, secs))} cigarettes avoided`}
                     </Text>
                     {rp.next && (
                       <>

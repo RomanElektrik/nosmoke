@@ -10,7 +10,7 @@ import { getStep } from '../../lib/stepped';
 import { Icon } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
 import { secondsClean } from '../../lib/health';
-import { moneySaved, cigsAvoided, formatMoney } from '../../lib/money';
+import { moneySaved, cigsAvoided, formatMoney, formatCigs } from '../../lib/money';
 import { usePremium } from '../../lib/subscription';
 import { archetypeIdentity } from '../../lib/identity';
 import { ARCHETYPE_META } from '../../lib/personality';
@@ -43,7 +43,7 @@ export default function Profile() {
             {tr('profile.since', { date: new Date(p.quitDate).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US') })}
           </Text>
           <Text style={{ color: t.text, marginTop: 6, fontSize: 15 }}>
-            {Math.floor(cigsAvoided(p, secs))} · {formatMoney(moneySaved(p, secs), p.currency, lang === 'ru' ? 'ru-RU' : 'en-US')}
+            {formatCigs(cigsAvoided(p, secs))} · {formatMoney(moneySaved(p, secs), p.currency, lang === 'ru' ? 'ru-RU' : 'en-US')}
           </Text>
         </GlassCard>
 
