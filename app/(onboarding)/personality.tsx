@@ -79,7 +79,8 @@ export default function Personality() {
         ...s,
         profile: s.profile ? { ...s.profile, archetype: winner, archetypeScores: scores } : s.profile,
       }));
-      router.replace('/(onboarding)/depth');
+      // Opened as a day-2 task from Home (post-onboarding) — return there.
+      router.canGoBack() ? router.back() : router.replace('/(tabs)');
     }
 
     return (

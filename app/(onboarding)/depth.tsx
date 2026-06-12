@@ -76,7 +76,8 @@ export default function Depth() {
         },
       };
     });
-    router.replace('/(onboarding)/plan');
+    // Opened as a day-3 task from Home (post-onboarding) — return there.
+    router.canGoBack() ? router.back() : router.replace('/(tabs)');
   }
 
   const IconComp = Icon[meta.icon];

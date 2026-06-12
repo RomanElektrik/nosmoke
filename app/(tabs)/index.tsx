@@ -128,6 +128,32 @@ export default function Home() {
         {/* Gentle, rare honesty check — our non-nagging "smoking or not" signal */}
         <StatusCheckCard />
 
+        {/* Day 2–3 tasks: the personality test and the past-attempts deep dive
+            moved here from onboarding (they were 11 extra screens before the
+            first value moment). Shown once, as gentle program tasks. */}
+        {(() => {
+          const days = Math.floor(secondsClean(p.quitDate) / 86400);
+          if (days >= 1 && !p.archetype) {
+            return (
+              <TaskCard t={t} color="#BF5AF2" icon={<Icon.brain size={22} color="#BF5AF2" />}
+                tag={lang === 'ru' ? 'ЗАДАНИЕ · 2 МИН' : 'TASK · 2 MIN'}
+                title={lang === 'ru' ? 'Узнай свой тип зависимости' : 'Find your dependency type'}
+                sub={lang === 'ru' ? '5 вопросов — и техники подстроятся под тебя' : '5 questions — techniques adapt to you'}
+                onPress={() => { Haptics.selectionAsync(); router.push('/(onboarding)/personality' as any); }} />
+            );
+          }
+          if (days >= 2 && p.archetype && !p.pastAttempts) {
+            return (
+              <TaskCard t={t} color="#FF9F0A" icon={<Icon.compass size={22} color="#FF9F0A" />}
+                tag={lang === 'ru' ? 'ЗАДАНИЕ · 2 МИН' : 'TASK · 2 MIN'}
+                title={lang === 'ru' ? 'Разбор прошлых попыток' : 'Review past attempts'}
+                sub={lang === 'ru' ? 'Что возвращало к сигарете — учтём в плане' : 'What pulled you back — we factor it in'}
+                onPress={() => { Haptics.selectionAsync(); router.push('/(onboarding)/depth' as any); }} />
+            );
+          }
+          return null;
+        })()}
+
         {/* One-time prompt: build a personal SOS toolkit of quick craving-busters */}
         {(p.copingMethods?.length ?? 0) === 0 && (
           <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/coping' as any); }}
@@ -330,50 +356,60 @@ function BreathingDrop({ secs, lang }: { secs: number; lang: 'ru' | 'en' }) {
   );
 }
 
-// Knowledge — ALL articles inline as compact rows (no extra «Все» tap; the user
-// just keeps scrolling). The free-tier article gate still applies.
+// Knowledge — a horizontal strip of 4 rotating articles + «Все статьи».
+// Inlining all 14 made Home a ~4600px blog; the full list lives in /articles.
 function KnowledgeSection() {
   const t = useTheme();
   const router = useRouter();
   const lang = currentLang();
   const premium = usePremium();
   const freeIds = new Set(ARTICLES.slice(0, FREE_ARTICLE_COUNT).map((a) => a.id));
+  // Rotate daily so the strip stays fresh.
+  const start = Math.floor(Date.now() / 86400_000) % ARTICLES.length;
+  const featured = [0, 1, 2, 3].map((i) => ARTICLES[(start + i) % ARTICLES.length]);
 
   return (
     <View style={{ gap: 10 }}>
-      <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', letterSpacing: -0.4, marginLeft: 2, marginTop: 12 }}>
-        {lang === 'ru' ? 'Знание' : 'Knowledge'}
-      </Text>
-      {ARTICLES.map((a) => {
-        const I = Icon[a.icon];
-        const img = ARTICLE_IMAGES[a.id];
-        const locked = !premium && !freeIds.has(a.id);
-        return (
-          <Pressable key={a.id}
-            onPress={() => router.push((locked ? '/paywall' : `/article/${a.id}`) as any)}
-            style={({ pressed }) => ({
-              backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
-              borderRadius: radius.lg, overflow: 'hidden', opacity: pressed ? 0.9 : 1,
-            })}>
-            {img
-              ? <Image source={img} style={{ width: '100%', height: 210 }} resizeMode="cover" />
-              : <View style={{ width: '100%', height: 210, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
-                  <I size={48} color={a.color} />
-                </View>}
-            <View style={{ padding: 14 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.3, flex: 1 }} numberOfLines={2}>
-                  {lang === 'ru' ? a.titleRu : a.titleEn}
-                </Text>
-                {locked && <Icon.star size={15} color="#FFD60A" />}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+        <Text style={{ color: t.text, fontSize: 19, fontWeight: '800', letterSpacing: -0.4, marginLeft: 2 }}>
+          {lang === 'ru' ? 'Знание' : 'Knowledge'}
+        </Text>
+        <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/articles' as any); }} hitSlop={8}>
+          <Text style={{ color: t.accent, fontSize: 14, fontWeight: '700' }}>
+            {lang === 'ru' ? 'Все статьи →' : 'All articles →'}
+          </Text>
+        </Pressable>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 10, paddingRight: 4 }}>
+        {featured.map((a) => {
+          const I = Icon[a.icon];
+          const img = ARTICLE_IMAGES[a.id];
+          const locked = !premium && !freeIds.has(a.id);
+          return (
+            <Pressable key={a.id}
+              onPress={() => router.push((locked ? '/paywall' : `/article/${a.id}`) as any)}
+              style={({ pressed }) => ({
+                width: 240, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
+                borderRadius: radius.lg, overflow: 'hidden', opacity: pressed ? 0.9 : 1,
+              })}>
+              {img
+                ? <Image source={img} style={{ width: 240, height: 130 }} resizeMode="cover" />
+                : <View style={{ width: 240, height: 130, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
+                    <I size={40} color={a.color} />
+                  </View>}
+              <View style={{ padding: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ color: t.text, fontSize: 14.5, fontWeight: '700', letterSpacing: -0.2, flex: 1 }} numberOfLines={2}>
+                    {lang === 'ru' ? a.titleRu : a.titleEn}
+                  </Text>
+                  {locked && <Icon.star size={13} color="#FFD60A" />}
+                </View>
               </View>
-              <Text style={{ color: t.textDim, fontSize: 13, marginTop: 4, lineHeight: 19 }} numberOfLines={2}>
-                {lang === 'ru' ? a.leadRu : a.leadEn}
-              </Text>
-            </View>
-          </Pressable>
-        );
-      })}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
@@ -382,6 +418,25 @@ function KnowledgeSection() {
 // Square help card (2-up grid)
 // Launcher item — circular icon shell + label. Lives inside a grouped 2×2
 // container with dividers (see Home), so they read as one cohesive block.
+// Day-task card: small tag pill + title/sub, tinted in its colour.
+function TaskCard({ t, color, icon, tag, title, sub, onPress }: any) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
+      <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: color + '12', borderWidth: 1, borderColor: color + '40', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: color + '24', alignItems: 'center', justifyContent: 'center' }}>
+          {icon}
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color, fontSize: 10.5, fontWeight: '800', letterSpacing: 1 }}>{tag}</Text>
+          <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', marginTop: 2 }}>{title}</Text>
+          <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2, lineHeight: 17 }}>{sub}</Text>
+        </View>
+        <Text style={{ color, fontSize: 18 }}>›</Text>
+      </View>
+    </Pressable>
+  );
+}
+
 function SquareCard({ icon, title, sub, color, onPress }: { icon: any; title: string; sub?: string; color?: string; onPress: () => void }) {
   const t = useTheme();
   const c = color ?? t.accent;

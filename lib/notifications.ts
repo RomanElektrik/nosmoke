@@ -107,7 +107,8 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
   // ---------- DAY 7 — week milestone --------------
   await schedule(at(6, wakeHour + 2),
     t('Неделя без сигарет', 'One week clean'),
-    t('Лёгкие уже начали восстанавливаться. Загляни в Здоровье.', 'Lungs are already healing. Open Health.'),
+    t('Лёгкие уже начали восстанавливаться. Загляни в Прогресс.', 'Lungs are already healing. Open Progress.'),
+    '/(tabs)/progress',
   );
 
   // ---------- DAY 14 — graduation from critical window --------------
@@ -121,7 +122,7 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
     await schedule(quitDateMs + m.at * 1000,
       t('Веха достигнута', 'Milestone reached'),
       t('В разделе «Здоровье» — новое восстановление.', 'In Health — a new recovery just unlocked.'),
-      '/(tabs)/health',
+      '/(tabs)/progress',
     );
   }
 

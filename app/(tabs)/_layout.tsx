@@ -120,7 +120,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="profile" />
       {/* Reachable via router.push but hidden from the pill */}
       <Tabs.Screen name="path" options={{ href: null }} />
-      <Tabs.Screen name="health" options={{ href: null }} />
       <Tabs.Screen name="techniques" options={{ href: null }} />
       <Tabs.Screen name="coach" options={{ href: null }} />
     </Tabs>

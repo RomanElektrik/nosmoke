@@ -516,8 +516,8 @@ const FILLERS = [
     focusRu: 'Тело продолжает восстанавливаться', focusEn: 'The body keeps healing',
     scienceRu: 'Восстановление идёт даже в «тихие» дни: лёгкие очищаются, сосуды расслабляются, сон выравнивается.',
     scienceEn: 'Healing continues even on quiet days: lungs clear, vessels relax, sleep stabilises.',
-    taskRu: 'Загляни в «Здоровье» — посмотри, какая веха ближайшая.',
-    taskEn: 'Open Health — see which milestone is next.',
+    taskRu: 'Открой «Прогресс» → Восстановление — посмотри, какая веха ближайшая.',
+    taskEn: 'Open Progress → Recovery — see which milestone is next.',
   },
   {
     focusRu: 'Обычный день — это победа', focusEn: 'An ordinary day is a win',

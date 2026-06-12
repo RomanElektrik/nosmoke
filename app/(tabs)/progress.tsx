@@ -249,19 +249,8 @@ export default function Progress() {
           })}
         </Card>
 
-        {/* ───── ЧТО МНЕ ПОМОГАЕТ (быстрая кастомизация) ───── */}
-        <Card color="#5AC8FA" gid="kit" onPress={() => go('/coping')}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 46, height: 46, borderRadius: 15, backgroundColor: '#5AC8FA33', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon.headphones size={23} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{ru ? 'Что мне помогает' : 'What helps me'}</Text>
-              <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>{ru ? `${p.copingMethods?.length ?? 0} приёмов в SOS-аптечке` : `${p.copingMethods?.length ?? 0} moves in your SOS kit`}</Text>
-            </View>
-            <Text style={{ color: '#FFFFFFB0', fontSize: 20 }}>›</Text>
-          </View>
-        </Card>
+        {/* «Что мне помогает» удалена: это настройка SOS-аптечки, а не прогресс —
+            входы в /coping остаются на главной и в самом SOS. */}
       </ScrollView>
 
       {/* Milestone detail — full text + source, same content as Здоровье */}

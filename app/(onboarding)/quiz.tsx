@@ -98,7 +98,9 @@ export default function Quiz() {
       healthFlags,
     };
     await update((s) => ({ ...s, profile }));
-    router.replace('/(onboarding)/personality');
+    // Straight to the plan: the personality test and the past-attempts deep
+    // dive moved to day 2–3 tasks — 11 extra screens killed onboarding.
+    router.replace('/(onboarding)/plan');
   }
 
   return (

@@ -36,6 +36,7 @@ export default function Craving() {
   const [intensity, setIntensity] = useState(6);
   const [trigger, setTrigger] = useState<Trigger | undefined>();
   const [outcome, setOutcome] = useState<'resisted' | 'smoked' | null>(null);
+  const [doneCoping, setDoneCoping] = useState<string[]>([]); // ticked toolkit moves this session
   const ru = (state.profile?.language ?? 'ru') === 'ru';
 
   async function save() {
@@ -143,15 +144,29 @@ export default function Craving() {
                         <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '600', marginTop: 8 }}>{ru ? 'Изменить' : 'Edit'}</Text>
                       </Pressable>
                     </View>
+                    {/* Tappable: «сделал» — the only dead element on the most
+                        tappable screen felt broken. Tap = haptic + check. */}
                     {mine.map((m) => {
                       const I = Icon[m.icon];
+                      const done = doneCoping.includes(m.id);
                       return (
-                        <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13, borderRadius: radius.lg, backgroundColor: m.color + '14', borderWidth: 1, borderColor: m.color + '3A' }}>
+                        <Pressable key={m.id}
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setDoneCoping((d) => done ? d.filter((x) => x !== m.id) : [...d, m.id]);
+                          }}
+                          style={({ pressed }) => ({
+                            flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13,
+                            borderRadius: radius.lg, backgroundColor: m.color + (done ? '22' : '14'),
+                            borderWidth: 1, borderColor: m.color + (done ? '88' : '3A'),
+                            opacity: pressed ? 0.85 : 1,
+                          })}>
                           <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: m.color + '26', alignItems: 'center', justifyContent: 'center' }}>
                             <I size={22} color={m.color} />
                           </View>
-                          <Text style={{ color: t.text, fontSize: 15, fontWeight: '600', flex: 1 }}>{m.label}</Text>
-                        </View>
+                          <Text style={{ color: t.text, fontSize: 15, fontWeight: '600', flex: 1, textDecorationLine: done ? 'line-through' : 'none', opacity: done ? 0.7 : 1 }}>{m.label}</Text>
+                          {done && <Icon.check size={18} color={m.color} />}
+                        </Pressable>
                       );
                     })}
                   </View>
@@ -253,7 +268,17 @@ export default function Craving() {
             <Text style={{ color: t.textDim, fontSize: 16, textAlign: 'center', lineHeight: 23 }}>
               {ru ? 'Как сейчас — отпустило?' : 'How is it now — has it passed?'}
             </Text>
-            <Pressable onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setPhase('win'); }}
+            <Pressable onPress={() => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              // Auto-log the survived craving: the wave is THE main SOS path,
+              // and without this the «Паттерны тяги» section starved forever
+              // (logging only happened via the small manual link below).
+              update((s) => ({
+                ...s,
+                cravings: [...s.cravings, { ts: Date.now(), intensity, trigger, outcome: 'resisted' as const }],
+              }));
+              setPhase('win');
+            }}
               style={({ pressed }) => ({ marginTop: 10, paddingVertical: 18, paddingHorizontal: 44, borderRadius: radius.xl, backgroundColor: t.accent, opacity: pressed ? 0.9 : 1, alignSelf: 'stretch', alignItems: 'center' })}>
               <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>{ru ? 'Отпустило' : 'It passed'}</Text>
             </Pressable>

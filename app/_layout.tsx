@@ -126,14 +126,12 @@ export default function Root() {
         <Stack.Screen name="method" />
         <Stack.Screen name="transition" />
         <Stack.Screen name="meds" />
-        <Stack.Screen name="achievements" />
         <Stack.Screen name="articles" />
         <Stack.Screen name="article/[id]" />
         <Stack.Screen name="med-gate" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="chat" options={{ fullScreenGestureEnabled: false }} />
         <Stack.Screen name="paywall" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="symptoms" />
-        <Stack.Screen name="plans" />
 
         <Stack.Screen name="game" options={{ animation: 'slide_from_bottom', gestureEnabled: false, fullScreenGestureEnabled: false }} />
         <Stack.Screen name="audio/[id]" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
