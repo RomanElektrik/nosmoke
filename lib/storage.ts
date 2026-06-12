@@ -115,7 +115,7 @@ const MOTIVATION_REASONS: Record<Motivation, { emoji: string; ru: string; en: st
   sport:   { emoji: '🏃', ru: 'Форма и дыхание', en: 'Fitness and breath', color: '#0A84FF' },
   smell:   { emoji: '🌿', ru: 'Свежий запах и вкус', en: 'Fresh smell and taste', color: '#34D399' },
   control: { emoji: '🎯', ru: 'Контроль над собой', en: 'Being in control', color: '#BF5AF2' },
-  faith:   { emoji: '✝️', ru: 'Вера и чистота', en: 'Faith and purity', color: '#FF9500' },
+  faith:   { emoji: '🕊️', ru: 'Внутренняя свобода', en: 'Inner freedom', color: '#FF9500' },
 };
 
 export function seedReasonsFromMotivations(p: Profile): Reason[] | null {

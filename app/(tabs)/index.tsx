@@ -176,7 +176,7 @@ export default function Home() {
         {/* Pending start banner */}
         {p.pendingMethod && p.pendingQuitDate && p.pendingQuitDate > Date.now() && (() => {
           const newStep = getStep(p.pendingMethod);
-          const items = prepChecklist(p.pendingMethod, p.faithEnabled);
+          const items = prepChecklist(p.pendingMethod);
           const doneCount = (p.pendingPrep ?? []).filter((x) => x.done).length;
           const daysLeft = Math.ceil((p.pendingQuitDate - Date.now()) / 86400_000);
           return (

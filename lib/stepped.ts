@@ -234,7 +234,7 @@ export function deescalationSuggestion(state: AppState): { yes: boolean; toStep?
 // Preparation checklist per method.
 export type PrepItem = { id: string; ru: string; en: string };
 
-export function prepChecklist(stepId: StepLevel, faithEnabled = false): PrepItem[] {
+export function prepChecklist(stepId: StepLevel): PrepItem[] {
   const common: PrepItem[] = [
     { id: 'remove_cigs',  ru: 'Убрать сигареты, зажигалки и пепельницы из дома и машины', en: 'Remove cigarettes, lighters and ashtrays from home and car' },
     { id: 'tell_someone', ru: 'Сказать одному близкому, что ты бросаешь', en: 'Tell one close person you are quitting' },

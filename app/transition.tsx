@@ -213,7 +213,7 @@ export default function Transition() {
         </View>
         <Footer onBack={() => setPhase('reflect')} onNext={() => {
           if (!pickedMethod) return;
-          setPrep(prepChecklist(pickedMethod, p.faithEnabled).map((x) => ({ id: x.id, done: false })));
+          setPrep(prepChecklist(pickedMethod).map((x) => ({ id: x.id, done: false })));
           setPhase('date');
         }} disabled={!pickedMethod} />
       </Wrap>
@@ -327,7 +327,7 @@ export default function Transition() {
 
   // ---------- 6. PREP CHECKLIST ----------
   if (phase === 'prep') {
-    const items = pickedMethod ? prepChecklist(pickedMethod, p.faithEnabled) : [];
+    const items = pickedMethod ? prepChecklist(pickedMethod) : [];
     function toggle(id: string) {
       Haptics.selectionAsync();
       setPrep((px) => px.map((x) => x.id === id ? { ...x, done: !x.done } : x));

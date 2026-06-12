@@ -76,22 +76,6 @@ export default function Profile() {
           </View>
         </GlassCard>
 
-        <GlassCard>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>{tr('profile.faith')}</Text>
-            <Switch
-              value={p.faithEnabled}
-              onValueChange={(v) => update((s) => ({ ...s, profile: s.profile ? { ...s.profile, faithEnabled: v } : s.profile }))}
-              trackColor={{ true: t.accent, false: t.border }}
-            />
-          </View>
-          {p.faithEnabled && (
-            <Pressable onPress={() => router.push('/faith')}
-              style={{ marginTop: 10, padding: 12, borderRadius: radius.md, backgroundColor: t.accentSoft }}>
-              <Text style={{ color: t.accent, fontWeight: '600' }}>→ {tr('faith.title')}</Text>
-            </Pressable>
-          )}
-        </GlassCard>
 
         <Pressable onPress={() => Linking.openURL(PRIVACY_URL)}>
           <GlassCard>

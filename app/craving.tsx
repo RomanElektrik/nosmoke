@@ -182,15 +182,9 @@ export default function Craving() {
                 <MiniTile t={t} icon={Icon.play} color="#BF5AF2"
                   title={ru ? 'Отвлечься' : 'Distract'} sub={ru ? 'игра' : 'game'}
                   onPress={() => { Haptics.selectionAsync(); router.push('/game'); }} />
-                {state.profile?.faithEnabled ? (
-                  <MiniTile t={t} icon={Icon.cross} color="#FF9500"
-                    title={ru ? 'Молитва' : 'Pray'} sub={ru ? 'минута' : 'a minute'}
-                    onPress={() => { Haptics.selectionAsync(); router.push('/faith'); }} />
-                ) : (
                   <MiniTile t={t} icon={Icon.chat} color="#30D158"
                     title={ru ? 'Написать' : 'Message'} sub={ru ? 'мне' : 'me'}
                     onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support' as any); }} />
-                )}
               </View>
 
               {/* ── Logging is post-hoc — quiet link, not a competing button ── */}

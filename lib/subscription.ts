@@ -24,8 +24,6 @@ export function isStepPremium(stepId: string | undefined): boolean {
 }
 
 export function isTechniquePremium(techId: string, tags?: readonly string[]): boolean {
-  // Spiritual / faith techniques are always free for everyone.
-  if (tags && tags.includes('spiritual')) return false;
   return !FREE_TECHNIQUE_IDS.has(techId);
 }
 

@@ -117,7 +117,6 @@ export default function Root() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="craving" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="slip" />
-        <Stack.Screen name="faith" />
         <Stack.Screen name="practice/[id]" />
         <Stack.Screen name="goal" />
         <Stack.Screen name="journal" />

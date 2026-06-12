@@ -18,7 +18,6 @@ import { PRACTICES } from '../../lib/audioPractice';
 const ORDER = [
   'box_breath', 'cyclic_sigh',
   'halt_check',
-  'faith',
 ];
 
 // Everything not in the ORDER list above is hidden. Cognitive/pharma/
@@ -41,9 +40,9 @@ const TABS = [
 type TabId = (typeof TABS)[number]['id'];
 
 // Tab membership. All voiced sessions live under «Аудиопрактики»; breathing
-// under «Дыхание»; «Поддержка» = молитва/писание (+ HALT-чек).
+// under «Дыхание»; «Поддержка» = HALT-чек.
 const BREATH_TECH = ['box_breath', 'cyclic_sigh'];
-const SUPPORT_TECH = ['faith', 'halt_check'];
+const SUPPORT_TECH = ['halt_check'];
 
 // Short mood tag per audio session (shown as a pill on the card).
 const AUDIO_TAGS: Record<string, { ru: string; en: string }> = {
@@ -66,7 +65,6 @@ const TECH_TAGS: Record<string, { ru: string; en: string }> = {
   box_breath:  { ru: '4·4·4·4',  en: '4·4·4·4' },
   cyclic_sigh: { ru: 'ДЫХАНИЕ',  en: 'BREATH' },
   halt_check:  { ru: '4 НУЖДЫ',  en: 'HALT' },
-  faith:       { ru: 'МОЛИТВА',  en: 'PRAYER' },
 };
 
 export default function Techniques() {
@@ -105,8 +103,6 @@ export default function Techniques() {
 
   function go(te: Technique) {
     Haptics.selectionAsync();
-    // Faith has no /practice screen — it's its own full-screen route.
-    if (te.id === 'faith') { router.push('/faith'); return; }
     if (!te.practice) return;
     if (!premium && isTechniquePremium(te.id, te.tags)) {
       router.push('/paywall' as any);
@@ -235,7 +231,7 @@ function TechCard({ te, lang, tr, onOpen, onGo, locked }: {
     : (te.evidence === 'A' ? 'Proven' : te.evidence === 'B' ? 'Confirmed' : 'Supportive');
 
   return (
-    <Pressable onPress={() => (te.practice || te.id === 'faith' ? onGo() : onOpen())}
+    <Pressable onPress={() => (te.practice ? onGo() : onOpen())}
       style={({ pressed }) => ({ borderRadius: radius.xl, overflow: 'hidden', opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
       {/* Tall, colorful card — each technique gets its own gradient atmosphere */}
       <View style={{ height: 168, position: 'relative' }}>

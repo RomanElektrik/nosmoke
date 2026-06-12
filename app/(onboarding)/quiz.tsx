@@ -15,11 +15,11 @@ const tt = (ru: string, en: string) => (currentLang() === 'ru' ? ru : en);
 
 type StepKind =
   | 'years' | 'perday' | 'pack' | 'type' | 'health'
-  | 'morning' | 'ftnd' | 'triggers' | 'motivation' | 'method' | 'faith';
+  | 'morning' | 'ftnd' | 'triggers' | 'motivation' | 'method';
 
 const STEPS: StepKind[] = [
   'years', 'perday', 'pack', 'type', 'health',
-  'morning', 'ftnd', 'triggers', 'motivation', 'method', 'faith',
+  'morning', 'ftnd', 'triggers', 'motivation', 'method',
 ];
 
 // Per-step visual identity + warm sub-line.
@@ -34,7 +34,6 @@ const META: Record<StepKind, { icon: IconKey; color: string; subRu: string; subE
   triggers:   { icon: 'target', color: '#BF5AF2', subRu: 'Зная триггеры, мы перебьём их заранее.',             subEn: 'Knowing your triggers, we counter them in advance.' },
   motivation: { icon: 'star',   color: '#34C759', subRu: 'Твоё «зачем» — топливо в трудный день.',             subEn: 'Your "why" is fuel for the hard days.' },
   method:     { icon: 'leaf',   color: '#0A84FF', subRu: 'Резко или постепенно — оба пути рабочие.',           subEn: 'Cold turkey or gradual — both paths work.' },
-  faith:      { icon: 'cross',  color: '#FF9500', subRu: 'Полностью по желанию. Можно включить позже.',        subEn: 'Entirely optional. Can be enabled later.' },
 };
 
 export default function Quiz() {
@@ -54,7 +53,6 @@ export default function Quiz() {
   const [triggers, setTriggers] = useState<Trigger[]>([]);
   const [mots, setMots] = useState<Motivation[]>([]);
   const [method, setMethod] = useState<QuitMethod>('cold_turkey');
-  const [faith, setFaith] = useState<'yes' | 'no' | 'later'>('later');
   const [age, setAge] = useState('30');
   const [healthFlags, setHealthFlags] = useState<HealthFlag[]>([]);
 
@@ -91,7 +89,7 @@ export default function Quiz() {
       motivations: mots,
       method,
       quitDate: Date.now(),
-      faithEnabled: faith === 'yes',
+      faithEnabled: false,
       language: currentLang(),
       onboardingComplete: false,
       age: Number(age) || undefined,
@@ -195,7 +193,6 @@ export default function Quiz() {
                 { v: 'sport', l: tr('onb.mot_sport') },
                 { v: 'smell', l: tr('onb.mot_smell') },
                 { v: 'control', l: tr('onb.mot_control') },
-                { v: 'faith', l: tr('onb.mot_faith') },
               ]}
               value={mots} onChange={(v) => setMots(v as Motivation[])} />
           )}
@@ -206,15 +203,6 @@ export default function Quiz() {
                 { v: 'taper', l: tr('onb.method_taper') },
               ]}
               value={method} onChange={(v) => setMethod(v as QuitMethod)} />
-          )}
-          {kind === 'faith' && (
-            <Choice title={tr('onb.q_faith')} sub={tt(META.faith.subRu, META.faith.subEn)} accent={meta.color}
-              options={[
-                { v: 'yes', l: tr('onb.faith_yes') },
-                { v: 'no', l: tr('onb.faith_no') },
-                { v: 'later', l: tr('onb.faith_later') },
-              ]}
-              value={faith} onChange={(v) => setFaith(v as any)} />
           )}
         </Animated.View>
       </ScrollView>

@@ -51,6 +51,4 @@ export const TECHNIQUES: Technique[] = [
     titleKey: 'tech.contract.t',summaryKey: 'tech.contract.s',bodyKey: 'tech.contract.b' },
   { id: 'replace',     evidence: 'C', durationMin: 1, tags: ['craving','physical'], icon: 'swap',     color: '#5AC8FA',
     titleKey: 'tech.replace.t', summaryKey: 'tech.replace.s', bodyKey: 'tech.replace.b', practice: 'replace' },
-  { id: 'faith',       evidence: 'C', durationMin: 5, tags: ['spiritual'],          icon: 'cross',    color: '#FF9500',
-    titleKey: 'tech.faith.t',   summaryKey: 'tech.faith.s',   bodyKey: 'tech.faith.b' },
 ];
