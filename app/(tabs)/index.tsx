@@ -113,13 +113,12 @@ export default function Home() {
               color={t.warn} icon={<Icon.toolbox size={32} color={t.warn} />}
               title={tr('tabs.techniques')}
               onPress={() => router.push('/(tabs)/techniques')} />
-            {/* «Симптомы» переехали в Прогресс (карточка «Самочувствие»);
-                здесь — Путь: экран курса скрыт из таб-бара и иначе доступен
-                только через карточку метода. */}
+            {/* «Письмо себе» — капсула времени: пишется в сильный день,
+                читается в слабый (SOS показывает её в момент тяги). */}
             <SquareCard
-              color="#BF5AF2" icon={<Icon.compass size={32} color="#BF5AF2" />}
-              title={lang === 'ru' ? 'Путь' : 'Path'}
-              onPress={() => router.push('/(tabs)/path')} />
+              color="#FFD60A" icon={<Icon.feather size={32} color="#FFD60A" />}
+              title={lang === 'ru' ? 'Письмо себе' : 'My letter'}
+              onPress={() => router.push('/letter' as any)} />
           </View>
         </View>
 

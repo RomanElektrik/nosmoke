@@ -141,6 +141,7 @@ export default function Root() {
         <Stack.Screen name="coping" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="insights" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="reasons" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
+        <Stack.Screen name="letter" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
       </Stack>
     </GestureHandlerRootView>
   );
