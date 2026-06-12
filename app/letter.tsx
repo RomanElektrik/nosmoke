@@ -1,13 +1,15 @@
 // «Письмо себе» — a time capsule. Written on a strong, determined day; read on
 // a weak one. The SOS screen surfaces it mid-craving — nothing argues with a
 // craving better than your own words about why you started.
-// Visual: an actual letter — cream paper, serif ink, ruled lines, a wax seal.
+// Visual: a typewritten page — worn, stained paper and monospaced "typed" ink
+// (reference: vintage typewriter shots).
 
 import { useState } from 'react';
 import { ScrollView, View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Ellipse } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
@@ -15,15 +17,67 @@ import { useAppState, update } from '../lib/storage';
 import { Icon } from '../components/Icon';
 
 const GOLD = '#FFD60A';
-const PAPER = '#F6EFDF';
-const PAPER_EDGE = '#E8DFC8';
-const INK = '#3A3226';
-const INK_DIM = '#8A7E69';
-const WAX = '#B3402F';
+const PAPER_HI = '#EFE5CF';   // lit centre of the sheet
+const PAPER_LO = '#DDD0B4';   // darker, worn edges
+const INK = '#2E2A24';        // typewriter ribbon ink
+const INK_DIM = '#7C7260';
 
-// Handwriting-adjacent serif available without bundling fonts.
-const serif = Platform.select({ ios: 'Georgia', android: 'serif' });
-const serifItalic = Platform.select({ ios: 'Georgia-Italic', android: 'serif' });
+// Typewriter face. Courier ships with iOS; Android falls back to monospace.
+const mono = Platform.select({ ios: 'Courier New', android: 'monospace' });
+
+// Deterministic pseudo-random — the grain/stains must not change every render.
+function rnd(seed: number) {
+  let x = seed;
+  return () => { x = (x * 16807) % 2147483647; return x / 2147483647; };
+}
+
+// Worn-paper overlay: aged edges, coffee-ish stains, speckled grain.
+function PaperTexture() {
+  const r = rnd(42);
+  const grain = Array.from({ length: 90 }, () => ({
+    cx: r() * 100, cy: r() * 100, rr: 0.12 + r() * 0.3, o: 0.04 + r() * 0.08,
+  }));
+  return (
+    <>
+      {/* darker, slightly dirty edges */}
+      <LinearGradient colors={['#00000022', 'transparent', 'transparent', '#00000026']}
+        locations={[0, 0.12, 0.88, 1]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      <LinearGradient colors={['#00000018', 'transparent', 'transparent', '#0000001C']}
+        locations={[0, 0.1, 0.9, 1]}
+        start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      <Svg style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        viewBox="0 0 100 100" preserveAspectRatio="none" pointerEvents="none">
+        {/* stains */}
+        <Ellipse cx={84} cy={14} rx={13} ry={9} fill="#8B6F3A" opacity={0.07} />
+        <Ellipse cx={18} cy={78} rx={16} ry={10} fill="#7A5C2E" opacity={0.06} />
+        <Ellipse cx={62} cy={94} rx={20} ry={8} fill="#6B5024" opacity={0.05} />
+        <Circle cx={9} cy={10} r={5} fill="#8B6F3A" opacity={0.05} />
+        {/* grain speckles */}
+        {grain.map((g, i) => (
+          <Circle key={i} cx={g.cx} cy={g.cy} r={g.rr} fill="#4A3B22" opacity={g.o} />
+        ))}
+      </Svg>
+    </>
+  );
+}
+
+// The sheet itself — children are laid on top of the texture.
+function PaperSheet({ children, tilt = 0 }: { children: React.ReactNode; tilt?: number }) {
+  return (
+    <View style={{
+      borderRadius: 4, overflow: 'hidden',
+      shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 9,
+      transform: [{ rotate: `${tilt}deg` }],
+    }}>
+      <LinearGradient colors={[PAPER_LO, PAPER_HI, PAPER_HI, PAPER_LO]} locations={[0, 0.18, 0.8, 1]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      <PaperTexture />
+      {children}
+    </View>
+  );
+}
 
 export default function Letter() {
   const t = useTheme();
@@ -74,11 +128,11 @@ export default function Letter() {
               <Text style={{ color: t.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.6 }}>
                 {editing
                   ? (ru ? 'Письмо себе' : 'A letter to yourself')
-                  : from === 'sos' ? (ru ? 'Это написал ты.' : 'You wrote this.') : (ru ? 'Письмо себе' : 'A letter to yourself')}
+                  : from === 'sos' ? (ru ? 'Это напечатал ты.' : 'You typed this.') : (ru ? 'Письмо себе' : 'A letter to yourself')}
               </Text>
               {!editing && !!writtenDate && (
                 <Text style={{ color: t.textDim, fontSize: 13, marginTop: 2 }}>
-                  {ru ? `Запечатано ${writtenDate}` : `Sealed on ${writtenDate}`}
+                  {ru ? `Напечатано ${writtenDate}` : `Typed on ${writtenDate}`}
                 </Text>
               )}
             </View>
@@ -92,19 +146,18 @@ export default function Letter() {
                   : 'Write from today — the day you are full of resolve. Breeze will show this letter back to you at the exact moment a craving hits hard.'}
               </Text>
 
-              {/* Paper sheet to write on */}
-              <View style={{ borderRadius: 6, backgroundColor: PAPER, borderWidth: 1, borderColor: PAPER_EDGE, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 8 }}>
-                <View style={{ height: 3, backgroundColor: PAPER_EDGE, borderTopLeftRadius: 6, borderTopRightRadius: 6 }} />
+              {/* Worn sheet to type on */}
+              <PaperSheet>
                 <TextInput
                   value={draft} onChangeText={setDraft} multiline autoFocus={!letter}
-                  placeholder={ru ? 'Привет. Если ты это читаешь, тебе сейчас тяжело. Помнишь, почему мы начали?..' : 'Hey. If you are reading this, it is hard right now. Remember why we started?..'}
+                  placeholder={ru ? 'привет. если ты это читаешь,\nтебе сейчас тяжело.\nпомнишь, почему мы начали?..' : 'hey. if you are reading this,\nit is hard right now.\nremember why we started?..'}
                   placeholderTextColor={INK_DIM}
                   style={{
-                    minHeight: 240, textAlignVertical: 'top', color: INK,
-                    fontSize: 17, lineHeight: 28, fontFamily: serif,
-                    paddingHorizontal: 20, paddingVertical: 18,
+                    minHeight: 260, textAlignVertical: 'top', color: INK,
+                    fontSize: 15.5, lineHeight: 27, fontFamily: mono, letterSpacing: 0.4,
+                    paddingHorizontal: 22, paddingVertical: 24,
                   }} />
-              </View>
+              </PaperSheet>
 
               <Pressable onPress={save} disabled={!draft.trim()}
                 style={({ pressed }) => ({
@@ -124,44 +177,24 @@ export default function Letter() {
             </>
           ) : letter ? (
             <>
-              {/* The letter itself — cream paper, serif ink, ruled footer, wax seal */}
-              <View style={{
-                borderRadius: 6, backgroundColor: PAPER, borderWidth: 1, borderColor: PAPER_EDGE,
-                shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 10,
-                transform: [{ rotate: '-0.6deg' }],
-              }}>
-                <View style={{ height: 3, backgroundColor: PAPER_EDGE, borderTopLeftRadius: 6, borderTopRightRadius: 6 }} />
-                <View style={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 26 }}>
-                  <Text style={{ color: INK_DIM, fontSize: 13, fontFamily: serifItalic, fontStyle: 'italic', textAlign: 'right', marginBottom: 14 }}>
+              {/* The typed page */}
+              <PaperSheet tilt={-0.5}>
+                <View style={{ paddingHorizontal: 24, paddingTop: 26, paddingBottom: 30 }}>
+                  <Text style={{ color: INK_DIM, fontSize: 12.5, fontFamily: mono, letterSpacing: 0.6, textAlign: 'right', marginBottom: 20 }}>
                     {writtenDate}
                   </Text>
-                  <Text style={{ color: INK, fontSize: 17.5, lineHeight: 30, fontFamily: serif }}>
+                  <Text style={{ color: INK, fontSize: 15.5, lineHeight: 28, fontFamily: mono, letterSpacing: 0.4 }}>
                     {letter.text}
                   </Text>
-                  {/* signature line + wax seal */}
-                  <View style={{ marginTop: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View>
-                      <View style={{ width: 120, height: 1, backgroundColor: INK_DIM + '66', marginBottom: 6 }} />
-                      <Text style={{ color: INK_DIM, fontSize: 13, fontFamily: serifItalic, fontStyle: 'italic' }}>
-                        {ru ? '— ты, в день решимости' : '— you, on the day you decided'}
-                      </Text>
-                    </View>
-                    <View style={{
-                      width: 52, height: 52, borderRadius: 26, backgroundColor: WAX,
-                      alignItems: 'center', justifyContent: 'center',
-                      borderWidth: 3, borderColor: '#9A3526',
-                      shadowColor: WAX, shadowOpacity: 0.5, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
-                      transform: [{ rotate: '8deg' }],
-                    }}>
-                      <Icon.heart size={24} color="#F3D9CF" />
-                    </View>
-                  </View>
+                  <Text style={{ color: INK, fontSize: 14, fontFamily: mono, letterSpacing: 0.6, marginTop: 30, textAlign: 'right' }}>
+                    {ru ? '— ты, в день решимости' : '— you, on the day you decided'}
+                  </Text>
                 </View>
-              </View>
+              </PaperSheet>
 
               {from === 'sos' && (
                 <Text style={{ color: t.textDim, fontSize: 14.5, lineHeight: 21, textAlign: 'center', paddingHorizontal: 10 }}>
-                  {ru ? 'Человек, который это писал, верил в тебя. Он был прав.' : 'The person who wrote this believed in you. They were right.'}
+                  {ru ? 'Человек, который это печатал, верил в тебя. Он был прав.' : 'The person who typed this believed in you. They were right.'}
                 </Text>
               )}
               <Pressable onPress={() => { Haptics.selectionAsync(); setEditing(true); }}
