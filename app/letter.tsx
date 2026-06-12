@@ -4,7 +4,7 @@
 // Visual: a typewritten page — worn, stained paper and monospaced "typed" ink
 // (reference: vintage typewriter shots).
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ScrollView, View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -91,6 +91,7 @@ export default function Letter() {
   const letter = state.profile?.futureLetter;
   const [editing, setEditing] = useState(!letter);
   const [draft, setDraft] = useState(letter?.text ?? '');
+  const lastTapRef = useRef(0); // double-tap-to-edit on the sheet
 
   async function save() {
     const text = draft.trim();
@@ -180,7 +181,14 @@ export default function Letter() {
             </>
           ) : letter ? (
             <>
-              {/* The typed page */}
+              {/* The typed page — double-tap anywhere on the sheet to edit
+                  (the «Переписать» link is below the fold on long letters) */}
+              <Pressable
+                onPress={() => {
+                  const now = Date.now();
+                  if (now - lastTapRef.current < 300) { Haptics.selectionAsync(); setEditing(true); }
+                  lastTapRef.current = now;
+                }}>
               <PaperSheet tilt={-0.5}>
                 <View style={{ paddingHorizontal: 24, paddingTop: 26, paddingBottom: 30 }}>
                   <Text style={{ color: INK_DIM, fontSize: 12.5, fontFamily: mono, letterSpacing: 0.6, textAlign: 'right', marginBottom: 20 }}>
@@ -194,6 +202,7 @@ export default function Letter() {
                   </Text>
                 </View>
               </PaperSheet>
+              </Pressable>
 
               {from === 'sos' && (
                 <Text style={{ color: t.textDim, fontSize: 14.5, lineHeight: 21, textAlign: 'center', paddingHorizontal: 10 }}>
