@@ -42,16 +42,14 @@ const FEATURES_RU = [
   { i: 'headphones' as const, t: 'Все аудиопрактики' },
   { i: 'toolbox' as const, t: 'Все техники' },
   { i: 'feather' as const, t: 'Все статьи и материалы' },
-  { i: 'pulse' as const, t: 'Аналитика паттернов тяги' },
-  { i: 'leaf' as const, t: 'Персональное сопровождение курса' },
+  { i: 'pulse' as const, t: 'Полная аналитика: триггеры, опасные часы, тренд' },
 ];
 const FEATURES_EN = [
   { i: 'spark' as const, t: 'Unlimited Breeze conversations' },
   { i: 'headphones' as const, t: 'All audio practices' },
   { i: 'toolbox' as const, t: 'All techniques' },
   { i: 'feather' as const, t: 'All articles and content' },
-  { i: 'pulse' as const, t: 'Craving pattern analytics' },
-  { i: 'leaf' as const, t: 'Personal course companion' },
+  { i: 'pulse' as const, t: 'Full analytics: triggers, risk hours, trend' },
 ];
 
 export default function Paywall() {
@@ -102,8 +100,8 @@ export default function Paywall() {
           </Text>
           <Text style={{ color: t.textDim, fontSize: 15, textAlign: 'center', lineHeight: 21, paddingHorizontal: 14 }}>
             {lang === 'ru'
-              ? 'Полный план отказа: безлимит ИИ, все программы, статьи и техники, расширенная аналитика.'
-              : 'Full quit toolkit: unlimited AI, all programs, articles and techniques, extended analytics.'}
+              ? 'Безлимит разговоров с Бризом, все аудиопрактики, техники, статьи и полная аналитика тяги.'
+              : 'Unlimited Breeze conversations, all audio practices, techniques, articles and full craving analytics.'}
           </Text>
           {premium && (
             <View style={{

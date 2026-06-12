@@ -22,13 +22,15 @@ export const ROUTE_LABELS: Record<string, { ru: string; en: string; href: string
   checkin:      { ru: 'Чек-ин дня',                  en: 'Daily check-in',         href: '/checkin' },
   method:       { ru: 'Сменить метод',                en: 'Change method',          href: '/transition' },
   meds:         { ru: 'Дневник приёма',               en: 'Med diary',              href: '/meds' },
+  sos:          { ru: 'Переждать волну (3 мин)',       en: 'Ride the wave (3 min)',  href: '/craving' },
+  audio:        { ru: 'Аудиопрактика «Когда накрыло»', en: 'Audio: when it hits',    href: '/audio/calm_now' },
 };
 
 export function extractLinks(text: string): { label: string; href: string }[] {
   const lang = currentLang();
   const found = new Set<string>();
   const result: { label: string; href: string }[] = [];
-  const re = /\[\[([a-z_]+)\]\]|\/(practice\/[a-z_]+|journal|goal|checkin|method|transition|meds)/gi;
+  const re = /\[\[([a-z_]+)\]\]|\/(practice\/[a-z_]+|journal|goal|checkin|method|transition|meds|craving)/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
     let key = (m[1] || m[2] || '').toLowerCase();
@@ -47,7 +49,7 @@ export function stripLinks(text: string): string {
     // Strip ANY [[...]] / {{...}} markers, even unknown keys.
     .replace(/\[\[[^\]\n]+\]\]/g, '')
     .replace(/\{\{[^}\n]+\}\}/g, '')
-    .replace(/\s*\/(practice\/[a-z_]+|journal|goal|checkin|method|transition|meds)\b/gi, '')
+    .replace(/\s*\/(practice\/[a-z_]+|journal|goal|checkin|method|transition|meds|craving)\b/gi, '')
     // Tidy doubled spaces / stray empty lines left after stripping.
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')

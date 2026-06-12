@@ -37,6 +37,13 @@ export default function PathTab() {
       />
       <ScrollView contentContainerStyle={{ padding: spacing.md, gap: 14, paddingBottom: 140 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
+          {/* Path is a hidden tab — tab screens have no edge-swipe back, so an
+              explicit back button is the only reliable way out. */}
+          <Pressable onPress={() => { Haptics.selectionAsync(); router.canGoBack() ? router.back() : router.replace('/(tabs)'); }} hitSlop={12}
+            accessibilityRole="button" accessibilityLabel={lang === 'ru' ? 'Назад' : 'Back'}
+            style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ transform: [{ rotate: '180deg' }] }}><Icon.arrowRight size={18} color={t.text} /></View>
+          </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={{ color: t.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.7 }}>
               {lang === 'ru' ? 'Твой путь' : 'Your path'}

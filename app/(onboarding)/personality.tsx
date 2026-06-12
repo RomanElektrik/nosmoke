@@ -152,11 +152,18 @@ export default function Personality() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
-      {/* Progress */}
+      {/* Progress + back (every onboarding step must be reversible) */}
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, gap: 8 }}>
-        <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '700', letterSpacing: 0.5 }}>
-          {tt(`Вопрос ${idx + 1} из ${QUESTIONS.length}`, `Question ${idx + 1} of ${QUESTIONS.length}`)}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Pressable hitSlop={12}
+            onPress={() => { Haptics.selectionAsync(); setStep(idx > 0 ? idx - 1 : 'intro'); }}
+            accessibilityRole="button" accessibilityLabel={tt('Назад', 'Back')}>
+            <View style={{ transform: [{ rotate: '180deg' }] }}><Icon.arrowRight size={18} color={t.textDim} /></View>
+          </Pressable>
+          <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '700', letterSpacing: 0.5 }}>
+            {tt(`Вопрос ${idx + 1} из ${QUESTIONS.length}`, `Question ${idx + 1} of ${QUESTIONS.length}`)}
+          </Text>
+        </View>
         <View style={{ height: 6, borderRadius: 6, backgroundColor: t.border, overflow: 'hidden' }}>
           <View style={{ width: `${((idx + 1) / QUESTIONS.length) * 100}%`, height: '100%', backgroundColor: '#BF5AF2', borderRadius: 6 }} />
         </View>

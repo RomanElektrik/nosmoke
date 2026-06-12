@@ -26,6 +26,9 @@ export type Profile = {
   packPrice: number;       // in user currency, default RUB
   currency: string;        // 'RUB' | 'USD' | 'EUR' | ...
   type: 'cigarette' | 'vape' | 'iqos' | 'rolling';
+  // Some people mix (cigarettes + vape) — full set from onboarding; `type`
+  // stays the primary one and keeps all existing copy/track logic working.
+  types?: ('cigarette' | 'vape' | 'iqos' | 'rolling')[];
   fagerstromScore?: number;
   triggers: Trigger[];
   motivations: Motivation[];

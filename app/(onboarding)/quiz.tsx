@@ -48,7 +48,7 @@ export default function Quiz() {
   const [packPrice, setPackPrice] = useState('220');
   const [packSize, setPackSize] = useState('20');
   const [currency, setCurrency] = useState(currentLang() === 'ru' ? 'RUB' : 'USD');
-  const [type, setType] = useState<Profile['type']>('cigarette');
+  const [types, setTypes] = useState<Profile['type'][]>(['cigarette']);
   const [morning, setMorning] = useState<0 | 1 | 2 | 3>(2);
   const [ftnd, setFtnd] = useState<Record<'q2' | 'q3' | 'q5' | 'q6', 0 | 1>>({ q2: 0, q3: 0, q5: 0, q6: 0 });
   const [triggers, setTriggers] = useState<Trigger[]>([]);
@@ -83,7 +83,9 @@ export default function Quiz() {
       cigsInPack: Number(packSize) || 20,
       packPrice: Number(packPrice) || 0,
       currency,
-      type,
+      // Primary type drives copy/tracks; the full set is kept alongside.
+      type: types[0] ?? 'cigarette',
+      types,
       fagerstromScore: fager,
       triggers,
       motivations: mots,
@@ -129,7 +131,7 @@ export default function Quiz() {
           {kind === 'perday' && (
             <NumberStep title={tr('onb.q_perday')} sub={tt(META.perday.subRu, META.perday.subEn)}
               value={perday} onChange={setPerday} accent={meta.color}
-              unit={tt('шт/день', '/day')} quick={[5, 10, 15, 20, 30]} />
+              unit={tt('шт/день', '/day')} quick={[5, 10, 15, 20, 30, 40, 60]} />
           )}
           {kind === 'pack' && (
             <View style={{ gap: 14 }}>
@@ -140,14 +142,16 @@ export default function Quiz() {
             </View>
           )}
           {kind === 'type' && (
-            <Choice title={tr('onb.q_type')} sub={tt(META.type.subRu, META.type.subEn)} accent={meta.color}
+            <Multi title={tr('onb.q_type')}
+              sub={tt('Можно выбрать несколько — многие совмещают.', 'Pick several — many people mix.')}
+              accent={meta.color}
               options={[
                 { v: 'cigarette', l: tr('onb.type_cigarette') },
                 { v: 'vape', l: tr('onb.type_vape') },
                 { v: 'iqos', l: tr('onb.type_iqos') },
                 { v: 'rolling', l: tr('onb.type_rolling') },
               ]}
-              value={type} onChange={(v) => setType(v as Profile['type'])} />
+              value={types} onChange={(v) => setTypes(v as Profile['type'][])} />
           )}
           {kind === 'health' && (
             <HealthStep age={age} onAge={setAge} flags={healthFlags} onFlags={setHealthFlags}
