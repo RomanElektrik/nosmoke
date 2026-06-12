@@ -68,6 +68,9 @@ function PaperSheet({ children, tilt = 0 }: { children: React.ReactNode; tilt?: 
   return (
     <View style={{
       borderRadius: 4, overflow: 'hidden',
+      // Bleed past the screen padding — the sheet should feel like a real
+      // full-width page, not a card.
+      marginHorizontal: -(spacing.lg - 6),
       shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 9,
       transform: [{ rotate: `${tilt}deg` }],
     }}>
