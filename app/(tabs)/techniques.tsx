@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, memo } from 'react';
 import { ScrollView, View, Text, Pressable, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -120,7 +120,7 @@ export default function Techniques() {
   return (
     <SwipeToHome>
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false} removeClippedSubviews>
         {/* Header */}
         <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: 14 }}>
           <Text style={{ color: t.text, fontSize: 34, fontWeight: '800', letterSpacing: -0.8 }}>
@@ -143,7 +143,9 @@ export default function Techniques() {
           })}
         </View>
 
-        <Animated.View key={tab} entering={FadeInDown.duration(280)} style={{ paddingHorizontal: spacing.lg, gap: 12 }}>
+        {/* No entering animation here: re-animating 13 SVG-heavy cards on every
+            tab switch made the list scroll jank. */}
+        <View style={{ paddingHorizontal: spacing.lg, gap: 12 }}>
           {tab === 'audio' && audioItems.map((p, i) => (
             <AudioCard key={p.id} p={p} openAudio={openAudio} lang={lang}
               locked={!premium && i >= FREE_PRACTICE_COUNT} />
@@ -160,7 +162,7 @@ export default function Techniques() {
               tag={lang === 'ru' ? TECH_TAGS[te.id]?.ru : TECH_TAGS[te.id]?.en}
               title={tr(te.titleKey)} sub={tr(te.summaryKey)} onPress={() => go(te)} />
           ))}
-        </Animated.View>
+        </View>
       </ScrollView>
 
       <Modal visible={!!open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(null)}>
@@ -179,7 +181,7 @@ export default function Techniques() {
 
 // Full-width voiced-session card — gradient per practice colour, name + short
 // description, play affordance. No "voice" badge (it's obviously audio here).
-function AudioCard({ p, openAudio, lang, locked }: {
+const AudioCard = memo(function AudioCard({ p, openAudio, lang, locked }: {
   p: (typeof PRACTICES)[number]; openAudio: (id: string) => void; lang: 'ru' | 'en'; locked?: boolean;
 }) {
   const tag = AUDIO_TAGS[p.id];
@@ -220,7 +222,7 @@ function AudioCard({ p, openAudio, lang, locked }: {
       </View>
     </Pressable>
   );
-}
+});
 
 function TechCard({ te, lang, tr, onOpen, onGo, locked }: {
   te: Technique; lang: 'ru' | 'en'; tr: any; onOpen: () => void; onGo: () => void; locked?: boolean;

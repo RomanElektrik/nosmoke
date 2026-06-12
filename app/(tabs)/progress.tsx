@@ -2,7 +2,8 @@
 // and the "why I'm quitting" board. Replaces the old Path tab in the pill;
 // Path itself is still reachable from the home screen.
 
-import { View, Text, Pressable, ScrollView, Image } from 'react-native';
+import { useState } from 'react';
+import { View, Text, Pressable, ScrollView, Image, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -12,12 +13,12 @@ import { useTheme, spacing, radius } from '../../lib/theme';
 import { currentLang, useTranslation } from '../../lib/i18n';
 import { useAppState, normalizeReasons, symptomTo10 } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
-import { secondsClean, MILESTONES } from '../../lib/health';
+import { secondsClean, MILESTONES, type Milestone } from '../../lib/health';
 import { moneySaved, cigsAvoided, pricePerCig, formatMoney, formatDuration, formatCigs } from '../../lib/money';
 import { rewardProgress } from '../../lib/rewards';
 import { computeInsights, triggerName, worstDayLocalized } from '../../lib/insights';
 import { plural } from '../../lib/identity';
-import { CardAura } from '../../components/CardAura';
+import { AnimatedAuraBackground } from '../../components/AnimatedAuraBackground';
 
 export default function Progress() {
   const t = useTheme();
@@ -26,6 +27,7 @@ export default function Progress() {
   const lang = currentLang();
   const ru = lang === 'ru';
   const [state] = useAppState();
+  const [openMilestone, setOpenMilestone] = useState<Milestone | null>(null);
   const p = state.profile;
   if (!p) return null;
 
@@ -54,10 +56,10 @@ export default function Progress() {
           const goalDays = hasGoal && perDay > 0 ? Math.ceil(Math.max(0, (p.goalAmount as number) - saved) / perDay) : null;
           return (
             <Pressable onPress={() => go('/goal')} style={({ pressed }) => ({ borderRadius: 28, overflow: 'hidden', opacity: pressed ? 0.96 : 1 })}>
-              {/* Native drifting blobs, not the WebView aura: this card lives in a
-                  ScrollView on a tab that never unmounts — a WebView rAF + blur
-                  loop here drains battery and judders the scroll. */}
-              <CardAura colors={['#34D399', '#0EA5E9', '#6366F1']} base="#0B3A47" />
+              {/* The same WebView iridescence as the audio player — the owner's
+                  explicit pick over the cheaper native blobs. The aura now
+                  pauses its rAF loop when the app goes to background. */}
+              <AnimatedAuraBackground auraColor="#34D399" bgColor1="#0B5563" bgColor2="#1E1B4B" />
               <View style={{ padding: 22, gap: 18 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View>
@@ -214,38 +216,31 @@ export default function Progress() {
           </Pressable>
         </Card>
 
-        {/* ───── ЗДОРОВЬЕ — ВЕХИ ВОССТАНОВЛЕНИЯ ───── */}
+        {/* ───── ЗДОРОВЬЕ — ВЕХИ ВОССТАНОВЛЕНИЯ ─────
+            Каждая веха кликабельна (модал с полным текстом и источником),
+            названия не обрезаются. */}
         <Card color="#FF453A" gid="rec">
           <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Восстановление' : 'Recovery'}</Text>
           {MILESTONES.map((m) => {
             const done = secs >= m.at;
             const I = Icon[m.icon];
             return (
-              <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Pressable key={m.id} onPress={() => { Haptics.selectionAsync(); setOpenMilestone(m); }}
+                style={({ pressed }) => ({
+                  flexDirection: 'row', alignItems: 'center', gap: 12,
+                  paddingVertical: 8, paddingHorizontal: 10, marginHorizontal: -10, borderRadius: 14,
+                  backgroundColor: pressed ? '#FFFFFF0E' : 'transparent',
+                })}>
                 <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: m.color + (done ? '26' : '14'), alignItems: 'center', justifyContent: 'center' }}>
                   <I size={19} color={done ? m.color : t.textDim} />
                 </View>
-                <Text style={{ color: done ? t.text : t.textDim, fontSize: 14.5, fontWeight: done ? '600' : '500', flex: 1 }} numberOfLines={1}>{tr(m.titleKey)}</Text>
+                <Text style={{ color: done ? t.text : t.textDim, fontSize: 14.5, fontWeight: done ? '600' : '500', flex: 1, lineHeight: 19 }}>{tr(m.titleKey)}</Text>
                 {done
                   ? <Icon.check size={18} color={m.color} />
                   : <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '600' }}>{ru ? 'через ' : 'in '}{formatDuration(m.at - secs, lang)}</Text>}
-              </View>
+              </Pressable>
             );
           })}
-        </Card>
-
-        {/* ───── СИМПТОМЫ ───── */}
-        <Card color="#FF2D78" gid="sym" onPress={() => go('/symptoms')}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 46, height: 46, borderRadius: 15, backgroundColor: '#FF2D7833', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon.chart size={23} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{ru ? 'Симптомы отмены' : 'Withdrawal symptoms'}</Text>
-              <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>{ru ? 'Что сейчас норма и когда пройдёт' : 'What\'s normal now and when it passes'}</Text>
-            </View>
-            <Text style={{ color: '#FFFFFFB0', fontSize: 20 }}>›</Text>
-          </View>
         </Card>
 
         {/* ───── ЧТО МНЕ ПОМОГАЕТ (быстрая кастомизация) ───── */}
@@ -262,6 +257,43 @@ export default function Progress() {
           </View>
         </Card>
       </ScrollView>
+
+      {/* Milestone detail — full text + source, same content as Здоровье */}
+      <Modal visible={!!openMilestone} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpenMilestone(null)}>
+        {openMilestone && (() => {
+          const m = openMilestone;
+          const done = secs >= m.at;
+          const I = Icon[m.icon];
+          const pct = Math.min(1, secs / m.at);
+          return (
+            <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+              <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: 16 }}>
+                <LinearGradient colors={[m.color + '40', m.color + '10']}
+                  style={{ width: 96, height: 96, borderRadius: 28, alignItems: 'center', justifyContent: 'center' }}>
+                  <I size={52} color={m.color} />
+                </LinearGradient>
+                <Text style={{ color: t.text, fontSize: 30, fontWeight: '700', letterSpacing: -0.6 }}>{tr(m.titleKey)}</Text>
+                <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: done ? m.color + '24' : t.border }}>
+                  <Text style={{ color: done ? m.color : t.textDim, fontSize: 12, fontWeight: '700' }}>
+                    {done ? (ru ? 'Достигнуто' : 'Reached') : `${ru ? 'через' : 'in'} ${formatDuration(m.at - secs, lang)}`}
+                  </Text>
+                </View>
+                {!done && (
+                  <View style={{ height: 8, borderRadius: 999, backgroundColor: t.border, overflow: 'hidden' }}>
+                    <View style={{ width: `${Math.round(pct * 100)}%`, height: '100%', backgroundColor: m.color, borderRadius: 999 }} />
+                  </View>
+                )}
+                <Text style={{ color: t.text, fontSize: 16, lineHeight: 24, marginTop: 4 }}>{tr(m.bodyKey)}</Text>
+                <Text style={{ color: t.textDim, fontSize: 12, marginTop: 8 }}>{tr('health.source', { src: m.source })}</Text>
+                <Pressable onPress={() => setOpenMilestone(null)}
+                  style={{ marginTop: 16, padding: 16, borderRadius: radius.xl, backgroundColor: t.accent, alignItems: 'center' }}>
+                  <Text style={{ color: '#fff', fontWeight: '600' }}>{ru ? 'Готово' : 'Done'}</Text>
+                </Pressable>
+              </ScrollView>
+            </SafeAreaView>
+          );
+        })()}
+      </Modal>
     </SafeAreaView>
   );
 }

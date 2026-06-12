@@ -113,10 +113,13 @@ export default function Home() {
               color={t.warn} icon={<Icon.toolbox size={32} color={t.warn} />}
               title={tr('tabs.techniques')}
               onPress={() => router.push('/(tabs)/techniques')} />
+            {/* «Симптомы» переехали в Прогресс (карточка «Самочувствие»);
+                здесь — Путь: экран курса скрыт из таб-бара и иначе доступен
+                только через карточку метода. */}
             <SquareCard
-              color="#FF2D78" icon={<Icon.chart size={32} color="#FF2D78" />}
-              title={lang === 'ru' ? 'Симптомы' : 'Symptoms'}
-              onPress={() => router.push('/symptoms' as any)} />
+              color="#BF5AF2" icon={<Icon.compass size={32} color="#BF5AF2" />}
+              title={lang === 'ru' ? 'Путь' : 'Path'}
+              onPress={() => router.push('/(tabs)/path')} />
           </View>
         </View>
 
@@ -350,22 +353,22 @@ function KnowledgeSection() {
           <Pressable key={a.id}
             onPress={() => router.push((locked ? '/paywall' : `/article/${a.id}`) as any)}
             style={({ pressed }) => ({
-              flexDirection: 'row', backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
-              borderRadius: radius.lg, overflow: 'hidden', opacity: pressed ? 0.85 : 1,
+              backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border,
+              borderRadius: radius.lg, overflow: 'hidden', opacity: pressed ? 0.9 : 1,
             })}>
             {img
-              ? <Image source={img} style={{ width: 96, height: 96 }} resizeMode="cover" />
-              : <View style={{ width: 96, height: 96, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
-                  <I size={32} color={a.color} />
+              ? <Image source={img} style={{ width: '100%', height: 210 }} resizeMode="cover" />
+              : <View style={{ width: '100%', height: 210, backgroundColor: a.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
+                  <I size={48} color={a.color} />
                 </View>}
-            <View style={{ flex: 1, padding: 12, justifyContent: 'center' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', letterSpacing: -0.2, flex: 1 }} numberOfLines={2}>
+            <View style={{ padding: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ color: t.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.3, flex: 1 }} numberOfLines={2}>
                   {lang === 'ru' ? a.titleRu : a.titleEn}
                 </Text>
-                {locked && <Icon.star size={13} color="#FFD60A" />}
+                {locked && <Icon.star size={15} color="#FFD60A" />}
               </View>
-              <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 3, lineHeight: 17 }} numberOfLines={2}>
+              <Text style={{ color: t.textDim, fontSize: 13, marginTop: 4, lineHeight: 19 }} numberOfLines={2}>
                 {lang === 'ru' ? a.leadRu : a.leadEn}
               </Text>
             </View>
