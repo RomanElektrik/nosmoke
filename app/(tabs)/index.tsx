@@ -108,7 +108,7 @@ export default function Home() {
             <SquareCard
               color={t.info} icon={<Icon.chat size={32} color={t.info} />}
               title={lang === 'ru' ? 'Помощник' : 'AI coach'}
-              onPress={() => router.push('/chat?mode=support' as any)} />
+              onPress={() => router.push('/(tabs)/coach')} />
             <SquareCard
               color={t.warn} icon={<Icon.toolbox size={32} color={t.warn} />}
               title={tr('tabs.techniques')}
