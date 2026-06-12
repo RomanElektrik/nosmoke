@@ -92,6 +92,8 @@ export type Profile = {
   // Gentle in-app honesty check ("holding / smoked?") — last time we asked, so
   // we ask at most once every few days instead of nagging daily.
   lastStatusCheckAt?: number;
+  // Long-term coach memory: durable facts distilled from chats (lib/aiMemory).
+  aiFacts?: { text: string; ts: number }[];
   // «Письмо себе» — a time capsule written on a strong day, shown back in SOS
   // when the craving hits (Marlatt: motivation recall at the moment of risk).
   futureLetter?: { text: string; createdAt: number };

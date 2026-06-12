@@ -14,6 +14,7 @@ import { getPersona } from '../lib/personas';
 import { Icon, type IconKey } from '../components/Icon';
 import { FREE_AI_DAILY_LIMIT, aiRemainingToday, todayKey, usePremium } from '../lib/subscription';
 import { extractLinks, stripLinks } from '../lib/aiLinks';
+import { extractFacts, EXTRACT_EVERY_N_USER_MSGS } from '../lib/aiMemory';
 
 const MODE_META: Record<CoachMode, { icon: IconKey; color: string; ru: string; en: string }> = {
   support:      { icon: 'chat',    color: '#0A84FF', ru: 'Поддержи сейчас', en: 'Support now' },
@@ -126,6 +127,12 @@ export default function ChatScreen() {
       const final = [...next, { role: 'assistant' as const, content: reply || '…' }];
       setHistory(final);
       await persist(final);
+      // Long-term memory: every Nth user message, quietly distill durable
+      // facts (names, what helps…) so Breeze remembers across sessions.
+      const userMsgCount = final.filter((m) => m.role === 'user').length;
+      if (userMsgCount % EXTRACT_EVERY_N_USER_MSGS === 0) {
+        extractFacts(state, final); // fire-and-forget
+      }
       if (!premium) {
         await update((s) => {
           const day = todayKey();

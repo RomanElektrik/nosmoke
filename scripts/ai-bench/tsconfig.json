@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": false,
+    "jsx": "react-jsx",
+    "baseUrl": "../..",
+    "paths": {
+      "react-native": ["scripts/ai-bench/mocks.js"],
+      "react-native-svg": ["scripts/ai-bench/mocks.js"],
+      "@react-native-async-storage/async-storage": ["scripts/ai-bench/mocks.js"],
+      "@expo/vector-icons": ["scripts/ai-bench/mocks.js"],
+      "expo-audio": ["scripts/ai-bench/mocks.js"],
+      "expo-file-system": ["scripts/ai-bench/mocks.js"],
+      "expo-file-system/legacy": ["scripts/ai-bench/mocks.js"]
+    }
+  }
+}
