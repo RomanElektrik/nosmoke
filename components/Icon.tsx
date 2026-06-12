@@ -17,6 +17,14 @@ const wrap = (children: any, size = 24) => (
 const stroke = (color: string, w = 1.7) => ({ stroke: color, strokeWidth: w, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' });
 
 export const Icon = {
+  // Sealed envelope with a heart on the flap — «Письмо себе».
+  letter: ({ size = 24, color = '#FFD60A' }: Props) => wrap(
+    <G {...stroke(color)}>
+      <Rect x="3" y="6" width="18" height="13" rx="2.5" />
+      <Path d="M3.6 7.2 12 13l8.4-5.8" />
+      <Path d="M12 10.6s-1.9-1.3-1.9-2.6a1.1 1.1 0 0 1 1.9-.74 1.1 1.1 0 0 1 1.9.74c0 1.3-1.9 2.6-1.9 2.6Z" fill={color} strokeWidth={0.9} />
+    </G>, size),
+
   heart: ({ size = 24, color = '#FF453A' }: Props) => wrap(
     <Path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10Z" {...stroke(color)} />, size),
 

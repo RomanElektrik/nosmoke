@@ -116,7 +116,7 @@ export default function Home() {
             {/* «Письмо себе» — капсула времени: пишется в сильный день,
                 читается в слабый (SOS показывает её в момент тяги). */}
             <SquareCard
-              color="#FFD60A" icon={<Icon.feather size={32} color="#FFD60A" />}
+              color="#FFD60A" icon={<Icon.letter size={32} color="#FFD60A" />}
               title={lang === 'ru' ? 'Письмо себе' : 'My letter'}
               onPress={() => router.push('/letter' as any)} />
           </View>

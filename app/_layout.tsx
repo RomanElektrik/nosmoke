@@ -141,7 +141,8 @@ export default function Root() {
         <Stack.Screen name="coping" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="insights" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         <Stack.Screen name="reasons" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
-        <Stack.Screen name="letter" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
+        {/* Regular push (not a bottom sheet) so the iOS edge-swipe-back works */}
+        <Stack.Screen name="letter" />
       </Stack>
     </GestureHandlerRootView>
   );

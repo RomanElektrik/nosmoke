@@ -115,7 +115,7 @@ export default function Craving() {
 
               {/* «Письмо себе»: написано в сильный день — читается сейчас */}
               {!!state.profile?.futureLetter && (
-                <ContextRow t={t} icon={Icon.feather} color="#FFD60A"
+                <ContextRow t={t} icon={Icon.letter} color="#FFD60A"
                   title={ru ? 'Прочитай письмо от себя' : 'Read the letter from yourself'}
                   sub={ru ? 'Ты написал его в день, когда решил бросить' : 'You wrote it the day you decided to quit'}
                   onPress={() => router.push('/letter?from=sos' as any)} />
