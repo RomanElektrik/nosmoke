@@ -641,6 +641,7 @@ export const ARTICLE_IMAGES: Record<string, any> = {
   'body-weight':   require('../assets/articles/body-weight.png'),
   'body-vape':     require('../assets/articles/body-vape.png'),
   'meds-overview': require('../assets/articles/meds-overview.png'),
+  'mot-money':     require('../assets/articles/money-drain.png'),
 };
 
 // Natural aspect ratio of an article image — so the card matches the picture
