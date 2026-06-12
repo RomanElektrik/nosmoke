@@ -18,7 +18,10 @@ export default function Health() {
   const [state] = useAppState();
   const lang = currentLang();
   const [now, setNow] = useState(Date.now());
+  // Keep the milestone mounted while the sheet animates closed — nulling it
+  // blanked the modal mid-slide (white flash).
   const [open, setOpen] = useState<Milestone | null>(null);
+  const [sheetVisible, setSheetVisible] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60000);
@@ -62,7 +65,7 @@ export default function Health() {
             <View style={{ paddingHorizontal: spacing.lg, gap: 10 }}>
               {reached.map((m) => (
                 <ReachedCard key={m.id} m={m} tr={tr}
-                  onPress={() => { Haptics.selectionAsync(); setOpen(m); }} />
+                  onPress={() => { Haptics.selectionAsync(); setOpen(m); setSheetVisible(true); }} />
               ))}
             </View>
           </Animated.View>
@@ -75,15 +78,15 @@ export default function Health() {
             <View style={{ paddingHorizontal: spacing.lg, gap: 10 }}>
               {future.map((m) => (
                 <FutureCard key={m.id} m={m} secs={secs} lang={lang} tr={tr}
-                  onPress={() => { Haptics.selectionAsync(); setOpen(m); }} />
+                  onPress={() => { Haptics.selectionAsync(); setOpen(m); setSheetVisible(true); }} />
               ))}
             </View>
           </Animated.View>
         )}
       </ScrollView>
 
-      <Modal visible={!!open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(null)}>
-        {open && <DetailSheet m={open} secs={secs} lang={lang} onClose={() => setOpen(null)} />}
+      <Modal visible={sheetVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSheetVisible(false)}>
+        {open && <DetailSheet m={open} secs={secs} lang={lang} onClose={() => setSheetVisible(false)} />}
       </Modal>
     </SafeAreaView>
     </SwipeToHome>

@@ -18,7 +18,6 @@ import { moneySaved, cigsAvoided, pricePerCig, formatMoney, formatDuration, form
 import { rewardProgress } from '../../lib/rewards';
 import { computeInsights, triggerName, worstDayLocalized } from '../../lib/insights';
 import { plural } from '../../lib/identity';
-import { AnimatedAuraBackground } from '../../components/AnimatedAuraBackground';
 
 export default function Progress() {
   const t = useTheme();
@@ -27,7 +26,13 @@ export default function Progress() {
   const lang = currentLang();
   const ru = lang === 'ru';
   const [state] = useAppState();
+  // Milestone data stays mounted while the sheet slides away — nulling it on
+  // close blanked the modal mid-animation (white flash). `msVisible` drives the
+  // Modal; `openMilestone` only ever gets replaced, never nulled on close.
   const [openMilestone, setOpenMilestone] = useState<Milestone | null>(null);
+  const [msVisible, setMsVisible] = useState(false);
+  const showMilestone = (m: Milestone) => { setOpenMilestone(m); setMsVisible(true); };
+  const hideMilestone = () => setMsVisible(false);
   const p = state.profile;
   if (!p) return null;
 
@@ -56,10 +61,11 @@ export default function Progress() {
           const goalDays = hasGoal && perDay > 0 ? Math.ceil(Math.max(0, (p.goalAmount as number) - saved) / perDay) : null;
           return (
             <Pressable onPress={() => go('/goal')} style={({ pressed }) => ({ borderRadius: 28, overflow: 'hidden', opacity: pressed ? 0.96 : 1 })}>
-              {/* The same WebView iridescence as the audio player — the owner's
-                  explicit pick over the cheaper native blobs. The aura now
-                  pauses its rAF loop when the app goes to background. */}
-              <AnimatedAuraBackground auraColor="#34D399" bgColor1="#0B5563" bgColor2="#1E1B4B" />
+              {/* Static gradient — same card language as the rest of Progress
+                  (the animated iridescence was tried and rolled back). */}
+              <LinearGradient colors={['#34D39940', '#13171E', '#0F131A']} locations={[0, 0.6, 1]}
+                start={{ x: 0.1, y: 0 }} end={{ x: 1, y: 1 }}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
               <View style={{ padding: 22, gap: 18 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View>
@@ -225,7 +231,7 @@ export default function Progress() {
             const done = secs >= m.at;
             const I = Icon[m.icon];
             return (
-              <Pressable key={m.id} onPress={() => { Haptics.selectionAsync(); setOpenMilestone(m); }}
+              <Pressable key={m.id} onPress={() => { Haptics.selectionAsync(); showMilestone(m); }}
                 style={({ pressed }) => ({
                   flexDirection: 'row', alignItems: 'center', gap: 12,
                   paddingVertical: 8, paddingHorizontal: 10, marginHorizontal: -10, borderRadius: 14,
@@ -259,7 +265,7 @@ export default function Progress() {
       </ScrollView>
 
       {/* Milestone detail — full text + source, same content as Здоровье */}
-      <Modal visible={!!openMilestone} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpenMilestone(null)}>
+      <Modal visible={msVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={hideMilestone}>
         {openMilestone && (() => {
           const m = openMilestone;
           const done = secs >= m.at;
@@ -285,7 +291,7 @@ export default function Progress() {
                 )}
                 <Text style={{ color: t.text, fontSize: 16, lineHeight: 24, marginTop: 4 }}>{tr(m.bodyKey)}</Text>
                 <Text style={{ color: t.textDim, fontSize: 12, marginTop: 8 }}>{tr('health.source', { src: m.source })}</Text>
-                <Pressable onPress={() => setOpenMilestone(null)}
+                <Pressable onPress={hideMilestone}
                   style={{ marginTop: 16, padding: 16, borderRadius: radius.xl, backgroundColor: t.accent, alignItems: 'center' }}>
                   <Text style={{ color: '#fff', fontWeight: '600' }}>{ru ? 'Готово' : 'Done'}</Text>
                 </Pressable>
