@@ -21,6 +21,7 @@ import { scheduleQuitProgram } from '../../lib/notifications';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
 import { ARTICLES, ARTICLE_IMAGES } from '../../lib/articles';
 import { usePremium, FREE_ARTICLE_COUNT } from '../../lib/subscription';
+import { TourAnchor, useTour } from '../../components/Tour';
 
 export default function Home() {
   const t = useTheme();
@@ -33,11 +34,21 @@ export default function Home() {
   // to re-check the pending-method auto-activation below.
   const [now, setNow] = useState(Date.now());
   const [unlockQueue, setUnlockQueue] = useState<string[]>([]);
+  const tour = useTour();
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(id);
   }, []);
+
+  // First-run guided tour: starts once, after onboarding, when Home is settled
+  // enough for anchors to have measured. Persisted via tourV1Done.
+  useEffect(() => {
+    if (!tour) return;
+    if (!state.profile?.onboardingComplete || state.tourV1Done) return;
+    const id = setTimeout(() => tour.start(), 700);
+    return () => clearTimeout(id);
+  }, [tour, state.profile?.onboardingComplete, state.tourV1Done]);
 
   // Detect & persist newly unlocked achievements, queue them for celebration.
   useEffect(() => {
@@ -98,12 +109,15 @@ export default function Home() {
         </Text>
 
         {/* Live ticking region (counter + money) — isolated with its own timer */}
-        <LiveHero p={p} lang={lang} localeStr={localeStr} />
+        <TourAnchor anchorKey="home.hero">
+          <LiveHero p={p} lang={lang} localeStr={localeStr} />
+        </TourAnchor>
 
         {/* Primary navigation — 3 tiles in one row inside a shared container
             with dividers, so they read as a single block (not floating icons).
             «Путь» reachable from the Path tab below — no need to duplicate here. */}
-        <View style={{ marginTop: 12, backgroundColor: t.bgElev, borderRadius: radius.xl, borderWidth: 1, borderColor: t.border, paddingVertical: 14, paddingHorizontal: 6, overflow: 'hidden' }}>
+        <TourAnchor anchorKey="home.tools" style={{ marginTop: 12 }}>
+        <View style={{ backgroundColor: t.bgElev, borderRadius: radius.xl, borderWidth: 1, borderColor: t.border, paddingVertical: 14, paddingHorizontal: 6, overflow: 'hidden' }}>
           <View style={{ flexDirection: 'row' }}>
             <SquareCard
               color={t.info} icon={<Icon.chat size={32} color={t.info} />}
@@ -121,6 +135,7 @@ export default function Home() {
               onPress={() => router.push('/letter' as any)} />
           </View>
         </View>
+        </TourAnchor>
 
         {/* Relapse-aware: if smoking most days, gently offer an honest restart */}
         <RelapseCard />

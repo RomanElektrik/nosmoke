@@ -188,6 +188,7 @@ export type AppState = {
   aiUsage?: { date: string; count: number };   // free-tier AI counter — resets daily
   symptoms?: SymptomLog[];                     // weekly body-recovery survey
   identityLog?: string[];                      // localDateKey[] of identity affirmations — never punishes
+  tourV1Done?: boolean;                        // first-run in-app guided tour seen
 };
 
 // Messenger-style chat threads. Each thread has a persona (coach character)

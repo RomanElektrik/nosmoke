@@ -10,6 +10,7 @@ import { computeInsights } from '../lib/insights';
 import * as Notifications from 'expo-notifications';
 import { scheduleCravingNudge, scheduleQuitProgram, scheduleMedicationDoses, scheduleWeeklyReflection } from '../lib/notifications';
 import { currentLang } from '../lib/i18n';
+import { TourProvider } from '../components/Tour';
 import '../lib/i18n';
 
 export default function Root() {
@@ -102,6 +103,7 @@ export default function Root() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: t.bg }}>
       <StatusBar style="auto" />
+      <TourProvider>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -142,6 +144,7 @@ export default function Root() {
         {/* Regular push (not a bottom sheet) so the iOS edge-swipe-back works */}
         <Stack.Screen name="letter" />
       </Stack>
+      </TourProvider>
     </GestureHandlerRootView>
   );
 }

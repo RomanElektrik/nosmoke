@@ -7,6 +7,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../../lib/theme';
 import { useTranslation } from '../../lib/i18n';
 import { Icon } from '../../components/Icon';
+import { TourAnchor } from '../../components/Tour';
 
 // Tabs shown in the floating pill, in order. The SOS button is injected in
 // the centre between index 1 (path) and index 2 (awards).
@@ -53,6 +54,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
       pointerEvents="box-none"
       style={{ position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center' }}
     >
+      <TourAnchor anchorKey="tab.bar" style={{ alignSelf: 'stretch' }} pointerEvents="box-none">
       <View
         style={{
           flexDirection: 'row',
@@ -77,6 +79,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
         {renderTab(PILL_TABS[1])}
 
         {/* SOS button — large, overflows the pill evenly top and bottom */}
+        <TourAnchor anchorKey="tab.sos" style={{ flex: 1 }}>
         <Pressable
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -100,10 +103,12 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
             </Text>
           </View>
         </Pressable>
+        </TourAnchor>
 
         {renderTab(PILL_TABS[2])}
         {renderTab(PILL_TABS[3])}
       </View>
+      </TourAnchor>
     </View>
   );
 }

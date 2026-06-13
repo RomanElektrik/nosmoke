@@ -54,6 +54,12 @@ export default function Profile() {
           </View>
         </GlassCard>
 
+        <LinkRow icon="compass" label={lang === 'ru' ? 'Гид по приложению' : 'App tour'}
+          onPress={async () => {
+            await update((s) => ({ ...s, tourV1Done: false }));
+            router.replace('/(tabs)');
+          }} />
+
         <LinkRow icon="shield" label={lang === 'ru' ? 'Политика конфиденциальности' : 'Privacy policy'}
           onPress={() => Linking.openURL(PRIVACY_URL)} />
         <LinkRow icon="feather" label={lang === 'ru' ? 'Условия использования' : 'Terms of use'}
