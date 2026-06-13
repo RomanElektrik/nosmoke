@@ -15,8 +15,10 @@ const path = require('path');
 const SHOP_ID = process.env.BRIZ_YOOKASSA_SHOP_ID || '1382668';
 const SECRET_KEY = process.env.BRIZ_YOOKASSA_SECRET_KEY || '';
 const YK_URL = 'https://api.yookassa.ru/v3/payments';
-const YK_REFUNDS_URL = 'https://api.yookassa.ru/v3/refunds';
-const REFUND_WINDOW_MS = 14 * 86400_000; // самообслуживание-возврат доступен 14 дней после оплаты
+// Возврат денег — НЕ самообслуживанием (как в App Store / Netflix / Spotify):
+// отмена не возвращает текущий период, возврат только по запросу на поддержку и
+// вручную. Но если возврат всё-таки одобрен (через ЮKassa/банк) — премиум снимаем
+// автоматически (reverify ниже). Кнопки «вернуть деньги» в приложении нет.
 const STORE = path.join(__dirname, 'data', 'briz-subs.json');
 const RETURN_URL = process.env.BRIZ_RETURN_URL || 'https://breezapp.ru/pay-ok.html';
 const LIFETIME_UNTIL = 4102444800000; // 2100-01-01 — отображаемая «дата» для навсегда
@@ -177,20 +179,6 @@ function refundedValue(pay) {
   return Number.isFinite(n) ? n : 0;
 }
 
-// Создать возврат в ЮKassa. Idempotence-Key привязан к платежу — повторный тап
-// не делает второй возврат.
-async function ykRefund(paymentId, amount) {
-  const r = await fetch(YK_REFUNDS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Idempotence-Key': 'refund-' + paymentId, 'Authorization': basicAuth() },
-    body: JSON.stringify({ payment_id: paymentId, amount }),
-  });
-  const text = await r.text();
-  let json = null; try { json = JSON.parse(text); } catch {}
-  if (!r.ok) { const e = new Error('YK refund: ' + String((json && json.description) || text).slice(0, 300)); e.status = r.status; throw e; }
-  return json;
-}
-
 // При опросе статуса перепроверяем в ЮKassa, не отрефанжен ли платёж, — чтобы
 // премиум снимался САМ после возврата, даже если вебхук не настроен. Троттлинг
 // 10 мин/устройство, ошибки сети глушим (премиум не трогаем).
@@ -286,41 +274,6 @@ module.exports = function attach(app) {
     res.json(statusOf(d));
   });
 
-  // Самообслуживание-возврат: возвращаем деньги на карту через ЮKassa и снимаем
-  // премиум. Только своё устройство, только в окне 14 дней, идемпотентно.
-  app.post('/api/briz/refund', async (req, res) => {
-    try {
-      if (!SHOP_ID || !SECRET_KEY) return res.status(503).json({ error: 'not configured' });
-      const { deviceId } = req.body || {};
-      if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
-      const s = subs[deviceId];
-      const pid = lastPaymentOf(s);
-      if (!s || !pid) return res.status(400).json({ error: 'no_payment' });
-      if (!(s.lifetime || s.paidUntil > Date.now())) return res.status(400).json({ error: 'no_active' });
-
-      let pay;
-      try { pay = await ykGet(pid); }
-      catch { return res.status(503).json({ error: 'yk_unavailable' }); }
-      if (!pay || pay.status !== 'succeeded' || !pay.paid) return res.status(400).json({ error: 'not_refundable' });
-
-      // Уже возвращён ранее → просто снять премиум (идемпотентно).
-      if (refundedValue(pay) > 0) { revoke(deviceId); return res.json({ ok: true, ...statusOf(deviceId) }); }
-
-      // Окно автоматического возврата.
-      const paidAt = Date.parse(pay.captured_at || pay.created_at || '') || 0;
-      if (paidAt && Date.now() - paidAt > REFUND_WINDOW_MS) return res.status(400).json({ error: 'window_expired' });
-
-      try { await ykRefund(pay.id, pay.amount); }
-      catch (e) { return res.status(e.status || 502).json({ error: 'refund_failed', detail: e.message }); }
-
-      revoke(deviceId);
-      res.json({ ok: true, ...statusOf(deviceId) });
-    } catch (e) {
-      console.error('[briz] refund:', e.message);
-      res.status(500).json({ error: e.message });
-    }
-  });
-
   // Webhook — НЕ доверяет телу: берёт id и перепроверяет в ЮKassa.
   // payment.succeeded → начисляем; refund.succeeded → снимаем премиум.
   app.post('/api/briz/webhook', async (req, res) => {
@@ -397,5 +350,5 @@ module.exports = function attach(app) {
     }
   });
 
-  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /refund · /restore · /unbind · GET /sub/:id (auto-reverify) · POST /webhook');
+  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · GET /sub/:id (auto-reverify) · POST /webhook');
 };

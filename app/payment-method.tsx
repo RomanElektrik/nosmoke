@@ -1,9 +1,10 @@
 // Способ оплаты и управление подпиской: статус, отвязка карты (для рекуррента),
-// и самообслуживание-возврат денег. Никаких карт-образцов — только то, что есть
-// на самом деле, чтобы экран не противоречил реальности.
+// запрос возврата. Возврат — НЕ самообслуживанием (как в App Store / Netflix):
+// отмена не возвращает текущий период, деньги — только по запросу на поддержку,
+// вручную. Если возврат одобрят — премиум снимется сам при проверке статуса.
 
 import { useState } from 'react';
-import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -12,7 +13,7 @@ import { currentLang } from '../lib/i18n';
 import { update, useAppState } from '../lib/storage';
 import { usePremium } from '../lib/subscription';
 import { Icon } from '../components/Icon';
-import { unbindCard, requestRefund } from '../lib/billing';
+import { unbindCard, getDeviceId } from '../lib/billing';
 
 const SUPPORT = 'istrelkov829@gmail.com';
 
@@ -53,46 +54,16 @@ export default function PaymentMethod() {
       ru ? 'Автосписаний по этой карте больше не будет.' : 'No more automatic charges on this card.');
   }
 
-  function confirmRefund() {
+  async function requestRefund() {
     Haptics.selectionAsync();
-    Alert.alert(
-      ru ? 'Вернуть деньги за подписку?' : 'Refund your subscription?',
-      ru ? 'Мы вернём оплату на твою карту, а Премиум отключится. Деньги приходят за несколько дней.'
-         : 'We refund your card and turn Premium off. The money arrives within a few days.',
-      [
-        { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
-        { text: ru ? 'Вернуть деньги' : 'Refund', style: 'destructive', onPress: doRefund },
-      ],
+    const id = await getDeviceId().catch(() => '');
+    const subject = encodeURIComponent(ru ? 'Бриз — запрос на возврат' : 'Breeze — refund request');
+    const body = encodeURIComponent(
+      (ru
+        ? 'Здравствуйте! Прошу рассмотреть возврат за подписку Премиум.\n\nПричина: \n'
+        : 'Hi! Please consider a refund for my Premium subscription.\n\nReason: \n') + `\nID: ${id}`,
     );
-  }
-
-  async function doRefund() {
-    setBusy(true);
-    try {
-      await requestRefund();
-      await update((s) => ({ ...s, premiumUntil: 0, boundCard: null }));
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        ru ? 'Возврат отправлен' : 'Refund sent',
-        ru ? 'Деньги вернутся на ту же карту в течение нескольких дней. Премиум отключён.'
-           : 'The money returns to your card within a few days. Premium is off.',
-      );
-    } catch (e: any) {
-      const msg = String(e?.message || '');
-      if (msg.includes('window_expired')) {
-        Alert.alert(ru ? 'Срок авто-возврата истёк' : 'Auto-refund window passed',
-          ru ? `С оплаты прошло больше 14 дней. Напиши на ${SUPPORT} — вернём вручную.`
-             : `More than 14 days since payment. Email ${SUPPORT} — we will refund manually.`);
-      } else if (msg.includes('no_payment') || msg.includes('no_active')) {
-        Alert.alert(ru ? 'Активной оплаты нет' : 'No active payment',
-          ru ? 'Не нашли оплату для возврата на этом устройстве.' : 'No payment found to refund on this device.');
-      } else {
-        Alert.alert(ru ? 'Не получилось автоматически' : 'Could not refund automatically',
-          ru ? `Напиши на ${SUPPORT} — вернём деньги вручную.` : `Email ${SUPPORT} — we will refund manually.`);
-      }
-    } finally {
-      setBusy(false);
-    }
+    Linking.openURL(`mailto:${SUPPORT}?subject=${subject}&body=${body}`);
   }
 
   return (
@@ -109,7 +80,7 @@ export default function PaymentMethod() {
             {ru ? 'Подписка' : 'Subscription'}
           </Text>
           <Text style={{ color: t.textDim, fontSize: 14, marginTop: 6, lineHeight: 20 }}>
-            {ru ? 'Статус, способ оплаты и возврат денег — всё здесь.'
+            {ru ? 'Статус, способ оплаты и возврат — всё здесь.'
                 : 'Status, payment method and refunds — all here.'}
           </Text>
         </View>
@@ -187,25 +158,24 @@ export default function PaymentMethod() {
           </View>
         )}
 
-        {/* Возврат денег — самообслуживание */}
+        {/* Запрос возврата — письмом на поддержку (вручную) */}
         {premium && (
-          <Pressable onPress={confirmRefund} disabled={busy}
+          <Pressable onPress={requestRefund}
             style={{
               padding: 16, borderRadius: radius.lg, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 10,
-              backgroundColor: t.danger + '14', borderWidth: 1, borderColor: t.danger + '55',
+              backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
             }}>
-            {busy && <ActivityIndicator color={t.danger} />}
-            <Icon.wallet size={18} color={t.danger} />
-            <Text style={{ color: t.danger, fontSize: 16, fontWeight: '700' }}>
-              {ru ? 'Вернуть деньги за подписку' : 'Refund subscription'}
+            <Icon.feather size={18} color={t.textDim} />
+            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>
+              {ru ? 'Запросить возврат' : 'Request a refund'}
             </Text>
           </Pressable>
         )}
 
         <Text style={{ color: t.textDim, fontSize: 12, lineHeight: 18, paddingHorizontal: 2 }}>
           {ru
-            ? `Возврат доступен в течение 14 дней после оплаты — деньги вернутся на ту же карту, Премиум отключится. Если получил возврат через банк или ЮKassa — Премиум снимется автоматически. Вопросы: ${SUPPORT}.`
-            : `Refunds are available within 14 days of payment — the money returns to the same card and Premium turns off. If you got a refund via your bank or YooKassa, Premium is revoked automatically. Questions: ${SUPPORT}.`}
+            ? `Отмена подписки не возвращает деньги за уже оплаченный период — доступ просто сохранится до его конца. Возврат рассматривается по запросу на ${SUPPORT} в соответствии с законом. Если возврат одобрят — Премиум отключится автоматически.`
+            : `Cancelling does not refund the already-paid period — access simply stays until it ends. Refunds are reviewed on request at ${SUPPORT} as required by law. If a refund is approved, Premium turns off automatically.`}
         </Text>
       </ScrollView>
     </SafeAreaView>

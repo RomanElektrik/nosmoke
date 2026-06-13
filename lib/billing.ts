@@ -81,16 +81,10 @@ export async function unbindCard(): Promise<SubStatus> {
   return postJson('/unbind', { deviceId });
 }
 
-// Отменить подписку на этом устройстве (снимает премиум — напр. после возврата).
+// Отвязать карту / остановить автопродление на этом устройстве (для рекуррента).
+// Возврат денег — НЕ здесь: только по запросу на поддержку (вручную). Если возврат
+// одобрят через ЮKassa — премиум снимется сам при следующей проверке статуса.
 export async function cancelSubscription(): Promise<SubStatus> {
   const deviceId = await getDeviceId();
   return postJson('/forget', { deviceId });
-}
-
-// Запросить возврат денег за последнюю оплату (самообслуживание, окно 14 дней).
-// Сервер делает реальный возврат через ЮKassa и снимает премиум. При ошибке
-// бросает Error с кодом в message: window_expired | no_payment | no_active | refund_failed.
-export async function requestRefund(): Promise<{ ok: boolean } & Partial<SubStatus>> {
-  const deviceId = await getDeviceId();
-  return postJson('/refund', { deviceId });
 }
