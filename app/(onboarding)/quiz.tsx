@@ -14,11 +14,11 @@ import { update } from '../../lib/storage';
 const tt = (ru: string, en: string) => (currentLang() === 'ru' ? ru : en);
 
 type StepKind =
-  | 'years' | 'perday' | 'pack' | 'type' | 'health'
+  | 'years' | 'perday' | 'pack' | 'health'
   | 'morning' | 'ftnd' | 'triggers' | 'motivation' | 'method';
 
 const STEPS: StepKind[] = [
-  'years', 'perday', 'pack', 'type', 'health',
+  'years', 'perday', 'pack', 'health',
   'morning', 'ftnd', 'triggers', 'motivation', 'method',
 ];
 
@@ -27,7 +27,6 @@ const META: Record<StepKind, { icon: IconKey; color: string; subRu: string; subE
   years:      { icon: 'fire',   color: '#FF9500', subRu: 'Без осуждения. Просто чтобы понять твою историю.', subEn: 'No judgement. Just to understand your story.' },
   perday:     { icon: 'flame',  color: '#FF453A', subRu: 'Честная цифра поможет точнее посчитать прогресс.',  subEn: 'An honest number makes your progress accurate.' },
   pack:       { icon: 'sparkle',color: '#30D158', subRu: 'Скоро ты увидишь, сколько денег возвращается тебе.', subEn: 'Soon you will see the money coming back to you.' },
-  type:       { icon: 'wind',   color: '#5AC8FA', subRu: 'Сигареты, вейп или IQOS — подход немного разный.',  subEn: 'Cigarettes, vape or IQOS — the approach differs.' },
   health:     { icon: 'heart',  color: '#FF453A', subRu: 'Чтобы безопасно подобрать метод именно под тебя.',  subEn: 'So we can pick a method that is safe for you.' },
   morning:    { icon: 'bolt',   color: '#FF9F0A', subRu: 'Утренняя сигарета многое говорит о зависимости.',   subEn: 'The morning cigarette reveals a lot about dependence.' },
   ftnd:       { icon: 'gauge',  color: '#FF9F0A', subRu: 'Четыре коротких «да/нет» — и метод подберётся точнее.', subEn: 'Four quick yes/no — for a more precise method match.' },
@@ -47,7 +46,6 @@ export default function Quiz() {
   const [packPrice, setPackPrice] = useState('220');
   const [packSize, setPackSize] = useState('20');
   const [currency, setCurrency] = useState(currentLang() === 'ru' ? 'RUB' : 'USD');
-  const [types, setTypes] = useState<Profile['type'][]>(['cigarette']);
   const [morning, setMorning] = useState<0 | 1 | 2 | 3>(2);
   const [ftnd, setFtnd] = useState<Record<'q2' | 'q3' | 'q5' | 'q6', 0 | 1>>({ q2: 0, q3: 0, q5: 0, q6: 0 });
   const [triggers, setTriggers] = useState<Trigger[]>([]);
@@ -81,9 +79,8 @@ export default function Quiz() {
       cigsInPack: Number(packSize) || 20,
       packPrice: Number(packPrice) || 0,
       currency,
-      // Primary type drives copy/tracks; the full set is kept alongside.
-      type: types[0] ?? 'cigarette',
-      types,
+      // App targets cigarette smokers — type is no longer asked, fixed default.
+      type: 'cigarette',
       fagerstromScore: fager,
       triggers,
       motivations: mots,
@@ -140,18 +137,6 @@ export default function Quiz() {
               <Field label={tr('onb.q_pack_size')} value={packSize} onChange={setPackSize} />
               <Field label={tr('onb.q_currency')} value={currency} onChange={setCurrency} keyboard="default" />
             </View>
-          )}
-          {kind === 'type' && (
-            <Multi title={tr('onb.q_type')}
-              sub={tt('Можно выбрать несколько — многие совмещают.', 'Pick several — many people mix.')}
-              accent={meta.color}
-              options={[
-                { v: 'cigarette', l: tr('onb.type_cigarette') },
-                { v: 'vape', l: tr('onb.type_vape') },
-                { v: 'iqos', l: tr('onb.type_iqos') },
-                { v: 'rolling', l: tr('onb.type_rolling') },
-              ]}
-              value={types} onChange={(v) => setTypes(v as Profile['type'][])} />
           )}
           {kind === 'health' && (
             <HealthStep age={age} onAge={setAge} flags={healthFlags} onFlags={setHealthFlags}
