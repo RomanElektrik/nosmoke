@@ -69,9 +69,10 @@ const FEATURES_EN: Feature[] = [
   { i: 'feather', c: '#FF375F', t: 'All content', d: 'Every article, unrestricted' },
 ];
 
-// Brand gradient — «бриз»: green → teal. Deep enough that white text on it
-// stays crisp and readable. Calm, on-brand, premium.
+// Brand gradient — «бриз»: green → teal. Used for the hero star badge.
 const BRAND_GRADIENT = ['#1DB85A', '#0E9E86'] as const;
+// CTA gradient — emerald → blue. Premium, fresh, white text reads crisp.
+const CTA_GRADIENT = ['#1DB85A', '#0A84FF'] as const;
 
 export default function Paywall() {
   const t = useTheme();
@@ -285,7 +286,7 @@ export default function Paywall() {
         <View style={{ paddingHorizontal: spacing.lg, paddingBottom: insets.bottom + 10, gap: 8 }}>
           <Pressable onPress={purchase} accessibilityRole="button"
             style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
-            <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            <LinearGradient colors={CTA_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={{
                 borderRadius: radius.xl, paddingVertical: 17, alignItems: 'center', justifyContent: 'center',
                 shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8,
