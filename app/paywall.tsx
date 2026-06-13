@@ -403,7 +403,7 @@ export default function Paywall() {
           <Text style={{ color: t.textDim, fontSize: 10.5, textAlign: 'center', lineHeight: 14 }}>
             {selected === 'lifetime'
               ? (ru ? 'Разовый платёж · ' : 'One-time payment · ')
-              : (ru ? 'Оплата за период, без автосписаний · ' : 'One period, no auto-charge · ')}
+              : (ru ? 'Автопродление, отвязать карту — в профиле · ' : 'Auto-renews, manage card in profile · ')}
             <Text style={{ color: t.info }} onPress={() => Linking.openURL(TERMS_URL)}>
               {ru ? 'Условия' : 'Terms'}
             </Text>

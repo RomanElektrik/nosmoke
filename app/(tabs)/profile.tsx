@@ -33,6 +33,9 @@ export default function Profile() {
 
         <PremiumCard />
 
+        <LinkRow icon="wallet" label={lang === 'ru' ? 'Способ оплаты' : 'Payment method'}
+          onPress={() => router.push('/payment-method' as any)} />
+
         <MethodCard />
 
         <HabitCard />
@@ -53,9 +56,6 @@ export default function Profile() {
             </View>
           </View>
         </GlassCard>
-
-        <LinkRow icon="wallet" label={lang === 'ru' ? 'Способ оплаты' : 'Payment method'}
-          onPress={() => router.push('/payment-method' as any)} />
 
         <LinkRow icon="compass" label={lang === 'ru' ? 'Гид по приложению' : 'App tour'}
           onPress={async () => {
@@ -148,12 +148,13 @@ function PremiumCard() {
     Alert.alert(
       ru ? 'Подписка Премиум' : 'Premium subscription',
       (lifetime ? (ru ? 'Доступ навсегда.' : 'Lifetime access.') : (ru ? `Активна до ${dateStr}.` : `Active until ${dateStr}.`)) + '\n\n' +
-      (ru
-        ? 'Это разовая оплата за период — автосписаний нет, отдельно отменять ничего не нужно. По окончании доступ просто не продлевается. Вопрос по возврату — напиши нам.'
-        : 'This is a one-time payment for the period — no auto-charges, nothing to cancel. After it ends, access simply stops. Refund questions — contact us.'),
+      (lifetime
+        ? (ru ? 'Разовая оплата — продлевать не нужно.' : 'One-time payment — nothing to renew.')
+        : (ru ? 'Продлевается автоматически. Управлять картой и отвязать её — в разделе «Способ оплаты».'
+              : 'Renews automatically. Manage or remove your card in “Payment method”.')),
       [
         { text: ru ? 'Закрыть' : 'Close' },
-        { text: ru ? 'Написать в поддержку' : 'Contact support', onPress: () => Linking.openURL('mailto:istrelkov829@gmail.com?subject=Бриз%20—%20подписка') },
+        ...(lifetime ? [] : [{ text: ru ? 'Способ оплаты' : 'Payment method', onPress: () => router.push('/payment-method' as any) }]),
       ],
     );
   }
