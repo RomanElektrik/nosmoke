@@ -3,7 +3,7 @@
 // can test premium-gated features without making a purchase.
 
 import { useState } from 'react';
-import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, Linking } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -68,6 +68,10 @@ const FEATURES_EN: Feature[] = [
   { i: 'toolbox', c: '#FF9F0A', t: 'All techniques', d: 'The full toolkit' },
   { i: 'feather', c: '#FF375F', t: 'All content', d: 'Every article, unrestricted' },
 ];
+
+const PRIVACY_URL = 'https://romanelektrik.github.io/nosmoke/privacy-policy.html';
+// Apple's standard EULA — applies when an app ships no custom terms of use.
+const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
 // Brand gradient — «бриз»: green → teal. Used for the hero star badge.
 const BRAND_GRADIENT = ['#1DB85A', '#0E9E86'] as const;
@@ -304,6 +308,17 @@ export default function Paywall() {
                     : 'One-time payment via YooKassa. Lifetime access, no recurring charges.')
               : (ru ? 'Оплата через ЮKassa. Продлевается автоматически, отмена в любой момент в профиле.'
                     : 'Payment via YooKassa. Renews automatically, cancel anytime in your profile.')}
+          </Text>
+          <Text style={{ color: t.textDim, fontSize: 10.5, textAlign: 'center', lineHeight: 15 }}>
+            {ru ? 'Оформляя подписку, ты принимаешь ' : 'By subscribing, you accept the '}
+            <Text style={{ color: t.info, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(TERMS_URL)}>
+              {ru ? 'Условия использования' : 'Terms of Use'}
+            </Text>
+            {ru ? ' и ' : ' and '}
+            <Text style={{ color: t.info, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(PRIVACY_URL)}>
+              {ru ? 'Политику конфиденциальности' : 'Privacy Policy'}
+            </Text>
+            {ru ? '.' : '.'}
           </Text>
         </View>
       </View>
