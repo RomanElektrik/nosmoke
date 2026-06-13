@@ -92,6 +92,19 @@ function grant(deviceId, plan, paymentId, paymentMethodId, email, card) {
   saveStore(subs);
 }
 
+// Возврат платежа → снимаем премиум с устройства.
+function revoke(deviceId) {
+  const s = subs[deviceId];
+  if (!s) return;
+  s.paidUntil = Date.now() - 1000;
+  s.lifetime = false;
+  s.paymentMethodId = null;
+  s.card = null;
+  s.updatedAt = Date.now();
+  subs[deviceId] = s;
+  saveStore(subs);
+}
+
 async function ykCreate({ amount, description, deviceId, plan, email }) {
   const validEmail = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined;
   const body = {
@@ -221,16 +234,26 @@ module.exports = function attach(app) {
     res.json(statusOf(String(req.params.deviceId)));
   });
 
-  // Webhook — НЕ доверяет телу: берёт только id и перепроверяет платёж в ЮKassa.
+  // Webhook — НЕ доверяет телу: берёт id и перепроверяет в ЮKassa.
+  // payment.succeeded → начисляем; refund.succeeded → снимаем премиум.
   app.post('/api/briz/webhook', async (req, res) => {
     try {
+      const event = req.body && req.body.event;
       const obj = (req.body && req.body.object) || {};
-      const id = obj.id;
-      if (req.body && req.body.event === 'payment.succeeded' && id) {
+      if (event === 'payment.succeeded' && obj.id) {
         try {
-          const pay = await ykGet(String(id).replace(/[^a-zA-Z0-9-]/g, ''));
+          const pay = await ykGet(String(obj.id).replace(/[^a-zA-Z0-9-]/g, ''));
           if (applyPayment(pay, null)) console.log('[briz] webhook grant:', pay.metadata.deviceId, pay.metadata.plan);
         } catch (e) { console.error('[briz] webhook verify:', e.message); }
+      } else if (event === 'refund.succeeded' && obj.payment_id) {
+        try {
+          const pay = await ykGet(String(obj.payment_id).replace(/[^a-zA-Z0-9-]/g, ''));
+          const m = pay && pay.metadata;
+          if (m && m.kind === 'briz-sub' && isDevice(m.deviceId)) {
+            revoke(m.deviceId);
+            console.log('[briz] webhook refund → revoke:', m.deviceId);
+          }
+        } catch (e) { console.error('[briz] webhook refund verify:', e.message); }
       }
       res.status(200).send('OK');
     } catch (e) {
@@ -254,6 +277,19 @@ module.exports = function attach(app) {
         }
       }
       if (best) { subs[deviceId] = { ...best, applied: [], updatedAt: now }; saveStore(subs); }
+      res.json(statusOf(deviceId));
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Отменить подписку НА СВОЁМ устройстве: снимает премиум (после возврата /
+  // по желанию). Безопасно — затрагивает только своё устройство.
+  app.post('/api/briz/forget', (req, res) => {
+    try {
+      const { deviceId } = req.body || {};
+      if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
+      revoke(deviceId);
       res.json(statusOf(deviceId));
     } catch (e) {
       res.status(500).json({ error: e.message });

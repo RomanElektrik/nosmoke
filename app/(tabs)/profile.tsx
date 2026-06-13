@@ -10,6 +10,7 @@ import { getStep } from '../../lib/stepped';
 import { Icon } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
 import { usePremium } from '../../lib/subscription';
+import { cancelSubscription } from '../../lib/billing';
 
 const PRIVACY_URL = 'https://breezapp.ru/privacy-policy.html';
 const TERMS_URL = 'https://breezapp.ru/terms.html';
@@ -143,25 +144,39 @@ function PremiumCard() {
   const until = state.premiumUntil ?? 0;
   const lifetime = until > Date.now() + 40 * 365 * 86400_000;
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
+  // Авто-продление обещаем только когда реально привязана карта.
+  const realCard = !!(state.boundCard && state.boundCard.last4);
+
+  async function doCancel() {
+    try { await cancelSubscription(); } catch {}
+    await update((s) => ({ ...s, premiumUntil: 0 }));
+  }
 
   function manage() {
-    Alert.alert(
-      ru ? 'Подписка Премиум' : 'Premium subscription',
-      (lifetime ? (ru ? 'Доступ навсегда.' : 'Lifetime access.') : (ru ? `Активна до ${dateStr}.` : `Active until ${dateStr}.`)) + '\n\n' +
-      (lifetime
-        ? (ru ? 'Разовая оплата — продлевать не нужно.' : 'One-time payment — nothing to renew.')
-        : (ru ? 'Продлевается автоматически. Управлять картой и отвязать её — в разделе «Способ оплаты».'
-              : 'Renews automatically. Manage or remove your card in “Payment method”.')),
-      [
-        { text: ru ? 'Закрыть' : 'Close' },
-        ...(lifetime ? [] : [{ text: ru ? 'Способ оплаты' : 'Payment method', onPress: () => router.push('/payment-method' as any) }]),
-      ],
-    );
+    const head = lifetime ? (ru ? 'Доступ навсегда.' : 'Lifetime access.') : (ru ? `Активна до ${dateStr}.` : `Active until ${dateStr}.`);
+    const note = lifetime
+      ? (ru ? 'Разовая оплата — продлевать не нужно.' : 'One-time payment — nothing to renew.')
+      : realCard
+        ? (ru ? 'Продлевается автоматически. Карта — в разделе «Способ оплаты».' : 'Renews automatically. Card is in “Payment method”.')
+        : (ru ? 'Доступ сохранится до конца оплаченного периода.' : 'Access stays until the paid period ends.');
+    Alert.alert(ru ? 'Подписка Премиум' : 'Premium subscription', head + '\n\n' + note, [
+      { text: ru ? 'Закрыть' : 'Close' },
+      ...(realCard ? [{ text: ru ? 'Способ оплаты' : 'Payment method', onPress: () => router.push('/payment-method' as any) }] : []),
+      {
+        text: ru ? 'Отменить подписку' : 'Cancel subscription', style: 'destructive' as const,
+        onPress: () => Alert.alert(
+          ru ? 'Отменить подписку?' : 'Cancel subscription?',
+          ru ? 'Премиум на этом устройстве отключится. Если оформлял возврат — так и нужно.' : 'Premium on this device will turn off.',
+          [{ text: ru ? 'Нет' : 'No', style: 'cancel' }, { text: ru ? 'Отключить' : 'Turn off', style: 'destructive', onPress: doCancel }],
+        ),
+      },
+    ]);
   }
 
   const sub = premium
     ? (lifetime ? (ru ? 'Доступ навсегда · управление' : 'Lifetime · manage')
-                : (ru ? `Активен до ${dateStr} · управление` : `Until ${dateStr} · manage`))
+       : realCard ? (ru ? `Продлевается · до ${dateStr} · управление` : `Renews · until ${dateStr} · manage`)
+       : (ru ? `Активен до ${dateStr} · управление` : `Until ${dateStr} · manage`))
     : (ru ? 'Безлимит ИИ, все аудиопрактики, статьи и техники' : 'Unlimited AI, all audio, articles and techniques');
 
   return (

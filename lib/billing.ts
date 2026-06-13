@@ -80,3 +80,9 @@ export async function unbindCard(): Promise<SubStatus> {
   const deviceId = await getDeviceId();
   return postJson('/unbind', { deviceId });
 }
+
+// Отменить подписку на этом устройстве (снимает премиум — напр. после возврата).
+export async function cancelSubscription(): Promise<SubStatus> {
+  const deviceId = await getDeviceId();
+  return postJson('/forget', { deviceId });
+}
