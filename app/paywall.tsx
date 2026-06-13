@@ -55,19 +55,22 @@ const PLANS: Plan[] = [
 // promising free/non-existent features is an App Store 2.3.1 reject.
 type Feature = { i: IconKey; c: string; t: string; d: string };
 const FEATURES_RU: Feature[] = [
-  { i: 'spark', c: '#34C759', t: 'Безлимит с Бризом', d: 'Сколько угодно сообщений в день — без дневного лимита, особенно когда тяжело.' },
-  { i: 'pulse', c: '#BF5AF2', t: 'Аналитика тяги', d: 'Опасные часы, твои триггеры и тренд силы тяги — видишь заранее.' },
-  { i: 'headphones', c: '#0A84FF', t: 'Все аудиопрактики', d: 'Голос на любой момент: тяга, тревога, вечер, сон.' },
-  { i: 'toolbox', c: '#FF9F0A', t: 'Все техники', d: 'Полный набор приёмов, чтобы пережить волну.' },
-  { i: 'feather', c: '#FF2D78', t: 'Все материалы', d: 'Статьи и материалы программы без ограничений.' },
+  { i: 'spark', c: '#30D158', t: 'Безлимит с Бризом', d: 'Без дневного лимита сообщений' },
+  { i: 'pulse', c: '#BF5AF2', t: 'Аналитика тяги', d: 'Опасные часы и твои триггеры заранее' },
+  { i: 'headphones', c: '#0A84FF', t: 'Все аудиопрактики', d: 'Голос на любой момент' },
+  { i: 'toolbox', c: '#FF9F0A', t: 'Все техники', d: 'Полный набор приёмов' },
+  { i: 'feather', c: '#FF375F', t: 'Все материалы', d: 'Статьи и программа без ограничений' },
 ];
 const FEATURES_EN: Feature[] = [
-  { i: 'spark', c: '#34C759', t: 'Unlimited Breeze', d: 'As many messages a day as you need — no daily cap, especially when it’s hard.' },
-  { i: 'pulse', c: '#BF5AF2', t: 'Craving analytics', d: 'Risk hours, your triggers and intensity trend — seen ahead of time.' },
-  { i: 'headphones', c: '#0A84FF', t: 'All audio practices', d: 'A voice for any moment: craving, anxiety, evening, sleep.' },
-  { i: 'toolbox', c: '#FF9F0A', t: 'All techniques', d: 'The full toolkit to ride out the wave.' },
-  { i: 'feather', c: '#FF2D78', t: 'All content', d: 'Every article and program material, unrestricted.' },
+  { i: 'spark', c: '#30D158', t: 'Unlimited Breeze', d: 'No daily message cap' },
+  { i: 'pulse', c: '#BF5AF2', t: 'Craving analytics', d: 'Your risk hours and triggers ahead of time' },
+  { i: 'headphones', c: '#0A84FF', t: 'All audio practices', d: 'A voice for any moment' },
+  { i: 'toolbox', c: '#FF9F0A', t: 'All techniques', d: 'The full toolkit' },
+  { i: 'feather', c: '#FF375F', t: 'All content', d: 'Every article, unrestricted' },
 ];
+
+// Brand gradient — «бриз»: fresh green → teal. Calm, on-brand, premium.
+const BRAND_GRADIENT = ['#34D266', '#16C2A3'] as const;
 
 export default function Paywall() {
   const t = useTheme();
@@ -128,17 +131,19 @@ export default function Paywall() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: 8, paddingBottom: 28, gap: 18 }}
         showsVerticalScrollIndicator={false}>
         {/* ── Hero ── */}
-        <View style={{ alignItems: 'center', gap: 8 }}>
-          <View style={{
-            width: 56, height: 56, borderRadius: 18,
-            backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Icon.star size={28} color={t.accent} />
-          </View>
-          <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', letterSpacing: 1.5 }}>
+        <View style={{ alignItems: 'center', gap: 10 }}>
+          <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={{
+              width: 64, height: 64, borderRadius: 21,
+              alignItems: 'center', justifyContent: 'center',
+              shadowColor: BRAND_GRADIENT[1], shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
+            }}>
+            <Icon.star size={32} color="#fff" />
+          </LinearGradient>
+          <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', letterSpacing: 1.6 }}>
             {ru ? 'БРИЗ ПРЕМИУМ' : 'BREEZE PREMIUM'}
           </Text>
-          <Text style={{ color: t.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.5, textAlign: 'center', lineHeight: 29 }}>
+          <Text style={{ color: t.text, fontSize: 25, fontWeight: '800', letterSpacing: -0.5, textAlign: 'center', lineHeight: 30 }}>
             {ru ? 'Ты справишься — Бриз рядом' : 'You’ve got this — Breeze is here'}
           </Text>
           {premium && (
@@ -231,20 +236,19 @@ export default function Paywall() {
             return (
               <View key={f.t} style={{
                 flexDirection: 'row', alignItems: 'center', gap: 13,
-                paddingVertical: 13, paddingHorizontal: 14,
+                paddingVertical: 14, paddingHorizontal: 14,
                 borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: t.border,
               }}>
                 <View style={{
-                  width: 38, height: 38, borderRadius: 10,
+                  width: 36, height: 36, borderRadius: 11,
                   backgroundColor: f.c, alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <I size={20} color="#fff" />
+                  <I size={19} color="#fff" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>{f.t}</Text>
-                  <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 18, marginTop: 1 }}>{f.d}</Text>
+                  <Text style={{ color: t.text, fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2 }}>{f.t}</Text>
+                  <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 17, marginTop: 1.5 }}>{f.d}</Text>
                 </View>
-                <Text style={{ color: t.textDim, fontSize: 20, fontWeight: '400' }}>›</Text>
               </View>
             );
           })}
@@ -277,10 +281,14 @@ export default function Paywall() {
         paddingHorizontal: spacing.lg, paddingTop: 10, paddingBottom: insets.bottom + 10,
         borderTopWidth: 1, borderTopColor: t.border, backgroundColor: t.bg, gap: 7,
       }}>
-        <Pressable onPress={purchase} accessibilityRole="button">
-          <LinearGradient colors={[t.accent, t.info]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            style={{ borderRadius: radius.xl, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>
+        <Pressable onPress={purchase} accessibilityRole="button"
+          style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+          <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: radius.xl, paddingVertical: 17, alignItems: 'center', justifyContent: 'center',
+              shadowColor: BRAND_GRADIENT[1], shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 5 },
+            }}>
+            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.2 }}>
               {ru
                 ? `Подключить за ${plan.ctaPriceRu} ${plan.ctaPeriodRu}`
                 : `Get Premium — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}`}
