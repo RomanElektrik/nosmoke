@@ -9,10 +9,11 @@
 //   the current step and punches a spotlight hole over it. Missing rect →
 //   centered card (graceful fallback). Finishing/skipping persists tourV1Done.
 
-import React, { createContext, useContext, useState, useRef, useCallback, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, type ViewStyle } from 'react-native';
+import React, { createContext, useContext, useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { View, Text, Pressable, StyleSheet, BackHandler, useWindowDimensions, type ViewStyle } from 'react-native';
 import Svg, { Defs, Mask, Rect } from 'react-native-svg';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { usePathname } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
@@ -52,7 +53,6 @@ const STEPS: Step[] = [
 
 type TourCtx = {
   register: (key: string, rect: Box) => void;
-  running: boolean;
   start: () => void;
 };
 const Ctx = createContext<TourCtx | null>(null);
@@ -62,6 +62,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const [targets, setTargets] = useState<Record<string, Box>>({});
   const [running, setRunning] = useState(false);
   const [idx, setIdx] = useState(0);
+  const pathname = usePathname();
 
   const register = useCallback((key: string, rect: Box) => {
     setTargets((prev) => {
@@ -86,7 +87,20 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     });
   }, [finish]);
 
-  const ctx = useMemo(() => ({ register, running, start }), [register, running, start]);
+  // Auto-dismiss the moment the user leaves the screen the tour opened on
+  // (it only ever starts on Home). Prevents a root-level overlay from dimming
+  // and blocking input over a pushed route — e.g. a tapped craving-nudge → SOS.
+  const runPathRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!running) { runPathRef.current = null; return; }
+    if (runPathRef.current === null) runPathRef.current = pathname;
+    else if (pathname !== runPathRef.current) finish();
+  }, [running, pathname, finish]);
+
+  // `running` is deliberately NOT in the context value — consumers (Home) only
+  // need `start`. Including it would churn the context identity on start() and
+  // re-fire Home's start effect, snapping the tour back to step 1.
+  const ctx = useMemo(() => ({ register, start }), [register, start]);
 
   const step = STEPS[idx];
   const rect = step.anchor ? targets[step.anchor] : undefined;
@@ -128,12 +142,21 @@ function Overlay({ step, idx, total, rect, onNext, onSkip }:
   const body = ru ? step.bodyRu : step.bodyEn;
   const last = idx === total - 1;
 
+  // Hardware back (Android) dismisses the tour instead of popping the stack
+  // out from under the still-running overlay.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { onSkip(); return true; });
+    return () => sub.remove();
+  }, [onSkip]);
+
   // Spotlight only when the target is actually on-screen; otherwise centre the card.
   const PAD = 8;
   const onScreen = !!rect && rect.y + rect.height > 40 && rect.y < H - 40;
   const hole = rect && onScreen
     ? { x: Math.max(6, rect.x - PAD), y: Math.max(6, rect.y - PAD), w: rect.width + PAD * 2, h: rect.height + PAD * 2 }
     : null;
+  // Round targets (e.g. the SOS circle) get a circular cutout; others a rounded rect.
+  const holeR = hole ? (Math.abs(hole.w - hole.h) <= 14 ? Math.min(hole.w, hole.h) / 2 : 16) : 16;
 
   // Card sits opposite the hole's half of the screen; centred if no hole.
   let cardStyle: ViewStyle;
@@ -150,12 +173,12 @@ function Overlay({ step, idx, total, rect, onNext, onSkip }:
         <Defs>
           <Mask id="tourHole">
             <Rect x={0} y={0} width={W} height={H} fill="#fff" />
-            {hole && <Rect x={hole.x} y={hole.y} width={hole.w} height={hole.h} rx={16} ry={16} fill="#000" />}
+            {hole && <Rect x={hole.x} y={hole.y} width={hole.w} height={hole.h} rx={holeR} ry={holeR} fill="#000" />}
           </Mask>
         </Defs>
         <Rect x={0} y={0} width={W} height={H} fill="rgba(5,8,12,0.84)" mask="url(#tourHole)" />
         {hole && (
-          <Rect x={hole.x} y={hole.y} width={hole.w} height={hole.h} rx={16} ry={16}
+          <Rect x={hole.x} y={hole.y} width={hole.w} height={hole.h} rx={holeR} ry={holeR}
             fill="none" stroke={t.accent} strokeWidth={2} />
         )}
       </Svg>

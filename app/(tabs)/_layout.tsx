@@ -54,14 +54,13 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
       pointerEvents="box-none"
       style={{ position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center' }}
     >
-      <TourAnchor anchorKey="tab.bar" style={{ alignSelf: 'stretch' }} pointerEvents="box-none">
+      <TourAnchor anchorKey="tab.bar" style={{ alignSelf: 'stretch', marginHorizontal: 18 }} pointerEvents="box-none">
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           height: 64,
           marginBottom: Math.max(insets.bottom, 14),
-          marginHorizontal: 18,
           alignSelf: 'stretch',
           borderRadius: 32,
           backgroundColor: t.card,
@@ -79,7 +78,6 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
         {renderTab(PILL_TABS[1])}
 
         {/* SOS button — large, overflows the pill evenly top and bottom */}
-        <TourAnchor anchorKey="tab.sos" style={{ flex: 1 }}>
         <Pressable
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -90,6 +88,8 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
             opacity: pressed ? 0.88 : 1,
           })}
         >
+          {/* Anchor hugs the 78px circle itself so the tour spotlight is a circle */}
+          <TourAnchor anchorKey="tab.sos">
           <View style={{
             width: 78, height: 78, borderRadius: 39, backgroundColor: t.danger,
             alignItems: 'center', justifyContent: 'center',
@@ -102,8 +102,8 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
               SOS
             </Text>
           </View>
+          </TourAnchor>
         </Pressable>
-        </TourAnchor>
 
         {renderTab(PILL_TABS[2])}
         {renderTab(PILL_TABS[3])}
