@@ -17,7 +17,6 @@ import { PRACTICES } from '../../lib/audioPractice';
 
 const ORDER = [
   'box_breath', 'cyclic_sigh',
-  'halt_check',
 ];
 
 // Everything not in the ORDER list above is hidden. Cognitive/pharma/
@@ -31,18 +30,17 @@ const HIDDEN = new Set<string>([
   'urge_surf', 'replace',
 ]);
 
-// Top tabs.
+// Top tabs. «Поддержка» убрана — была одинокой карточкой HALT; живая
+// поддержка (HALT, написать Бризу, переждать волну) теперь в SOS-аптечке.
 const TABS = [
   { id: 'audio',   ru: 'Аудиопрактики', en: 'Audio' },
   { id: 'breath',  ru: 'Дыхание',       en: 'Breathing' },
-  { id: 'support', ru: 'Поддержка',     en: 'Support' },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
 
 // Tab membership. All voiced sessions live under «Аудиопрактики»; breathing
-// under «Дыхание»; «Поддержка» = HALT-чек.
+// under «Дыхание».
 const BREATH_TECH = ['box_breath', 'cyclic_sigh'];
-const SUPPORT_TECH = ['halt_check'];
 
 // Short mood tag per audio session (shown as a pill on the card).
 const AUDIO_TAGS: Record<string, { ru: string; en: string }> = {
@@ -99,7 +97,6 @@ export default function Techniques() {
 
   const audioItems = PRACTICES;
   const breathTech = sorted.filter((te) => BREATH_TECH.includes(te.id));
-  const supportTech = sorted.filter((te) => SUPPORT_TECH.includes(te.id));
 
   function go(te: Technique) {
     Haptics.selectionAsync();
@@ -153,11 +150,6 @@ export default function Techniques() {
               title={tr(te.titleKey)} sub={tr(te.summaryKey)} onPress={() => go(te)} />
           ))}
 
-          {tab === 'support' && supportTech.map((te) => (
-            <PremiumCard key={te.id} color={te.color} motif="waves" gid={`s_${te.id}`}
-              tag={lang === 'ru' ? TECH_TAGS[te.id]?.ru : TECH_TAGS[te.id]?.en}
-              title={tr(te.titleKey)} sub={tr(te.summaryKey)} onPress={() => go(te)} />
-          ))}
         </View>
       </ScrollView>
 
