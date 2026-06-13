@@ -49,3 +49,5 @@ yarn-error.*
 # Аудио-мастера (исходники озвучки — уже скопированы в assets/audio/)
 аудиопрактики/
 деньги-уходят.png
+scripts/store/_src
+scripts/store/_frames
