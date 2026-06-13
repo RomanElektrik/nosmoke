@@ -23,6 +23,8 @@ import { update, useAppState } from '../lib/storage';
 import type { Trigger } from '../lib/storage';
 import { nextDueDose, MED_SAFETY } from '../lib/medication';
 import { resolveCoping } from '../lib/coping';
+import { usePremium } from '../lib/subscription';
+import { localDateKey } from '../lib/dates';
 
 type Phase = 'choose' | 'wave' | 'breath' | 'log' | 'win' | 'after';
 type IconC = ComponentType<{ size?: number; color?: string }>;
@@ -38,6 +40,11 @@ export default function Craving() {
   const [outcome, setOutcome] = useState<'resisted' | 'smoked' | null>(null);
   const [doneCoping, setDoneCoping] = useState<string[]>([]); // ticked toolkit moves this session
   const ru = (state.profile?.language ?? 'ru') === 'ru';
+  const premium = usePremium();
+  // A heavy craving day is the honest moment to mention unlimited support:
+  // someone hitting wave 3+ today is exactly who premium serves.
+  const today = localDateKey(new Date());
+  const wavesToday = state.cravings.filter((c) => localDateKey(new Date(c.ts)) === today).length;
 
   async function save() {
     if (!outcome) return;
@@ -302,6 +309,24 @@ export default function Craving() {
               style={({ pressed }) => ({ marginTop: 16, paddingVertical: 18, paddingHorizontal: 48, borderRadius: radius.xl, backgroundColor: t.accent, opacity: pressed ? 0.9 : 1 })}>
               <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>{tr('common.done')}</Text>
             </Pressable>
+
+            {/* Contextual, not pushy: only on a genuinely hard day (3rd+ wave),
+                only for free users, and below the main «Done» button. */}
+            {!premium && wavesToday >= 3 && (
+              <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/paywall' as any); }}
+                style={({ pressed }) => ({
+                  marginTop: 8, paddingVertical: 14, paddingHorizontal: 18, borderRadius: radius.lg,
+                  backgroundColor: t.accent + '12', borderWidth: 1, borderColor: t.accent + '33',
+                  alignSelf: 'stretch', alignItems: 'center', gap: 4, opacity: pressed ? 0.85 : 1,
+                })}>
+                <Text style={{ color: t.text, fontSize: 14.5, fontWeight: '700', textAlign: 'center' }}>
+                  {ru ? `Сегодня уже ${wavesToday}-я волна — и ты держишься.` : `Wave ${wavesToday} today — and you're holding.`}
+                </Text>
+                <Text style={{ color: t.accent, fontSize: 13.5, fontWeight: '700' }}>
+                  {ru ? 'Бриз без лимита, когда тяжело →' : 'Breeze without limits when it’s hard →'}
+                </Text>
+              </Pressable>
+            )}
           </View>
         )}
       </ScrollView>

@@ -11,6 +11,8 @@ import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
 import { update, useAppState } from '../lib/storage';
 import { Icon } from '../components/Icon';
+import { secondsClean } from '../lib/health';
+import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
 
 type PlanId = 'weekly' | 'monthly' | 'yearly' | 'lifetime';
 
@@ -20,36 +22,41 @@ type Plan = {
   en: string;
   priceRu: string;
   priceEn: string;
+  // Numeric price in the profile's currency — used for the «окупается за N недель»
+  // anchor. ru ≈ RUB, en ≈ USD; matches the displayed string above.
+  amountRu: number;
+  amountEn: number;
   perRu?: string;
   perEn?: string;
   badge?: { ru: string; en: string };
 };
 
 const PLANS: Plan[] = [
-  { id: 'weekly',   ru: 'Неделя',  en: 'Weekly',    priceRu: '199 ₽',   priceEn: '$2.99' },
-  { id: 'monthly',  ru: 'Месяц',   en: 'Monthly',   priceRu: '399 ₽',   priceEn: '$5.99' },
-  { id: 'yearly',   ru: 'Год',     en: 'Yearly',    priceRu: '1 990 ₽', priceEn: '$29.99',
+  { id: 'weekly',   ru: 'Неделя',  en: 'Weekly',    priceRu: '199 ₽',   priceEn: '$2.99',  amountRu: 199,  amountEn: 2.99 },
+  { id: 'monthly',  ru: 'Месяц',   en: 'Monthly',   priceRu: '399 ₽',   priceEn: '$5.99',  amountRu: 399,  amountEn: 5.99 },
+  { id: 'yearly',   ru: 'Год',     en: 'Yearly',    priceRu: '1 990 ₽', priceEn: '$29.99', amountRu: 1990, amountEn: 29.99,
     perRu: '≈ 166 ₽/мес', perEn: '≈ $2.50/mo',
     badge: { ru: '7 дней бесплатно · −58%', en: '7-day trial · −58%' } },
-  { id: 'lifetime', ru: 'Навсегда', en: 'Lifetime', priceRu: '3 990 ₽', priceEn: '$59.99',
+  { id: 'lifetime', ru: 'Навсегда', en: 'Lifetime', priceRu: '3 990 ₽', priceEn: '$59.99', amountRu: 3990, amountEn: 59.99,
     badge: { ru: 'Один раз', en: 'One-time' } },
 ];
 
-// Every line here must be ACTUALLY gated in code — promising features that are
-// free (or don't exist) is an App Store 2.3.1 reject and a refund magnet.
+// Outcome-framed, not inventory: what the user GETS in their day, not how many
+// items unlock. Every line must still be ACTUALLY gated in code — promising
+// free/non-existent features is an App Store 2.3.1 reject and a refund magnet.
 const FEATURES_RU = [
-  { i: 'spark' as const, t: 'Безлимит разговоров с Бризом' },
-  { i: 'headphones' as const, t: 'Все аудиопрактики' },
-  { i: 'toolbox' as const, t: 'Все техники' },
-  { i: 'feather' as const, t: 'Все статьи и материалы' },
-  { i: 'pulse' as const, t: 'Полная аналитика: триггеры, опасные часы, тренд' },
+  { i: 'spark' as const, t: 'Бриз рядом круглосуточно — без лимита сообщений' },
+  { i: 'pulse' as const, t: 'Видишь свои опасные часы и триггеры заранее' },
+  { i: 'headphones' as const, t: 'Любая аудиопрактика под рукой в момент тяги' },
+  { i: 'toolbox' as const, t: 'Все техники, чтобы пережить волну' },
+  { i: 'feather' as const, t: 'Все статьи и материалы программы' },
 ];
 const FEATURES_EN = [
-  { i: 'spark' as const, t: 'Unlimited Breeze conversations' },
-  { i: 'headphones' as const, t: 'All audio practices' },
-  { i: 'toolbox' as const, t: 'All techniques' },
-  { i: 'feather' as const, t: 'All articles and content' },
-  { i: 'pulse' as const, t: 'Full analytics: triggers, risk hours, trend' },
+  { i: 'spark' as const, t: 'Breeze with you 24/7 — no message limit' },
+  { i: 'pulse' as const, t: 'See your risk hours and triggers ahead of time' },
+  { i: 'headphones' as const, t: 'Any audio practice ready the moment a craving hits' },
+  { i: 'toolbox' as const, t: 'Every technique to ride out the wave' },
+  { i: 'feather' as const, t: 'All articles and program content' },
 ];
 
 export default function Paywall() {
@@ -60,6 +67,21 @@ export default function Paywall() {
   const [selected, setSelected] = useState<PlanId>('yearly');
   const features = lang === 'ru' ? FEATURES_RU : FEATURES_EN;
   const premium = !!state.profile?.devPremium;
+
+  // ── Personal money anchor ──
+  // «Ты уже сэкономил X» + «год окупается за ~N недель твоего курения».
+  // Honest, never shown when we have no spend data (fresh profile / no price).
+  const p = state.profile;
+  const localeStr = lang === 'ru' ? 'ru-RU' : 'en-US';
+  const currency = p?.currency ?? 'RUB';
+  const saved = p ? moneySaved(p, secondsClean(p.quitDate)) : 0;
+  const yearlyAmount = lang === 'ru' ? 1990 : 29.99;
+  const weeks = p ? paybackWeeks(p, yearlyAmount) : null;
+  const paybackWk = weeks && weeks >= 0.5 && weeks <= 52 ? Math.max(1, Math.round(weeks)) : null;
+  const wkWord = (n: number) =>
+    lang === 'ru'
+      ? (n % 10 === 1 && n % 100 !== 11 ? 'неделю' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'недели' : 'недель'))
+      : (n === 1 ? 'week' : 'weeks');
 
   async function devToggle() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -114,6 +136,29 @@ export default function Paywall() {
             </View>
           )}
         </View>
+
+        {/* Personal money anchor — only when we have real numbers to show */}
+        {(saved >= 1 || paybackWk) && (
+          <View style={{
+            padding: 16, borderRadius: radius.lg, gap: 6,
+            backgroundColor: t.accent + '12', borderWidth: 1, borderColor: t.accent + '33',
+          }}>
+            {saved >= 1 && (
+              <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', lineHeight: 21 }}>
+                {lang === 'ru'
+                  ? `Ты уже сэкономил ${formatMoney(saved, currency, localeStr)} на несожжённых сигаретах.`
+                  : `You've already saved ${formatMoney(saved, currency, localeStr)} on cigarettes not smoked.`}
+              </Text>
+            )}
+            {paybackWk && (
+              <Text style={{ color: t.textDim, fontSize: 13.5, lineHeight: 19 }}>
+                {lang === 'ru'
+                  ? `Год Премиума ≈ ${paybackWk} ${wkWord(paybackWk)} твоего прежнего курения.`
+                  : `A year of Premium ≈ ${paybackWk} ${wkWord(paybackWk)} of your old smoking spend.`}
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Features */}
         <View style={{ gap: 10 }}>

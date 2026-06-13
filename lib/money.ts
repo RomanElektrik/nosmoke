@@ -13,6 +13,24 @@ export function moneySaved(p: Pick<Profile, 'cigsPerDay' | 'packPrice' | 'cigsIn
   return cigsAvoided(p, secs) * pricePerCig(p);
 }
 
+// What the user used to spend on cigarettes per week — the natural anchor for
+// a subscription price («год Премиума ≈ N недель курения»).
+export function weeklySpend(p: Pick<Profile, 'cigsPerDay' | 'packPrice' | 'cigsInPack'>): number {
+  return pricePerCig(p) * p.cigsPerDay * 7;
+}
+
+// How many weeks of the user's old smoking spend a given subscription price
+// equals. Returns null when we can't compute (no spend data) so callers can
+// hide the anchor rather than show a nonsensical «0 недель».
+export function paybackWeeks(
+  p: Pick<Profile, 'cigsPerDay' | 'packPrice' | 'cigsInPack'>,
+  price: number,
+): number | null {
+  const wk = weeklySpend(p);
+  if (wk <= 0 || price <= 0) return null;
+  return price / wk;
+}
+
 // CDC: each cigarette ~ 11 minutes of life lost.
 export function lifeRegainedSeconds(p: Pick<Profile, 'cigsPerDay'>, secs: number): number {
   return cigsAvoided(p, secs) * 11 * 60;

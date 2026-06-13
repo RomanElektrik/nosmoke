@@ -5,7 +5,10 @@
 
 import { useAppState } from './storage';
 
-export const FREE_AI_DAILY_LIMIT = 10;
+// Tuned to bite during a hard craving day (a single rough evening can run
+// through several messages), not only after weeks of casual use. The point of
+// the free tier is to prove Breeze helps, then ask — not to be a 30-day trial.
+export const FREE_AI_DAILY_LIMIT = 5;
 
 /** First N items from a list are free; the rest are premium-gated. */
 export const FREE_TECHNIQUE_IDS = new Set([
