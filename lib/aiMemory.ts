@@ -109,7 +109,11 @@ export async function summarizeOlderMessages(
   try {
     const key = state.profile?.openrouterKey?.trim() || ENV_KEY;
     if (!key) return null;
-    const older = messages.slice(0, Math.max(0, messages.length - KEEP_TAIL));
+    // Only the messages between the previous summary's reach and the live tail.
+    // Capped so a very long single session can't send a huge block — the prior
+    // summary carries everything further back.
+    const olderEnd = Math.max(0, messages.length - KEEP_TAIL);
+    const older = messages.slice(Math.max(0, olderEnd - 40), olderEnd);
     if (older.length === 0) return null;
     const block = older
       .map((m) => `${m.role === 'user' ? 'USER' : 'COACH'}: ${m.content}`)

@@ -32,24 +32,26 @@ function cravingStatsLine(state: AppState): string {
   if (ins.total < 3) return 'craving stats: not enough logged cravings yet';
   const bits: string[] = [];
   bits.push(`holds ${Math.round(ins.resistRate * 100)}% of cravings`);
-  if (ins.peakHourLabel) bits.push(`riskiest window ${ins.peakHourLabel}`);
+  if (ins.peakHourLabel) bits.push(`historical risk window ${ins.peakHourLabel}`);
   if (ins.topTriggers[0]) bits.push(`top trigger ${triggerName(ins.topTriggers[0].trigger, false)}`);
   if (ins.intensityTrend !== 'flat') bits.push(`intensity trending ${ins.intensityTrend}`);
-  return `craving stats (from this user's own log): ${bits.join('; ')}`;
+  // Use silently to tailor tone/timing — do NOT recite these numbers back unless the user explicitly asks about their pattern.
+  return `craving stats (use silently, never recite unless asked): ${bits.join('; ')}`;
 }
 
-// If a craving was logged in the last ~20 min (e.g. the user just rode the SOS
+// If a craving was logged in the last ~25 min (e.g. the user just rode the SOS
 // wave from a [[sos]] button and came back to chat), surface it so the coach
-// closes the loop instead of starting cold.
+// CAN close the loop — but only if the user's message is about it. Conditional,
+// subordinate to the no-shame / pre-quit-grace rules, no canned quotable line.
 function recentCravingLine(state: AppState): string {
   const last = state.cravings[state.cravings.length - 1];
   if (!last) return '';
   const minsAgo = Math.floor((Date.now() - last.ts) / 60000);
   if (minsAgo > 25) return '';
-  const what = last.outcome === 'resisted'
-    ? `the user JUST rode out a craving (${minsAgo} min ago, intensity ${last.intensity}/10) WITHOUT smoking`
-    : `the user smoked ${minsAgo} min ago`;
-  return `\n- LOOP-CLOSE: ${what} — acknowledge it naturally and continue from there (e.g. "видел, волна прошла — как было на пике?"), don't restart cold.`;
+  if (last.outcome === 'resisted') {
+    return `\n- LOOP-CLOSE (background, optional): the user rode out a craving ${minsAgo} min ago (intensity ${last.intensity}/10) WITHOUT smoking. IF their message is about that moment or how they're coping right now, you MAY acknowledge it warmly first (in your own words, never a canned phrase). If they open about something else, follow their lead and do not bring it up.`;
+  }
+  return `\n- LOOP-CLOSE (background, optional): the user logged a smoked cigarette ${minsAgo} min ago — handle per the protocol-phase rule below (pre-quit grace = not a lapse, no slip analysis; abstinence = defuse shame first, never any «обнуление»). Only raise it if their message is about it.`;
 }
 
 export function buildSystemPrompt(state: AppState, locale: 'ru' | 'en', mode: PromptMode, personaId?: PersonaId, priorSummary?: string): string {
@@ -103,7 +105,8 @@ HARD RULES:
 - NEVER say a cigarette would "reset", "zero out" or "erase" the user's days/progress («обнулишь дни» is FORBIDDEN). The app's core promise: a slip never resets anything — brain adaptations and clean days remain. Frame risk as «запустишь старую петлю», never as обнуление.
 - A lapse is data, not a verdict. If you hear shame after a slip — explicitly defuse the Abstinence Violation Effect.
 - Medications: when relevant, mention varenicline (Чампикс, RR 2.32), cytisine (Табекс, RR 1.30), combined NRT (RR 2.25), bupropion (RR 1.64) as Cochrane-evidence options. ALWAYS frame as "worth discussing with a clinician", never as prescription. Never invent dosing factors (weight/BP do not set the Tabex schedule) — point to the manufacturer leaflet and a doctor.
-- CRISIS PROTOCOL: if self-harm or severe distress is voiced — name what you heard, validate, and give ONLY these verified Russian helplines, never invent numbers: «Телефон неотложной психологической помощи 051 (с мобильного +7 495 051, Москва), горячая линия психологической помощи МЧС +7 495 989-50-50, при прямой опасности — 112». Stay with the user, no smoking techniques in this moment.
+- CRISIS PROTOCOL: if self-harm or severe distress is voiced — name what you heard, validate, and give ONLY these verified helplines, never invent numbers. Lead with the nationwide free line: «Бесплатно по всей России: 8-800-2000-122 (с мобильного короткий 124), круглосуточно и анонимно. При прямой опасности для жизни — 112. Ещё: горячая линия психологической помощи МЧС +7 495 989-50-50.» Stay with the user, no smoking techniques in this moment.
+- NUMBERS: state a figure (amount of money, day count, percent) ONLY if it appears verbatim in the context block below. Never invent or estimate amounts, and NEVER relabel a lifetime total as «за эту неделю/сегодня».
 - Address the user ONLY as «ты», never «вы». One consistent warm voice.
 - Plain conversational text: no markdown headers/bold lists in chat replies; short paragraphs only.
 DEEP-LINKING (very important):
@@ -319,7 +322,7 @@ const OPENER_DIRECTIVE: Record<Opener, { ru: string; en: string }> = {
   morning: { ru: 'Утро. Поздоровайся по-утреннему, отметь день программы, и спроси, как настрой на день. 1–2 фразы.', en: 'Morning. Greet, note the program day, ask about the day ahead. 1–2 sentences.' },
   evening: { ru: 'Вечер, конец дня. Тепло спроси, как прошёл день, отметив контекст (день программы, опасное время если близко). 1–2 фразы.', en: 'Evening. Warmly ask how the day went, noting context. 1–2 sentences.' },
   sos: { ru: 'Юзер только что был в кризис-режиме (тяга). Спокойно подхвати: отметь, что он пришёл, и спроси, что сейчас происходит. 1–2 фразы.', en: 'The user just came from a craving SOS. Calmly pick it up: note they reached out, ask what is happening now. 1–2 sentences.' },
-  weekly: { ru: 'Воскресный разбор недели. Коротко отрази 1–2 реальных факта недели из данных (дни без сигарет, деньги, паттерн тяги или прогресс) тёплыми словами и задай один вопрос про следующую неделю. 2–3 фразы, без списков.', en: 'Sunday weekly reflection. Briefly reflect 1–2 real facts from this week\'s data warmly, then ask one question about next week. 2–3 sentences, no lists.' },
+  weekly: { ru: 'Воскресная рефлексия. Тепло отрази общий прогресс СВОИМИ СЛОВАМИ, опираясь только на факты из контекста. НЕ называй конкретных цифр за неделю, если их нет в контексте (там кумулятивные итоги и срывы за 7 дней — не выдумывай недельных сумм и не выдавай общий итог за «эту неделю»). Задай один тёплый вопрос про следующую неделю. 2–3 фразы, без списков.', en: 'Sunday reflection. Warmly reflect overall progress IN YOUR OWN WORDS using only facts present in context. Do NOT cite specific weekly figures that are not in context (it has lifetime totals and 7-day slips — never fabricate weekly sums or relabel a lifetime total as "this week"). Ask one warm question about next week. 2–3 sentences, no lists.' },
 };
 
 export async function proactiveOpener(

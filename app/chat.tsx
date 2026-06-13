@@ -45,6 +45,10 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const summarizingRef = useRef(false); // re-entrancy guard for thread summary
+
+  const premium = usePremium();
+  const remaining = aiRemainingToday(state, premium);
 
   useEffect(() => {
     if (params.threadId) {
@@ -83,8 +87,10 @@ export default function ChatScreen() {
   // once per thread; does not count against the free message limit.
   const openerRanRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!threadId || !params.opener) return;
+    if (!threadId || !params.opener || loading) return;
     if (openerRanRef.current === threadId) return;
+    // Don't spend a paid opener call when the user is out of free messages.
+    if (!premium && (remaining ?? 0) <= 0) return;
     const existing = (state.chats ?? []).find((c) => c.id === threadId);
     if (existing && existing.messages.length > 0) return; // already a conversation
     openerRanRef.current = threadId;
@@ -129,9 +135,6 @@ export default function ChatScreen() {
     }));
   }
 
-  const premium = usePremium();
-  const remaining = aiRemainingToday(state, premium);
-
   async function send() {
     const text = input.trim();
     if (!text || loading) return;
@@ -145,15 +148,20 @@ export default function ChatScreen() {
     setInput('');
     setSendError(null);
     setLoading(true);
-    // Long conversation: send only the live tail + a rolling summary of the
-    // older messages (kept on the thread), so a month-long relationship stays
-    // in context without re-sending everything each turn.
+    // Long conversation: when a rolling summary exists, send only the recent
+    // tail (the summary covers everything before it). We do NOT track an
+    // absolute index — persist() truncates to MAX_THREAD_MESSAGES, so any saved
+    // index desyncs after the first truncation. Instead always take the last
+    // KEEP_TAIL, snapped back to start on an assistant turn so the model sees
+    // clean assistant→user pairs.
     const curThread = (state.chats ?? []).find((c) => c.id === threadId);
     const priorSummary = curThread?.summary;
-    const upto = curThread?.summarizedUpto ?? 0;
-    const outHistory = (priorSummary && next.length > KEEP_TAIL + 2)
-      ? next.slice(Math.min(upto, next.length - KEEP_TAIL))
-      : next;
+    let outHistory = next;
+    if (priorSummary && next.length > KEEP_TAIL + 2) {
+      let start = Math.max(0, next.length - KEEP_TAIL);
+      while (start > 0 && next[start].role !== 'assistant') start--;
+      outHistory = next.slice(start);
+    }
     try {
       // Stream tokens in for a faster, alive feel; fall back to one-shot on error.
       let reply = '';
@@ -173,17 +181,22 @@ export default function ChatScreen() {
       if (userMsgCount % EXTRACT_EVERY_N_USER_MSGS === 0) {
         extractFacts(state, final); // fire-and-forget
       }
-      // Roll older messages into a summary once the thread gets long, so the
-      // next turns send a short tail instead of the whole history.
-      if (final.length > SUMMARIZE_OVER && final.length - upto > KEEP_TAIL + 4) {
-        summarizeOlderMessages(state, final, priorSummary).then((sum) => {
-          if (!sum) return;
-          const coveredUpto = final.length - KEEP_TAIL;
-          update((s) => ({
-            ...s,
-            chats: (s.chats ?? []).map((c) => c.id !== threadId ? c : { ...c, summary: sum, summarizedUpto: coveredUpto }),
-          }));
-        });
+      // Roll older messages into a rolling summary once the thread gets long,
+      // so the next turns send a short tail instead of the whole history.
+      // Re-entrancy guard: skip if a summary is already in flight for this thread
+      // (otherwise concurrent runs race last-writer-wins on the summary text).
+      if (final.length > SUMMARIZE_OVER && !summarizingRef.current) {
+        summarizingRef.current = true;
+        summarizeOlderMessages(state, final, priorSummary)
+          .then((sum) => {
+            if (sum) {
+              update((s) => ({
+                ...s,
+                chats: (s.chats ?? []).map((c) => c.id !== threadId ? c : { ...c, summary: sum }),
+              }));
+            }
+          })
+          .finally(() => { summarizingRef.current = false; });
       }
       if (!premium) {
         await update((s) => {
