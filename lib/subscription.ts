@@ -14,7 +14,7 @@ export const FREE_TECHNIQUE_IDS = new Set([
   'cyclic_sigh', 'box_breath', 'urge_surf', 'halt_check', 'if_then',
 ]);
 
-export const FREE_ARTICLE_COUNT = 5;
+export const FREE_ARTICLE_COUNT = 3;
 
 /** First N audio practices (by PRACTICES order) are free; the rest are premium. */
 export const FREE_PRACTICE_COUNT = 3;

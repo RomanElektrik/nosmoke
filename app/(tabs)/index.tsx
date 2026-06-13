@@ -363,10 +363,16 @@ function KnowledgeSection() {
   const router = useRouter();
   const lang = currentLang();
   const premium = usePremium();
-  const freeIds = new Set(ARTICLES.slice(0, FREE_ARTICLE_COUNT).map((a) => a.id));
-  // Rotate daily so the strip stays fresh.
-  const start = Math.floor(Date.now() / 86400_000) % ARTICLES.length;
-  const featured = [0, 1, 2, 3].map((i) => ARTICLES[(start + i) % ARTICLES.length]);
+  // Free articles ALWAYS come first in the strip — users should see open
+  // content up front, not a locked card. Paid ones follow as rotating teasers.
+  const freeArts = ARTICLES.slice(0, FREE_ARTICLE_COUNT);
+  const freeIds = new Set(freeArts.map((a) => a.id));
+  const lockedArts = ARTICLES.filter((a) => !freeIds.has(a.id));
+  const start = lockedArts.length ? Math.floor(Date.now() / 86400_000) % lockedArts.length : 0;
+  const teasers = lockedArts.length
+    ? [0, 1, 2].map((i) => lockedArts[(start + i) % lockedArts.length])
+    : [];
+  const featured = [...freeArts, ...teasers];
 
   return (
     <View style={{ gap: 10 }}>
