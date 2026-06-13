@@ -57,11 +57,18 @@ type TourCtx = {
 };
 const Ctx = createContext<TourCtx | null>(null);
 export const useTour = () => useContext(Ctx);
+// Separate channel for "re-measure now" so bumping it doesn't churn the main
+// context identity (which would re-fire Home's start effect). Anchors re-measure
+// whenever this changes — on tour start and on every step — so the spotlight
+// always matches the element's CURRENT on-screen position (the home list shifts
+// as async cards mount, making mount-time rects stale).
+const MeasureCtx = createContext(0);
 
 export function TourProvider({ children }: { children: React.ReactNode }) {
   const [targets, setTargets] = useState<Record<string, Box>>({});
   const [running, setRunning] = useState(false);
   const [idx, setIdx] = useState(0);
+  const [measureTick, setMeasureTick] = useState(0);
   const pathname = usePathname();
 
   const register = useCallback((key: string, rect: Box) => {
@@ -73,7 +80,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const start = useCallback(() => { setIdx(0); setRunning(true); }, []);
+  const start = useCallback(() => { setIdx(0); setRunning(true); setMeasureTick((n) => n + 1); }, []);
 
   const finish = useCallback(() => {
     setRunning(false);
@@ -81,6 +88,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const next = useCallback(() => {
+    setMeasureTick((n) => n + 1); // re-measure the next step's anchor
     setIdx((i) => {
       if (i >= STEPS.length - 1) { finish(); return i; }
       return i + 1;
@@ -107,10 +115,12 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <Ctx.Provider value={ctx}>
-      {children}
-      {running && (
-        <Overlay step={step} idx={idx} total={STEPS.length} rect={rect} onNext={next} onSkip={finish} />
-      )}
+      <MeasureCtx.Provider value={measureTick}>
+        {children}
+        {running && (
+          <Overlay step={step} idx={idx} total={STEPS.length} rect={rect} onNext={next} onSkip={finish} />
+        )}
+      </MeasureCtx.Provider>
     </Ctx.Provider>
   );
 }
@@ -120,12 +130,20 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 export function TourAnchor({ anchorKey, children, style, pointerEvents }:
   { anchorKey: string; children: React.ReactNode; style?: ViewStyle; pointerEvents?: 'auto' | 'none' | 'box-none' | 'box-only' }) {
   const tour = useTour();
+  const tick = useContext(MeasureCtx);
   const ref = useRef<View>(null);
   const measure = useCallback(() => {
     ref.current?.measureInWindow((x, y, w, h) => {
       if (w > 0 && h > 0 && tour) tour.register(anchorKey, { x, y, width: w, height: h });
     });
   }, [anchorKey, tour]);
+  // Re-measure when the tour starts/advances (tick) — captures the element's
+  // current position after async cards have shifted the layout. rAF lets the
+  // frame settle first.
+  useEffect(() => {
+    const id = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(id);
+  }, [tick, measure]);
   return (
     <View ref={ref} collapsable={false} onLayout={measure} style={style} pointerEvents={pointerEvents}>
       {children}

@@ -134,9 +134,34 @@ function PremiumCard() {
   const t = useTheme();
   const router = useRouter();
   const lang = currentLang();
+  const ru = lang === 'ru';
+  const [state] = useAppState();
   const premium = usePremium();
+  const until = state.premiumUntil ?? 0;
+  const lifetime = until > Date.now() + 40 * 365 * 86400_000;
+  const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
+
+  function manage() {
+    Alert.alert(
+      ru ? 'Подписка Премиум' : 'Premium subscription',
+      (lifetime ? (ru ? 'Доступ навсегда.' : 'Lifetime access.') : (ru ? `Активна до ${dateStr}.` : `Active until ${dateStr}.`)) + '\n\n' +
+      (ru
+        ? 'Это разовая оплата за период — автосписаний нет, отдельно отменять ничего не нужно. По окончании доступ просто не продлевается. Вопрос по возврату — напиши нам.'
+        : 'This is a one-time payment for the period — no auto-charges, nothing to cancel. After it ends, access simply stops. Refund questions — contact us.'),
+      [
+        { text: ru ? 'Закрыть' : 'Close' },
+        { text: ru ? 'Написать в поддержку' : 'Contact support', onPress: () => Linking.openURL('mailto:istrelkov829@gmail.com?subject=Бриз%20—%20подписка') },
+      ],
+    );
+  }
+
+  const sub = premium
+    ? (lifetime ? (ru ? 'Доступ навсегда · управление' : 'Lifetime · manage')
+                : (ru ? `Активен до ${dateStr} · управление` : `Until ${dateStr} · manage`))
+    : (ru ? 'Безлимит ИИ, все аудиопрактики, статьи и техники' : 'Unlimited AI, all audio, articles and techniques');
+
   return (
-    <Pressable onPress={() => router.push('/paywall' as any)}>
+    <Pressable onPress={() => (premium ? manage() : router.push('/paywall' as any))}>
       <View style={{
         padding: 16, borderRadius: radius.lg,
         backgroundColor: premium ? t.accent + '14' : t.card,
@@ -151,15 +176,9 @@ function PremiumCard() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
-            {premium
-              ? (lang === 'ru' ? 'Премиум активен' : 'Premium active')
-              : (lang === 'ru' ? 'Открой Премиум' : 'Unlock Premium')}
+            {premium ? (ru ? 'Премиум активен' : 'Premium active') : (ru ? 'Открой Премиум' : 'Unlock Premium')}
           </Text>
-          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
-            {premium
-              ? (lang === 'ru' ? 'Все функции доступны' : 'All features unlocked')
-              : (lang === 'ru' ? 'Безлимит ИИ, все аудиопрактики, статьи и техники' : 'Unlimited AI, all audio, articles and techniques')}
-          </Text>
+          <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>{sub}</Text>
         </View>
         <Text style={{ color: t.textDim, fontSize: 20 }}>›</Text>
       </View>
