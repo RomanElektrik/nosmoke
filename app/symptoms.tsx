@@ -4,7 +4,7 @@
 // of "actually getting better".
 
 import { useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -42,9 +42,6 @@ export default function Symptoms() {
   const logs = state.symptoms ?? [];
   const last = logs[logs.length - 1];
 
-  const canFillNow = !last || Date.now() - last.ts >= 3 * 86400_000;
-  const daysSinceLast = last ? Math.floor((Date.now() - last.ts) / 86400_000) : null;
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: spacing.md }}>
@@ -64,7 +61,7 @@ export default function Symptoms() {
           </Text>
         </View>
 
-        <SurveyCard canFillNow={canFillNow} daysSinceLast={daysSinceLast} lang={lang} />
+        <SurveyCard last={last} lang={lang} />
 
         {logs.length > 0 && (
           <View style={{ gap: 14 }}>
@@ -92,65 +89,81 @@ export default function Symptoms() {
   );
 }
 
-function SurveyCard({ canFillNow, daysSinceLast, lang }: { canFillNow: boolean; daysSinceLast: number | null; lang: 'ru' | 'en' }) {
+function initValues(last?: SymptomLog): Record<AxisKey, number> {
+  const base: Record<AxisKey, number> = {
+    cough: 5, breath: 5, taste: 5, smell: 5, sleep: 5, energy: 5, mood: 5, craving: 5,
+  };
+  if (!last) return base;
+  (Object.keys(base) as AxisKey[]).forEach((k) => {
+    if (last[k] != null) base[k] = symptomTo10(last, last[k]);
+  });
+  return base;
+}
+
+function SurveyCard({ last, lang }: { last?: SymptomLog; lang: 'ru' | 'en' }) {
   const t = useTheme();
   const [open, setOpen] = useState(false);
-  const [values, setValues] = useState<Record<AxisKey, number>>({
-    cough: 5, breath: 5, taste: 5, smell: 5, sleep: 5, energy: 5, mood: 5, craving: 5,
-  });
+  // Open prefilled with the latest values so it can be changed any time.
+  const [values, setValues] = useState<Record<AxisKey, number>>(() => initValues(last));
+
+  const today = localDateKey();
+  const editingToday = !!last && last.date === today;
+  const daysSinceLast = last ? Math.floor((Date.now() - last.ts) / 86400_000) : null;
+
+  function openSheet() {
+    setValues(initValues(last));
+    setOpen(true);
+  }
 
   async function save() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const entry: SymptomLog = {
-      date: localDateKey(),
-      ts: Date.now(),
-      scale: 10,
-      ...values,
-    };
-    await update((s) => ({ ...s, symptoms: [...(s.symptoms ?? []), entry] }));
+    const entry: SymptomLog = { date: today, ts: Date.now(), scale: 10, ...values };
+    await update((s) => {
+      const arr = s.symptoms ?? [];
+      // Editing today's entry replaces it instead of piling up duplicates.
+      const baseArr = arr.length > 0 && arr[arr.length - 1].date === today ? arr.slice(0, -1) : arr;
+      return { ...s, symptoms: [...baseArr, entry] };
+    });
     setOpen(false);
   }
 
   if (!open) {
-    const waitDays = daysSinceLast !== null ? Math.max(0, 3 - daysSinceLast) : 0;
+    const sub = last
+      ? (editingToday
+          ? (lang === 'ru' ? 'Отмечено сегодня · можно поменять' : 'Logged today · tap to change')
+          : (lang === 'ru' ? `Последняя отметка: ${daysSinceLast} дн. назад` : `Last logged: ${daysSinceLast}d ago`))
+      : (lang === 'ru' ? '8 ползунков · 30 секунд' : '8 sliders · 30 seconds');
     return (
-      <Pressable onPress={() => canFillNow && setOpen(true)} disabled={!canFillNow}>
+      <Pressable onPress={openSheet}>
         <View style={{
           padding: 18, borderRadius: radius.lg,
-          backgroundColor: canFillNow ? t.accent + '14' : t.card,
-          borderWidth: 1, borderColor: canFillNow ? t.accent + '50' : t.border,
+          backgroundColor: t.accent + '14', borderWidth: 1, borderColor: t.accent + '50',
           flexDirection: 'row', alignItems: 'center', gap: 14,
         }}>
-          <View style={{
-            width: 50, height: 50, borderRadius: 16,
-            backgroundColor: canFillNow ? t.accent + '24' : t.border,
-            alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Icon.check size={26} color={canFillNow ? t.accent : t.textDim} />
+          <View style={{ width: 50, height: 50, borderRadius: 16, backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon.check size={26} color={t.accent} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
-              {canFillNow
-                ? (lang === 'ru' ? 'Заполнить за эту неделю' : 'Fill this week')
-                : (lang === 'ru' ? `Следующая запись через ${waitDays} дн.` : `Next entry in ${waitDays} days`)}
+              {last
+                ? (lang === 'ru' ? 'Обновить самочувствие' : 'Update how you feel')
+                : (lang === 'ru' ? 'Отметить самочувствие' : 'Log how you feel')}
             </Text>
-            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
-              {lang === 'ru' ? '8 вопросов · 40 секунд' : '8 questions · 40 seconds'}
-            </Text>
+            <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>{sub}</Text>
           </View>
-          {canFillNow && <Text style={{ color: t.accent, fontSize: 20, fontWeight: '700' }}>→</Text>}
+          <Text style={{ color: t.accent, fontSize: 20, fontWeight: '700' }}>→</Text>
         </View>
       </Pressable>
     );
   }
 
   return (
-    <View style={{ padding: 18, borderRadius: radius.lg, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, gap: 16 }}>
+    <View style={{ padding: 18, borderRadius: radius.lg, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, gap: 20 }}>
       {AXES.map((a) => {
         const I = Icon[a.icon];
         const v = values[a.k];
         return (
-          <View key={a.k} style={{ gap: 8 }}>
+          <View key={a.k} style={{ gap: 10 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: a.color + '22', alignItems: 'center', justifyContent: 'center' }}>
                 <I size={16} color={a.color} />
@@ -158,30 +171,16 @@ function SurveyCard({ canFillNow, daysSinceLast, lang }: { canFillNow: boolean; 
               <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', flex: 1 }}>
                 {lang === 'ru' ? a.ru : a.en}
               </Text>
-              <Text style={{ color: a.color, fontSize: 12, fontWeight: '700' }}>
-                {v}/10 · {scaleLabel(v, lang === 'ru')}
-              </Text>
+              <Text style={{ color: a.color, fontSize: 15, fontWeight: '800' }}>{v}</Text>
+              <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '600' }}>/10 · {scaleLabel(v, lang === 'ru')}</Text>
             </View>
-            <View style={{ flexDirection: 'row', gap: 4 }}>
-              {Array.from({ length: 11 }, (_, n) => (
-                <TouchableOpacity key={n} activeOpacity={0.7}
-                  onPress={() => { Haptics.selectionAsync(); setValues((p) => ({ ...p, [a.k]: n })); }}
-                  style={{
-                    flex: 1, paddingVertical: 11, borderRadius: 8,
-                    backgroundColor: n <= v ? a.color : t.bgElev,
-                    borderWidth: 1, borderColor: n <= v ? a.color : t.border,
-                    alignItems: 'center',
-                  }}>
-                  <Text pointerEvents="none" style={{ color: n <= v ? '#fff' : t.textDim, fontWeight: '700', fontSize: 10.5 }}>{n}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Scale10 value={v} color={a.color} onChange={(nv) => setValues((p) => ({ ...p, [a.k]: nv }))} />
           </View>
         );
       })}
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
         <Pressable onPress={() => setOpen(false)}
-          style={{ paddingHorizontal: 18, paddingVertical: 14, borderRadius: radius.md, borderWidth: 1, borderColor: t.border }}>
+          style={{ paddingHorizontal: 18, paddingVertical: 16, borderRadius: radius.md, borderWidth: 1, borderColor: t.border }}>
           <Text style={{ color: t.textDim, fontWeight: '600' }}>{lang === 'ru' ? 'Отмена' : 'Cancel'}</Text>
         </Pressable>
         <Pressable onPress={save}
@@ -189,6 +188,39 @@ function SurveyCard({ canFillNow, daysSinceLast, lang }: { canFillNow: boolean; 
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{lang === 'ru' ? 'Сохранить' : 'Save'}</Text>
         </Pressable>
       </View>
+    </View>
+  );
+}
+
+// Big, easy 0–10 slider — tap or drag anywhere on the track. Replaces the row
+// of 11 tiny buttons that were hard to hit.
+function Scale10({ value, color, onChange }: { value: number; color: string; onChange: (v: number) => void }) {
+  const t = useTheme();
+  const [w, setW] = useState(0);
+  const apply = (x: number) => {
+    if (w <= 0) return;
+    const v = Math.max(0, Math.min(10, Math.round((x / w) * 10)));
+    if (v !== value) { Haptics.selectionAsync(); onChange(v); }
+  };
+  const fill = w > 0 ? (value / 10) * w : 0;
+  const thumbLeft = w > 0 ? Math.max(0, Math.min(w - 32, fill - 16)) : 0;
+  return (
+    <View
+      onLayout={(e) => setW(e.nativeEvent.layout.width)}
+      onStartShouldSetResponder={() => true}
+      onMoveShouldSetResponder={() => true}
+      onResponderGrant={(e) => apply(e.nativeEvent.locationX)}
+      onResponderMove={(e) => apply(e.nativeEvent.locationX)}
+      style={{ height: 46, justifyContent: 'center' }}
+    >
+      <View style={{ height: 14, borderRadius: 7, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border, overflow: 'hidden' }}>
+        <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: fill, backgroundColor: color, borderRadius: 7 }} />
+      </View>
+      <View pointerEvents="none" style={{
+        position: 'absolute', left: thumbLeft, width: 32, height: 32, borderRadius: 16,
+        backgroundColor: '#fff', borderWidth: 3, borderColor: color,
+        shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+      }} />
     </View>
   );
 }
