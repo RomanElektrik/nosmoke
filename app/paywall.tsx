@@ -70,8 +70,7 @@ const FEATURES_EN: Feature[] = [
 ];
 
 const PRIVACY_URL = 'https://romanelektrik.github.io/nosmoke/privacy-policy.html';
-// Apple's standard EULA — applies when an app ships no custom terms of use.
-const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+const TERMS_URL = 'https://romanelektrik.github.io/nosmoke/terms.html';
 
 // Brand gradient — «бриз»: green → teal. Used for the hero star badge.
 const BRAND_GRADIENT = ['#1DB85A', '#0E9E86'] as const;
