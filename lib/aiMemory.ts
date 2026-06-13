@@ -16,8 +16,14 @@ export const MAX_AI_FACTS = 25;
 export const EXTRACT_EVERY_N_USER_MSGS = 4;
 
 const ENV_KEY = process.env.EXPO_PUBLIC_OPENROUTER_KEY || '';
-// Cheapest adequate model — extraction is trivial classification work.
+// Cheapest adequate model — extraction & summary are trivial work.
 const EXTRACT_MODEL = 'google/gemini-2.5-flash-lite';
+
+// Above this many messages in a thread we roll the older ones into a summary
+// and only send the live tail to the model — a month-long relationship stays
+// in context without paying for the whole history each turn.
+export const SUMMARIZE_OVER = 24;
+export const KEEP_TAIL = 12;
 
 const EXTRACT_PROMPT = `You extract DURABLE personal facts about a user from a quit-smoking support chat.
 Return a JSON array of 0-3 SHORT facts in Russian (each ≤ 90 chars). Only include facts that will still matter in a month:
@@ -86,5 +92,46 @@ export async function extractFacts(state: AppState, messages: ChatMessage[]): Pr
     });
   } catch {
     // memory is a bonus, never an error surface
+  }
+}
+
+const SUMMARY_PROMPT = `You compress a long quit-smoking coaching conversation into a running summary for the coach's own memory.
+Write 2-4 short sentences in Russian, third-person, capturing only what matters for continuing the relationship: what the user is going through, what was tried and how it went, agreements/next steps, emotional state. Merge the PREVIOUS SUMMARY with the NEW MESSAGES. No greetings, no meta, no markdown. Output ONLY the summary text.`;
+
+// Roll the older half of a long thread into a compact summary. Returns the new
+// summary text or null on failure / nothing to do. Caller stores it on the
+// thread and sends only the tail afterwards. Never throws.
+export async function summarizeOlderMessages(
+  state: AppState,
+  messages: ChatMessage[],
+  prevSummary: string | undefined,
+): Promise<string | null> {
+  try {
+    const key = state.profile?.openrouterKey?.trim() || ENV_KEY;
+    if (!key) return null;
+    const older = messages.slice(0, Math.max(0, messages.length - KEEP_TAIL));
+    if (older.length === 0) return null;
+    const block = older
+      .map((m) => `${m.role === 'user' ? 'USER' : 'COACH'}: ${m.content}`)
+      .join('\n');
+    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: EXTRACT_MODEL,
+        temperature: 0.2,
+        max_tokens: 220,
+        messages: [
+          { role: 'system', content: SUMMARY_PROMPT },
+          { role: 'user', content: `PREVIOUS SUMMARY:\n${prevSummary || '—'}\n\nNEW MESSAGES:\n${block}` },
+        ],
+      }),
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    const text: string = (data?.choices?.[0]?.message?.content ?? '').trim();
+    return text.length > 10 ? text.slice(0, 600) : null;
+  } catch {
+    return null;
   }
 }

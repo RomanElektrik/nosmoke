@@ -9,12 +9,12 @@ import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update, newThreadId, MAX_CHAT_THREADS, MAX_THREAD_MESSAGES, type ChatThread, type PersonaId } from '../lib/storage';
-import { chat, chatStream, ChatMessage, CoachMode } from '../lib/ai';
+import { chat, chatStream, proactiveOpener, ChatMessage, CoachMode, type Opener } from '../lib/ai';
 import { getPersona } from '../lib/personas';
 import { Icon, type IconKey } from '../components/Icon';
 import { FREE_AI_DAILY_LIMIT, aiRemainingToday, todayKey, usePremium } from '../lib/subscription';
 import { extractLinks, stripLinks } from '../lib/aiLinks';
-import { extractFacts, EXTRACT_EVERY_N_USER_MSGS } from '../lib/aiMemory';
+import { extractFacts, EXTRACT_EVERY_N_USER_MSGS, summarizeOlderMessages, SUMMARIZE_OVER, KEEP_TAIL } from '../lib/aiMemory';
 
 const MODE_META: Record<CoachMode, { icon: IconKey; color: string; ru: string; en: string }> = {
   support:      { icon: 'chat',    color: '#0A84FF', ru: 'Поддержи сейчас', en: 'Support now' },
@@ -27,7 +27,7 @@ export default function ChatScreen() {
   const router = useRouter();
   const { t: tr } = useTranslation();
   const lang = currentLang();
-  const params = useLocalSearchParams<{ mode?: string; threadId?: string; persona?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; threadId?: string; persona?: string; opener?: string }>();
   const mode = (params.mode as CoachMode) || 'support';
 
   const [state] = useAppState();
@@ -77,6 +77,37 @@ export default function ChatScreen() {
     }
   }, [params.threadId, mode]);
 
+  // Proactive opener: when the chat is opened with intent (from a push or SOS,
+  // i.e. an `opener` param) and the thread has no conversation yet, Breeze
+  // speaks FIRST with a context-aware line instead of a static greeting. Runs
+  // once per thread; does not count against the free message limit.
+  const openerRanRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!threadId || !params.opener) return;
+    if (openerRanRef.current === threadId) return;
+    const existing = (state.chats ?? []).find((c) => c.id === threadId);
+    if (existing && existing.messages.length > 0) return; // already a conversation
+    openerRanRef.current = threadId;
+    (async () => {
+      setHistory([]);
+      setLoading(true);
+      try {
+        const line = await proactiveOpener(state, lang, params.opener as Opener, persona.id);
+        if (line) {
+          const final: ChatMessage[] = [{ role: 'assistant', content: line }];
+          setHistory(final);
+          await persist(final);
+        } else {
+          setHistory([{ role: 'assistant', content: tr('coach.first_msg') }]);
+        }
+      } catch {
+        setHistory([{ role: 'assistant', content: tr('coach.first_msg') }]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [threadId, params.opener]);
+
   // Scroll to last message on mount and when history changes.
   useEffect(() => {
     const id = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 80);
@@ -114,15 +145,24 @@ export default function ChatScreen() {
     setInput('');
     setSendError(null);
     setLoading(true);
+    // Long conversation: send only the live tail + a rolling summary of the
+    // older messages (kept on the thread), so a month-long relationship stays
+    // in context without re-sending everything each turn.
+    const curThread = (state.chats ?? []).find((c) => c.id === threadId);
+    const priorSummary = curThread?.summary;
+    const upto = curThread?.summarizedUpto ?? 0;
+    const outHistory = (priorSummary && next.length > KEEP_TAIL + 2)
+      ? next.slice(Math.min(upto, next.length - KEEP_TAIL))
+      : next;
     try {
       // Stream tokens in for a faster, alive feel; fall back to one-shot on error.
       let reply = '';
       try {
-        reply = await chatStream(state, lang, mode, next, (partial) => {
+        reply = await chatStream(state, lang, mode, outHistory, (partial) => {
           if (partial) setHistory([...next, { role: 'assistant', content: partial }]);
-        }, persona.id);
+        }, persona.id, priorSummary);
       } catch {
-        reply = await chat(state, lang, mode, next, persona.id);
+        reply = await chat(state, lang, mode, outHistory, persona.id, priorSummary);
       }
       const final = [...next, { role: 'assistant' as const, content: reply || '…' }];
       setHistory(final);
@@ -132,6 +172,18 @@ export default function ChatScreen() {
       const userMsgCount = final.filter((m) => m.role === 'user').length;
       if (userMsgCount % EXTRACT_EVERY_N_USER_MSGS === 0) {
         extractFacts(state, final); // fire-and-forget
+      }
+      // Roll older messages into a summary once the thread gets long, so the
+      // next turns send a short tail instead of the whole history.
+      if (final.length > SUMMARIZE_OVER && final.length - upto > KEEP_TAIL + 4) {
+        summarizeOlderMessages(state, final, priorSummary).then((sum) => {
+          if (!sum) return;
+          const coveredUpto = final.length - KEEP_TAIL;
+          update((s) => ({
+            ...s,
+            chats: (s.chats ?? []).map((c) => c.id !== threadId ? c : { ...c, summary: sum, summarizedUpto: coveredUpto }),
+          }));
+        });
       }
       if (!premium) {
         await update((s) => {

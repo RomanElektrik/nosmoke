@@ -184,7 +184,7 @@ export default function Craving() {
                   onPress={() => { Haptics.selectionAsync(); router.push('/game'); }} />
                   <MiniTile t={t} icon={Icon.chat} color="#30D158"
                     title={ru ? 'Написать' : 'Message'} sub={ru ? 'мне' : 'me'}
-                    onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support' as any); }} />
+                    onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support&opener=sos' as any); }} />
               </View>
 
               {/* ── Logging is post-hoc — quiet link, not a competing button ── */}
@@ -276,7 +276,7 @@ export default function Craving() {
               style={({ pressed }) => ({ marginTop: 10, paddingVertical: 18, paddingHorizontal: 44, borderRadius: radius.xl, backgroundColor: t.accent, opacity: pressed ? 0.9 : 1, alignSelf: 'stretch', alignItems: 'center' })}>
               <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>{ru ? 'Отпустило' : 'It passed'}</Text>
             </Pressable>
-            <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support' as any); }}
+            <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support&opener=sos' as any); }}
               style={({ pressed }) => ({ paddingVertical: 16, paddingHorizontal: 44, borderRadius: radius.xl, borderWidth: 1.5, borderColor: t.info + '66', backgroundColor: t.info + '14', opacity: pressed ? 0.85 : 1, alignSelf: 'stretch', alignItems: 'center' })}>
               <Text style={{ color: t.info, fontWeight: '800', fontSize: 16 }}>
                 {ru ? 'Ещё держит — поговорить с Бризом' : 'Still holding — talk to Breeze'}

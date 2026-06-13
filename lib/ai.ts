@@ -6,6 +6,7 @@ import { cravingsSurvived, currentLevel, programToday } from './program';
 import { getStep, preQuitGraceEnd, methodQuitDay } from './stepped';
 import { getPersona } from './personas';
 import { factsBlock } from './aiMemory';
+import { computeInsights, triggerName } from './insights';
 import type { PersonaId } from './storage';
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
@@ -23,7 +24,35 @@ const FALLBACK = 'openai/gpt-4o-mini';
 // model. A small, fast model keeps the back-and-forth snappy.
 const CALL_MODEL = process.env.EXPO_PUBLIC_CALL_MODEL || 'google/gemini-2.5-flash-lite';
 
-export function buildSystemPrompt(state: AppState, locale: 'ru' | 'en', mode: PromptMode, personaId?: PersonaId): string {
+// A compact, data-driven «what works / when it hits» line built from the user's
+// own logged cravings — so the coach speaks from THIS person's pattern, not
+// generic advice.
+function cravingStatsLine(state: AppState): string {
+  const ins = computeInsights(state.cravings);
+  if (ins.total < 3) return 'craving stats: not enough logged cravings yet';
+  const bits: string[] = [];
+  bits.push(`holds ${Math.round(ins.resistRate * 100)}% of cravings`);
+  if (ins.peakHourLabel) bits.push(`riskiest window ${ins.peakHourLabel}`);
+  if (ins.topTriggers[0]) bits.push(`top trigger ${triggerName(ins.topTriggers[0].trigger, false)}`);
+  if (ins.intensityTrend !== 'flat') bits.push(`intensity trending ${ins.intensityTrend}`);
+  return `craving stats (from this user's own log): ${bits.join('; ')}`;
+}
+
+// If a craving was logged in the last ~20 min (e.g. the user just rode the SOS
+// wave from a [[sos]] button and came back to chat), surface it so the coach
+// closes the loop instead of starting cold.
+function recentCravingLine(state: AppState): string {
+  const last = state.cravings[state.cravings.length - 1];
+  if (!last) return '';
+  const minsAgo = Math.floor((Date.now() - last.ts) / 60000);
+  if (minsAgo > 25) return '';
+  const what = last.outcome === 'resisted'
+    ? `the user JUST rode out a craving (${minsAgo} min ago, intensity ${last.intensity}/10) WITHOUT smoking`
+    : `the user smoked ${minsAgo} min ago`;
+  return `\n- LOOP-CLOSE: ${what} — acknowledge it naturally and continue from there (e.g. "видел, волна прошла — как было на пике?"), don't restart cold.`;
+}
+
+export function buildSystemPrompt(state: AppState, locale: 'ru' | 'en', mode: PromptMode, personaId?: PersonaId, priorSummary?: string): string {
   const p = state.profile;
   const lang = locale === 'ru' ? 'Russian' : 'English';
   if (!p) return `You are an empathic, evidence-based smoking cessation coach. Reply in ${lang}.`;
@@ -47,7 +76,7 @@ HARD RULES:
 - Offer a tiny concrete action only occasionally and NEVER the same one twice (a sip of water, step outside, hold something cold, text someone, name the trigger out loud).
 - No markers, no links, no emoji, no markdown. A slip is never shame.
 
-Them: ${d} days smoke-free. Quitting for: ${mots}. Triggers: ${trigs}.${stmt ? ` Becoming: "${stmt}".` : ''}`;
+Them: ${d} days smoke-free. Quitting for: ${mots}. Triggers: ${trigs}.${stmt ? ` Becoming: "${stmt}".` : ''}${factsBlock(state)}`;
   }
 
   const cigs = cigsAvoided(p, secs);
@@ -156,7 +185,8 @@ CONVERSATION & TECHNIQUE RULES (critical):
 - pregnancy: ${p.healthFlags?.includes('pregnant') ? 'YES — never suggest medication, behavioural support only' : 'no'}
 - known excuses: ${(p.topExcuses ?? []).join(', ') || 'none disclosed'}
 - past attempts: ${(p.pastAttempts ?? []).map(a => `${a.method}/${a.longestDays}d`).join('; ') || 'none'}
-- right now it is: ${(() => { const d = new Date(); const h = d.getHours(); const part = h < 6 ? 'night' : h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening'; const wd = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]; return `${wd} ${part}, ${h}:${String(d.getMinutes()).padStart(2, '0')} local — greet/talk accordingly`; })()}${factsBlock(state)}`;
+- right now it is: ${(() => { const d = new Date(); const h = d.getHours(); const part = h < 6 ? 'night' : h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening'; const wd = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]; return `${wd} ${part}, ${h}:${String(d.getMinutes()).padStart(2, '0')} local — greet/talk accordingly`; })()}
+- ${cravingStatsLine(state)}${recentCravingLine(state)}${factsBlock(state)}${priorSummary ? `\n\nPRIOR CONVERSATION SUMMARY (earlier in this same relationship — continue from it, don't ask things already covered):\n${priorSummary}` : ''}`;
 
   const modeBlock = mode === 'support'
     ? 'Mode: SUPPORT. The user opened a conversation — they may be craving, venting, or just wanting to talk. FIRST listen and reflect; understand what is actually going on before doing anything else. Do NOT offer a technique in your first reply unless the user describes an acute urge happening right now. Follow the CONVERSATION & TECHNIQUE RULES strictly.'
@@ -207,7 +237,7 @@ function parseSSE(raw: string): string {
 // caller can fall back to the non-streaming chat().
 export function chatStream(
   state: AppState, locale: 'ru' | 'en', mode: PromptMode, history: ChatMessage[],
-  onToken: (fullSoFar: string) => void, personaId?: PersonaId,
+  onToken: (fullSoFar: string) => void, personaId?: PersonaId, priorSummary?: string,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const userKey = state.profile?.openrouterKey?.trim();
@@ -217,7 +247,7 @@ export function chatStream(
     const isCall = mode === 'call';
     const model = isCall ? CALL_MODEL : (userModel || ENV_MODEL || DEFAULT_MODEL);
     const maxTokens = isCall ? 120 : 600;
-    const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(state, locale, mode, personaId) }, ...history];
+    const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(state, locale, mode, personaId, priorSummary) }, ...history];
     try {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', 'https://openrouter.ai/api/v1/chat/completions');
@@ -249,7 +279,7 @@ async function callProxy(messages: ChatMessage[], locale: string): Promise<strin
   return data.content ?? data.message ?? '';
 }
 
-export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMode, history: ChatMessage[], personaId?: PersonaId): Promise<string> {
+export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMode, history: ChatMessage[], personaId?: PersonaId, priorSummary?: string): Promise<string> {
   const userKey = state.profile?.openrouterKey?.trim();
   const userModel = state.profile?.openrouterModel?.trim();
   const key = userKey || ENV_KEY;
@@ -265,7 +295,7 @@ export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMod
       : 'To enable the coach — open "Me" → "AI coach" and paste your OpenRouter key (get one free at openrouter.ai → Keys).';
   }
   const messages: ChatMessage[] = [
-    { role: 'system', content: buildSystemPrompt(state, locale, mode, personaId) },
+    { role: 'system', content: buildSystemPrompt(state, locale, mode, personaId, priorSummary) },
     ...history,
   ];
   if (key) {
@@ -276,4 +306,39 @@ export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMod
     }
   }
   return callProxy(messages, locale);
+}
+
+// A proactive FIRST line from Breeze when a chat is opened with intent (from a
+// push or SOS), instead of a static "how can I help?". Generated from full
+// context so it lands personal: time of day, recent craving, the week's data,
+// known facts. Returns null on any failure (caller falls back to static text).
+export type Opener = 'generic' | 'evening' | 'weekly' | 'sos' | 'morning';
+
+const OPENER_DIRECTIVE: Record<Opener, { ru: string; en: string }> = {
+  generic: { ru: 'Открой разговор тёплой персональной репликой по контексту (время суток, день программы). 1–2 фразы + один открытый вопрос.', en: 'Open with a warm personal line from context (time of day, program day). 1–2 sentences + one open question.' },
+  morning: { ru: 'Утро. Поздоровайся по-утреннему, отметь день программы, и спроси, как настрой на день. 1–2 фразы.', en: 'Morning. Greet, note the program day, ask about the day ahead. 1–2 sentences.' },
+  evening: { ru: 'Вечер, конец дня. Тепло спроси, как прошёл день, отметив контекст (день программы, опасное время если близко). 1–2 фразы.', en: 'Evening. Warmly ask how the day went, noting context. 1–2 sentences.' },
+  sos: { ru: 'Юзер только что был в кризис-режиме (тяга). Спокойно подхвати: отметь, что он пришёл, и спроси, что сейчас происходит. 1–2 фразы.', en: 'The user just came from a craving SOS. Calmly pick it up: note they reached out, ask what is happening now. 1–2 sentences.' },
+  weekly: { ru: 'Воскресный разбор недели. Коротко отрази 1–2 реальных факта недели из данных (дни без сигарет, деньги, паттерн тяги или прогресс) тёплыми словами и задай один вопрос про следующую неделю. 2–3 фразы, без списков.', en: 'Sunday weekly reflection. Briefly reflect 1–2 real facts from this week\'s data warmly, then ask one question about next week. 2–3 sentences, no lists.' },
+};
+
+export async function proactiveOpener(
+  state: AppState, locale: 'ru' | 'en', opener: Opener = 'generic', personaId?: PersonaId,
+): Promise<string | null> {
+  try {
+    const key = state.profile?.openrouterKey?.trim() || ENV_KEY;
+    if (!key) return null;
+    const dir = OPENER_DIRECTIVE[opener] ?? OPENER_DIRECTIVE.generic;
+    const sys = buildSystemPrompt(state, locale, 'support', personaId);
+    const instruction = `${locale === 'ru' ? dir.ru : dir.en}\nYou are speaking FIRST, the user has not written anything yet. Reply ONLY in ${locale === 'ru' ? 'Russian' : 'English'}, plain text, no markers, no markdown.`;
+    const messages: ChatMessage[] = [
+      { role: 'system', content: sys },
+      { role: 'user', content: `[SYSTEM: ${instruction}]` },
+    ];
+    const text = await callDirect(key, messages, ENV_MODEL || DEFAULT_MODEL, 200);
+    const clean = text.trim();
+    return clean.length > 4 ? clean : null;
+  } catch {
+    return null;
+  }
 }

@@ -100,7 +100,7 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
     await schedule(at(d, 21),
       t(`День ${d + 1} · как ты?`, `Day ${d + 1} · how are you?`),
       t('Бриз рядом. Расскажи, как прошёл день — одно сообщение.', 'Breeze is here. Tell me about your day — one message.'),
-      '/chat?mode=support',
+      '/chat?mode=support&opener=evening',
     );
   }
 
@@ -208,4 +208,33 @@ export async function scheduleCravingNudge(peakHourStart: number | null, locale:
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
     });
   } catch {}
+}
+
+// Sunday reflection: a weekly ritual that keeps the long-term relationship
+// alive. Opens a chat where Breeze proactively reviews the week from data
+// (opener=weekly) and asks one question about the next. Batched ~8 weeks ahead;
+// re-created on each launch (scheduleQuitProgram's cancelAll wipes the prior
+// batch first, so no duplicates).
+export async function scheduleWeeklyReflection(locale: 'ru' | 'en') {
+  const t: T = (ru, en) => (locale === 'ru' ? ru : en);
+  const now = Date.now();
+  const d = new Date();
+  // next Sunday at 11:00 local
+  d.setHours(11, 0, 0, 0);
+  const daysToSun = (7 - d.getDay()) % 7;
+  d.setDate(d.getDate() + (daysToSun === 0 && d.getTime() <= now ? 7 : daysToSun));
+  for (let w = 0; w < 8; w++) {
+    const fire = new Date(d.getTime() + w * 7 * 86400_000);
+    if (fire.getTime() <= now) continue;
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: t('Разбор недели с Бризом', 'Weekly reflection with Breeze'),
+          body: t('Глянем, как прошла неделя — пара минут.', "Let's look back on your week — a couple of minutes."),
+          data: { url: '/chat?mode=support&opener=weekly' },
+        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fire },
+      });
+    } catch {}
+  }
 }

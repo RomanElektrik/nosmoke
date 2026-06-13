@@ -4,7 +4,7 @@
 // Reads EXPO_PUBLIC_OPENROUTER_KEY from .env. Output: scripts/ai-bench/results-<model>.md
 
 import { readFileSync, writeFileSync } from 'fs';
-import { buildSystemPrompt, type ChatMessage } from '../../lib/ai';
+import { buildSystemPrompt, proactiveOpener, type ChatMessage, type Opener } from '../../lib/ai';
 import type { AppState } from '../../lib/storage';
 
 const envLine = readFileSync('.env', 'utf8').split('\n').find((l) => l.startsWith('EXPO_PUBLIC_OPENROUTER_KEY='));
@@ -23,6 +23,7 @@ function mkState(overrides: Partial<any> = {}): AppState {
     profile: {
       yearsSmoked: 8, cigsPerDay: 15, cigsInPack: 20, packPrice: 220, currency: 'RUB',
       type: 'cigarette', fagerstromScore: 4,
+      openrouterKey: KEY, // so proactiveOpener() can authenticate in the bench
       triggers: ['stress', 'coffee'], motivations: ['health', 'family'],
       method: 'cold_turkey', quitDate: now - 4 * DAY, faithEnabled: false,
       language: 'ru', onboardingComplete: true,
@@ -120,6 +121,31 @@ const SCENARIOS: Scenario[] = [
   S({ id: '12_long_memory', desc: 'Знание профиля без слов юзера',
     history: [{ role: 'user', content: 'почему мне вообще стоит продолжать? напомни что я теряю если закурю' }],
     expect: 'Должен использовать контекст: деньги, 4 дня, мотивации (здоровье/семья), identity «спокойный отец». Персонально, не общие слова.' }),
+
+  S({ id: '14_loop_close', desc: 'Замыкание петли: вернулся сразу после волны SOS',
+    state: mkState({ slips: [], cravings: [{ ts: now - 6 * 60000, intensity: 8, trigger: 'stress', outcome: 'resisted' }] }),
+    history: [{ role: 'user', content: 'ну вот, вернулся' }],
+    expect: 'Должен ЗНАТЬ, что юзер только что (6 мин назад) пережил волну тяги без сигареты, и подхватить это («видел, волна прошла — как на пике?»), не начинать с нуля.' }),
+
+  S({ id: '15_craving_stats', desc: 'Data-driven «когда мне тяжелее»',
+    state: mkState({ cravings: [21, 22, 21, 20, 21, 22].map((h, i) => {
+      const d = new Date(now - (i + 1) * DAY); d.setHours(h, 0, 0, 0);
+      return { ts: d.getTime(), intensity: 7, trigger: 'stress' as const, outcome: (i % 3 === 0 ? 'smoked' : 'resisted') as 'smoked' | 'resisted' };
+    }) }),
+    history: [{ role: 'user', content: 'когда мне обычно тяжелее всего? есть закономерность?' }],
+    expect: 'Должен назвать реальное опасное окно из данных (~20:00–23:00) и top-trigger (стресс), а не общие слова.' }),
+];
+
+const OPENERS: { id: string; opener: Opener; state: AppState; expect: string }[] = [
+  { id: 'op_evening', opener: 'evening', state: mkState(),
+    expect: 'Вечерний тёплый опенер: спросить как день, отметить контекст (день 4). 1-2 фразы, без техник, без markdown.' },
+  { id: 'op_sos', opener: 'sos', state: mkState({ slips: [], cravings: [{ ts: now - 4 * 60000, intensity: 9, trigger: 'stress', outcome: 'resisted' }] }),
+    expect: 'Подхватить после кризиса: отметить, что пришёл/пережил волну, спросить что сейчас. Спокойно.' },
+  { id: 'op_weekly', opener: 'weekly', state: mkState({ cravings: [7, 8, 6, 7, 9].map((it, i) => {
+      const d = new Date(now - (i + 1) * DAY); d.setHours(20, 0, 0, 0);
+      return { ts: d.getTime(), intensity: it, trigger: 'stress' as const, outcome: (i === 2 ? 'smoked' : 'resisted') as 'smoked' | 'resisted' };
+    }) }),
+    expect: 'Воскресный разбор: 1-2 реальных факта недели (дни/деньги/паттерн) + один вопрос про след. неделю. 2-3 фразы.' },
 ];
 
 async function call(messages: ChatMessage[]): Promise<{ text: string; ms: number }> {
@@ -149,6 +175,20 @@ async function call(messages: ChatMessage[]): Promise<{ text: string; ms: number
       console.log('ERR', e.message);
     }
   }
+  // Proactive openers (item 7/11) — Breeze speaks first.
+  out += `\n# Proactive openers\n`;
+  for (const o of OPENERS) {
+    process.stdout.write(`${o.id}... `);
+    try {
+      const line = await proactiveOpener(o.state, 'ru', o.opener);
+      out += `\n## ${o.id} (opener=${o.opener})\n**Ожидание:** ${o.expect}\n**Опенер:**\n> ${(line ?? '(null)').replace(/\n/g, '\n> ')}\n`;
+      console.log('ok');
+    } catch (e: any) {
+      out += `\n## ${o.id} — ОШИБКА: ${e.message}\n`;
+      console.log('ERR', e.message);
+    }
+  }
+
   const f = `scripts/ai-bench/results-${MODEL.replace(/[\/:]/g, '_')}.md`;
   writeFileSync(f, out);
   console.log('written', f);

@@ -201,6 +201,11 @@ export type ChatThread = {
   createdAt: number;
   updatedAt: number;
   messages: { role: 'user' | 'assistant'; content: string; ts: number }[];
+  // Rolling summary of messages older than the live tail — lets a long
+  // relationship stay in context without sending the whole history every turn
+  // (lib/aiMemory summarizeOlderMessages).
+  summary?: string;
+  summarizedUpto?: number;   // messages.length covered by `summary`
 };
 
 export const MAX_CHAT_THREADS = 20;
