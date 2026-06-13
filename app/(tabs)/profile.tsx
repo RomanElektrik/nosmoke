@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, View, Text, Pressable, Alert, Switch, TextInput, Linking } from 'react-native';
+import { ScrollView, View, Text, Pressable, Alert, TextInput, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme, spacing, radius } from '../../lib/theme';
@@ -9,13 +9,10 @@ import { GlassCard } from '../../components/GlassCard';
 import { getStep } from '../../lib/stepped';
 import { Icon } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
-import { secondsClean } from '../../lib/health';
-import { moneySaved, cigsAvoided, formatMoney, formatCigs } from '../../lib/money';
 import { usePremium } from '../../lib/subscription';
-import { archetypeIdentity } from '../../lib/identity';
-import { ARCHETYPE_META } from '../../lib/personality';
 
 const PRIVACY_URL = 'https://breezapp.ru/privacy-policy.html';
+const TERMS_URL = 'https://breezapp.ru/terms.html';
 
 export default function Profile() {
   const t = useTheme();
@@ -25,7 +22,6 @@ export default function Profile() {
   const lang = currentLang();
   const p = state.profile;
   if (!p) return null;
-  const secs = secondsClean(p.quitDate);
 
   return (
     <SwipeToHome>
@@ -35,29 +31,11 @@ export default function Profile() {
           {tr('profile.title')}
         </Text>
 
-        <GlassCard>
-          <Text style={{ color: t.textDim, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>
-            {tr('profile.stats')}
-          </Text>
-          <Text style={{ color: t.text, marginTop: 8, fontSize: 15 }}>
-            {tr('profile.since', { date: new Date(p.quitDate).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US') })}
-          </Text>
-          <Text style={{ color: t.text, marginTop: 6, fontSize: 15 }}>
-            {formatCigs(cigsAvoided(p, secs))} · {formatMoney(moneySaved(p, secs), p.currency, lang === 'ru' ? 'ru-RU' : 'en-US')}
-          </Text>
-        </GlassCard>
-
-        <IdentityCard />
-
         <PremiumCard />
-
-        <HabitCard />
 
         <MethodCard />
 
-        {/* CheckInTimeCard removed — daily "did you smoke today" check-in dropped. */}
-
-        <QuickActionsCard />
+        <HabitCard />
 
         <GlassCard>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -76,18 +54,10 @@ export default function Profile() {
           </View>
         </GlassCard>
 
-
-        <Pressable onPress={() => Linking.openURL(PRIVACY_URL)}>
-          <GlassCard>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Icon.shield size={22} color={t.textDim} />
-              <Text style={{ color: t.text, fontSize: 16, fontWeight: '600', flex: 1 }}>
-                {lang === 'ru' ? 'Политика конфиденциальности' : 'Privacy policy'}
-              </Text>
-              <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
-            </View>
-          </GlassCard>
-        </Pressable>
+        <LinkRow icon="shield" label={lang === 'ru' ? 'Политика конфиденциальности' : 'Privacy policy'}
+          onPress={() => Linking.openURL(PRIVACY_URL)} />
+        <LinkRow icon="feather" label={lang === 'ru' ? 'Условия использования' : 'Terms of use'}
+          onPress={() => Linking.openURL(TERMS_URL)} />
 
         <Pressable
           onPress={() =>
@@ -102,6 +72,22 @@ export default function Profile() {
       </ScrollView>
     </SafeAreaView>
     </SwipeToHome>
+  );
+}
+
+function LinkRow({ icon, label, onPress }: { icon: keyof typeof Icon; label: string; onPress: () => void }) {
+  const t = useTheme();
+  const I = Icon[icon];
+  return (
+    <Pressable onPress={onPress}>
+      <GlassCard>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <I size={22} color={t.textDim} />
+          <Text style={{ color: t.text, fontSize: 16, fontWeight: '600', flex: 1 }}>{label}</Text>
+          <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
+        </View>
+      </GlassCard>
+    </Pressable>
   );
 }
 
@@ -138,101 +124,6 @@ function MethodCard() {
   );
 }
 
-function QuickActionsCard() {
-  const t = useTheme();
-  const router = useRouter();
-  const lang = currentLang();
-  const items = [
-    { ru: 'Перетестировать зависимость',  en: 'Retake dependence test', href: '/practice/fagerstrom', icon: Icon.flask, color: '#0A84FF' },
-    { ru: 'Журнал тяги',                  en: 'Craving journal',         href: '/journal',             icon: Icon.brush, color: '#FF9F0A' },
-    { ru: 'Цель и копилка',               en: 'Goal & jar',              href: '/goal',                icon: Icon.target, color: '#30D158' },
-    { ru: '8-недельный курс',             en: '8-week course',           href: '/program',             icon: Icon.toolbox, color: '#BF5AF2' },
-  ];
-  return (
-    <GlassCard>
-      <Text style={{ color: t.text, fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
-        {lang === 'ru' ? 'Быстрые действия' : 'Quick actions'}
-      </Text>
-      <View style={{ gap: 6 }}>
-        {items.map((it) => {
-          const I = it.icon;
-          return (
-            <Pressable key={it.href} onPress={() => router.push(it.href as any)}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: it.color + '24', alignItems: 'center', justifyContent: 'center' }}>
-                <I size={18} color={it.color} />
-              </View>
-              <Text style={{ color: t.text, fontSize: 15, flex: 1 }}>{lang === 'ru' ? it.ru : it.en}</Text>
-              <Text style={{ color: t.textDim, fontSize: 18 }}>›</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </GlassCard>
-  );
-}
-
-function IdentityCard() {
-  const t = useTheme();
-  const router = useRouter();
-  const { t: tr } = useTranslation();
-  const lang = currentLang();
-  const [state] = useAppState();
-  const p = state.profile;
-  const [stmt, setStmt] = useState(p?.identityStatement ?? '');
-  const [savedAt, setSavedAt] = useState(0);
-  if (!p) return null;
-  const arch = p.archetype;
-  const meta = arch ? ARCHETYPE_META[arch] : null;
-  const ArchIcon = meta ? Icon[meta.icon] : null;
-
-  async function saveStmt() {
-    await update((s) => ({ ...s, profile: s.profile ? { ...s.profile, identityStatement: stmt.trim() || undefined } : s.profile }));
-    setSavedAt(Date.now());
-  }
-
-  return (
-    <GlassCard>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        {meta && ArchIcon && (
-          <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: meta.color + '22', alignItems: 'center', justifyContent: 'center' }}>
-            <ArchIcon size={22} color={meta.color} />
-          </View>
-        )}
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: t.textDim, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-            {lang === 'ru' ? 'Кто ты' : 'Who you are'}
-          </Text>
-          <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', marginTop: 2 }}>
-            {meta ? tr(meta.titleKey) : (lang === 'ru' ? 'Тот, кто не курит' : 'Someone who doesn\'t smoke')}
-          </Text>
-        </View>
-        <Pressable onPress={() => router.push('/(onboarding)/personality' as any)} hitSlop={8}>
-          <Text style={{ color: t.accent, fontSize: 12, fontWeight: '600' }}>{lang === 'ru' ? 'Тест' : 'Retake'}</Text>
-        </Pressable>
-      </View>
-      {!!archetypeIdentity(arch, lang) && (
-        <Text style={{ color: t.textDim, fontSize: 13, marginTop: 8, lineHeight: 19 }}>
-          {archetypeIdentity(arch, lang)}
-        </Text>
-      )}
-      <Text style={{ color: t.text, fontSize: 12, fontWeight: '600', marginTop: 10 }}>
-        {lang === 'ru' ? 'Я становлюсь…' : "I'm becoming…"}
-      </Text>
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
-        <TextInput value={stmt} onChangeText={setStmt}
-          placeholder={lang === 'ru' ? 'свободным…' : 'free…'} placeholderTextColor={t.textDim}
-          style={{ flex: 1, backgroundColor: t.bgElev, color: t.text, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: t.border, fontSize: 14 }} />
-        <Pressable onPress={saveStmt} style={{ paddingHorizontal: 14, justifyContent: 'center', borderRadius: 10, backgroundColor: t.accent }}>
-          <Text style={{ color: '#fff', fontWeight: '700' }}>
-            {savedAt && Date.now() - savedAt < 2000 ? '✓' : (lang === 'ru' ? 'OK' : 'OK')}
-          </Text>
-        </Pressable>
-      </View>
-    </GlassCard>
-  );
-}
-
 function PremiumCard() {
   const t = useTheme();
   const router = useRouter();
@@ -261,7 +152,7 @@ function PremiumCard() {
           <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
             {premium
               ? (lang === 'ru' ? 'Все функции доступны' : 'All features unlocked')
-              : (lang === 'ru' ? 'Безлимит ИИ, все программы, статьи и техники' : 'Unlimited AI, all programs, articles and techniques')}
+              : (lang === 'ru' ? 'Безлимит ИИ, все аудиопрактики, статьи и техники' : 'Unlimited AI, all audio, articles and techniques')}
           </Text>
         </View>
         <Text style={{ color: t.textDim, fontSize: 20 }}>›</Text>
@@ -301,10 +192,12 @@ function HabitCard() {
   return (
     <GlassCard>
       <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>
-        {lang === 'ru' ? 'Моя привычка' : 'My habit'}
+        {lang === 'ru' ? 'Данные о курении' : 'Smoking data'}
       </Text>
-      <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4 }}>
-        {lang === 'ru' ? 'От этих чисел считаются «сэкономлено» и «не выкурено»' : 'Stats are calculated from these numbers'}
+      <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+        {lang === 'ru'
+          ? 'Поправь, если ошибся при настройке. От этих чисел считается экономия — пересчёт идёт за всё время.'
+          : 'Fix these if you set them up wrong. Savings are calculated from them — recomputed across your whole streak.'}
       </Text>
 
       {issue && (
@@ -350,4 +243,3 @@ function HabitCard() {
     </GlassCard>
   );
 }
-
