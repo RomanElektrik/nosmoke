@@ -105,14 +105,14 @@ export default function Paywall() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 40, gap: 20 }}>
-        {/* Close */}
-        <Pressable onPress={() => router.back()} hitSlop={12}
-          style={{ alignSelf: 'flex-end', padding: 6 }}>
-          <Text style={{ color: t.textDim, fontSize: 26, lineHeight: 28 }}>×</Text>
-        </Pressable>
+      {/* Close — floating, so it doesn't push the hero down the screen */}
+      <Pressable onPress={() => router.back()} hitSlop={12}
+        style={{ position: 'absolute', top: 8, right: spacing.lg, zIndex: 10, padding: 6 }}>
+        <Text style={{ color: t.textDim, fontSize: 26, lineHeight: 28 }}>×</Text>
+      </Pressable>
 
-        <View style={{ alignItems: 'center', gap: 8, marginTop: 4 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: 6, paddingBottom: 40, gap: 18 }}>
+        <View style={{ alignItems: 'center', gap: 8, marginTop: 0 }}>
           <View style={{
             width: 64, height: 64, borderRadius: 20,
             backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center',
