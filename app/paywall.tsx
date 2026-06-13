@@ -69,8 +69,9 @@ const FEATURES_EN: Feature[] = [
   { i: 'feather', c: '#FF375F', t: 'All content', d: 'Every article, unrestricted' },
 ];
 
-// Brand gradient — «бриз»: fresh green → teal. Calm, on-brand, premium.
-const BRAND_GRADIENT = ['#34D266', '#16C2A3'] as const;
+// Brand gradient — «бриз»: green → teal. Deep enough that white text on it
+// stays crisp and readable. Calm, on-brand, premium.
+const BRAND_GRADIENT = ['#1DB85A', '#0E9E86'] as const;
 
 export default function Paywall() {
   const t = useTheme();
@@ -128,7 +129,7 @@ export default function Paywall() {
         <Text style={{ color: t.text, fontSize: 21, lineHeight: 23, fontWeight: '600' }}>×</Text>
       </Pressable>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: 8, paddingBottom: 28, gap: 18 }}
+      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: 8, paddingBottom: 150, gap: 18 }}
         showsVerticalScrollIndicator={false}>
         {/* ── Hero ── */}
         <View style={{ alignItems: 'center', gap: 10 }}>
@@ -276,32 +277,34 @@ export default function Paywall() {
         </View>}
       </ScrollView>
 
-      {/* ── Sticky CTA — always pinned, features scroll above it ── */}
-      <View style={{
-        paddingHorizontal: spacing.lg, paddingTop: 10, paddingBottom: insets.bottom + 10,
-        borderTopWidth: 1, borderTopColor: t.border, backgroundColor: t.bg, gap: 7,
-      }}>
-        <Pressable onPress={purchase} accessibilityRole="button"
-          style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
-          <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: radius.xl, paddingVertical: 17, alignItems: 'center', justifyContent: 'center',
-              shadowColor: BRAND_GRADIENT[1], shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 5 },
-            }}>
-            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.2 }}>
-              {ru
-                ? `Подключить за ${plan.ctaPriceRu} ${plan.ctaPeriodRu}`
-                : `Get Premium — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}`}
-            </Text>
-          </LinearGradient>
-        </Pressable>
-        <Text style={{ color: t.textDim, fontSize: 10.5, textAlign: 'center', lineHeight: 15 }}>
-          {selected === 'lifetime'
-            ? (ru ? 'Разовый платёж через ЮKassa. Доступ навсегда, без автосписаний.'
-                  : 'One-time payment via YooKassa. Lifetime access, no recurring charges.')
-            : (ru ? 'Оплата через ЮKassa. Продлевается автоматически, отмена в любой момент в профиле.'
-                  : 'Payment via YooKassa. Renews automatically, cancel anytime in your profile.')}
-        </Text>
+      {/* ── Floating CTA — hovers over the scrolling content, soft fade behind ── */}
+      <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+        {/* Soft fade so the button reads against whatever scrolls under it */}
+        <LinearGradient colors={['transparent', t.bg]} locations={[0, 0.55]}
+          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 }} pointerEvents="none" />
+        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: insets.bottom + 10, gap: 8 }}>
+          <Pressable onPress={purchase} accessibilityRole="button"
+            style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+            <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={{
+                borderRadius: radius.xl, paddingVertical: 17, alignItems: 'center', justifyContent: 'center',
+                shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8,
+              }}>
+              <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.2 }}>
+                {ru
+                  ? `Подключить за ${plan.ctaPriceRu} ${plan.ctaPeriodRu}`
+                  : `Get Premium — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}`}
+              </Text>
+            </LinearGradient>
+          </Pressable>
+          <Text style={{ color: t.textDim, fontSize: 10.5, textAlign: 'center', lineHeight: 15 }}>
+            {selected === 'lifetime'
+              ? (ru ? 'Разовый платёж через ЮKassa. Доступ навсегда, без автосписаний.'
+                    : 'One-time payment via YooKassa. Lifetime access, no recurring charges.')
+              : (ru ? 'Оплата через ЮKassa. Продлевается автоматически, отмена в любой момент в профиле.'
+                    : 'Payment via YooKassa. Renews automatically, cancel anytime in your profile.')}
+          </Text>
+        </View>
       </View>
     </SafeAreaView>
   );
