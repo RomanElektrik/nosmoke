@@ -238,3 +238,28 @@ export async function scheduleWeeklyReflection(locale: 'ru' | 'en') {
     } catch {}
   }
 }
+
+// Weekly nudge to log the body-recovery survey, so the trend actually builds.
+// Wednesday 12:00 — spaced away from the Sunday reflection push.
+export async function scheduleSymptomReminder(locale: 'ru' | 'en') {
+  const t: T = (ru, en) => (locale === 'ru' ? ru : en);
+  const now = Date.now();
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  const daysToWed = (3 - d.getDay() + 7) % 7; // 3 = Wednesday
+  d.setDate(d.getDate() + (daysToWed === 0 && d.getTime() <= now ? 7 : daysToWed));
+  for (let w = 0; w < 8; w++) {
+    const fire = new Date(d.getTime() + w * 7 * 86400_000);
+    if (fire.getTime() <= now) continue;
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: t('Как самочувствие?', 'How are you feeling?'),
+          body: t('Отметь за 40 секунд — посмотрим, как тело восстанавливается.', 'Log it in 40 seconds — see how your body is recovering.'),
+          data: { url: '/symptoms' },
+        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fire },
+      });
+    } catch {}
+  }
+}

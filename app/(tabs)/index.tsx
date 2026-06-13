@@ -186,6 +186,35 @@ export default function Home() {
           </Pressable>
         )}
 
+        {/* Symptom nudge: bring the user back so the recovery trend builds —
+            after a couple of clean days, and when nothing logged for a week. */}
+        {(() => {
+          const syms = p ? (state.symptoms ?? []) : [];
+          const lastSym = syms[syms.length - 1];
+          const cleanDays = Math.floor(secondsClean(p.quitDate) / 86400);
+          const dueDays = lastSym ? Math.floor((Date.now() - lastSym.ts) / 86400_000) : null;
+          if (!(cleanDays >= 2 && (!lastSym || (dueDays ?? 0) >= 7))) return null;
+          return (
+            <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/symptoms' as any); }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
+              <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: '#FF2D7812', borderWidth: 1, borderColor: '#FF2D7840', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#FF2D7824', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon.heart size={22} color="#FF2D78" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>{lang === 'ru' ? 'Как самочувствие?' : 'How are you feeling?'}</Text>
+                  <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2, lineHeight: 17 }}>
+                    {lastSym
+                      ? (lang === 'ru' ? `Прошло ${dueDays} дн — отметь, и динамика обновится` : `${dueDays}d since last — log it to update your trend`)
+                      : (lang === 'ru' ? 'Отметь за 40 сек — увидишь, как тело восстанавливается' : 'Log in 40s — see your body recovering')}
+                  </Text>
+                </View>
+                <Text style={{ color: '#FF2D78', fontSize: 18 }}>›</Text>
+              </View>
+            </Pressable>
+          );
+        })()}
+
         {/* Goal/jar lives in the Progress tab now, not on home. */}
 
         {/* Pending start banner */}

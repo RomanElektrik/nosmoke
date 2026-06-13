@@ -8,7 +8,7 @@ import { useTheme } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
 import { computeInsights } from '../lib/insights';
 import * as Notifications from 'expo-notifications';
-import { scheduleCravingNudge, scheduleQuitProgram, scheduleMedicationDoses, scheduleWeeklyReflection } from '../lib/notifications';
+import { scheduleCravingNudge, scheduleQuitProgram, scheduleMedicationDoses, scheduleWeeklyReflection, scheduleSymptomReminder } from '../lib/notifications';
 import { currentLang } from '../lib/i18n';
 import { TourProvider } from '../components/Tour';
 import '../lib/i18n';
@@ -63,6 +63,7 @@ export default function Root() {
           const ins = computeInsights(s.cravings ?? []);
           await scheduleCravingNudge(ins.peakHourStart, lang);
           await scheduleWeeklyReflection(lang);
+          await scheduleSymptomReminder(lang);
         }
       } catch {}
       setReady(true);
