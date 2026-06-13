@@ -7,7 +7,7 @@ import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
 import { Icon } from '../components/Icon';
 import { ARTICLES, ARTICLE_CATEGORY, ARTICLE_IMAGES, articleAspect, type ArticleCategory } from '../lib/articles';
-import { FREE_ARTICLE_COUNT, usePremium } from '../lib/subscription';
+import { usePremium } from '../lib/subscription';
 
 const ORDER: ArticleCategory[] = ['craving', 'slip', 'triggers', 'body', 'meds', 'motivation'];
 
@@ -16,7 +16,11 @@ export default function Articles() {
   const router = useRouter();
   const ru = currentLang() === 'ru';
   const premium = usePremium();
-  const freeIds = new Set(ARTICLES.slice(0, FREE_ARTICLE_COUNT).map((a) => a.id));
+  // Free = the first 3 articles AS DISPLAYED (the list is grouped by category,
+  // so an array-order slice could leave the top cards locked). Building the flat
+  // display order guarantees the top 3 of the list are always free.
+  const displayOrder = ORDER.flatMap((cat) => ARTICLES.filter((a) => a.category === cat));
+  const freeIds = new Set(displayOrder.slice(0, 3).map((a) => a.id));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
