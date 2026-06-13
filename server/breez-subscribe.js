@@ -152,6 +152,45 @@ module.exports = function attach(app) {
     }
   });
 
+  // Нативный SDK-поток: приложение токенизирует карту через YooKassa SDK и
+  // присылает payment_token — сервер создаёт платёж секретным ключом. Если нужен
+  // 3DS, вернётся confirmation_url для confirmPayment() в SDK; затем клиент
+  // вызывает /confirm для начисления.
+  app.post('/api/briz/pay/from-token', async (req, res) => {
+    try {
+      if (!SHOP_ID || !SECRET_KEY) return res.status(503).json({ error: 'not configured' });
+      const { deviceId, plan, paymentToken, email } = req.body || {};
+      if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
+      const P = PLANS[plan]; if (!P) return res.status(400).json({ error: 'bad plan' });
+      if (!paymentToken || typeof paymentToken !== 'string') return res.status(400).json({ error: 'bad token' });
+      const validEmail = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined;
+      const body = {
+        amount: { value: P.amount.toFixed(2), currency: 'RUB' },
+        capture: true,
+        payment_token: paymentToken,
+        description: P.title,
+        save_payment_method: plan !== 'lifetime',
+        metadata: { kind: 'briz-sub', deviceId, plan, email: validEmail || '' },
+      };
+      if (validEmail) {
+        body.receipt = { customer: { email: validEmail }, items: [{ description: P.title.slice(0, 128), quantity: '1.00', amount: { value: P.amount.toFixed(2), currency: 'RUB' }, vat_code: 1, payment_mode: 'full_payment', payment_subject: 'service' }] };
+      }
+      const r = await fetch(YK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotence-Key': crypto.randomUUID(), 'Authorization': basicAuth() }, body: JSON.stringify(body) });
+      const text = await r.text(); let pay = null; try { pay = JSON.parse(text); } catch {}
+      if (!r.ok) return res.status(r.status).json({ error: String((pay && pay.description) || text).slice(0, 300) });
+      // Если уже succeeded — начисляем сразу; иначе вернём confirmation для 3DS.
+      applyPayment(pay, deviceId);
+      res.json({
+        id: pay.id, status: pay.status,
+        confirmation_url: pay?.confirmation?.confirmation_url || null,
+        ...statusOf(deviceId),
+      });
+    } catch (e) {
+      console.error('[briz] from-token:', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post('/api/briz/confirm', async (req, res) => {
     try {
       if (!SHOP_ID || !SECRET_KEY) return res.status(503).json({ error: 'not configured' });
