@@ -9,7 +9,8 @@ const API = 'https://breezapp.ru/api/briz';
 const DEVICE_KEY = 'briz_device_id_v1';
 
 export type PlanId = 'monthly' | 'yearly' | 'lifetime';
-export type SubStatus = { premium: boolean; until: number; plan: PlanId | null };
+export type BoundCard = { last4: string; type: string };
+export type SubStatus = { premium: boolean; until: number; plan: PlanId | null; card?: BoundCard | null; autopay?: boolean };
 
 function uuidv4(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -72,4 +73,10 @@ export async function fetchSub(): Promise<SubStatus | null> {
 export async function restorePurchase(email: string): Promise<SubStatus> {
   const deviceId = await getDeviceId();
   return postJson('/restore', { deviceId, email });
+}
+
+// Отвязать карту автопродления (требование ЮKassa — юзер может сам).
+export async function unbindCard(): Promise<SubStatus> {
+  const deviceId = await getDeviceId();
+  return postJson('/unbind', { deviceId });
 }

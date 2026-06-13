@@ -73,7 +73,11 @@ export default function Root() {
       // wipe a paid user on a transient server hiccup).
       try {
         const sub = await fetchSub();
-        if (sub) await update((prev) => ({ ...prev, premiumUntil: sub.premium ? sub.until : 0 }));
+        if (sub) await update((prev) => ({
+          ...prev,
+          premiumUntil: sub.premium ? sub.until : 0,
+          boundCard: sub.autopay ? (sub.card ?? prev.boundCard) : (prev.boundCard === undefined ? undefined : prev.boundCard),
+        }));
       } catch {}
       setReady(true);
     });
@@ -153,6 +157,7 @@ export default function Root() {
         <Stack.Screen name="reasons" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
         {/* Regular push (not a bottom sheet) so the iOS edge-swipe-back works */}
         <Stack.Screen name="letter" />
+        <Stack.Screen name="payment-method" />
       </Stack>
       </TourProvider>
     </GestureHandlerRootView>

@@ -190,6 +190,7 @@ export type AppState = {
   identityLog?: string[];                      // localDateKey[] of identity affirmations — never punishes
   tourV1Done?: boolean;                        // first-run in-app guided tour seen
   premiumUntil?: number;                       // ms — server-validated ЮKassa subscription expiry
+  boundCard?: { last4: string; type: string } | null; // saved card for auto-renewal; null = explicitly unbound
 };
 
 // Messenger-style chat threads. Each thread has a persona (coach character)

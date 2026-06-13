@@ -54,6 +54,9 @@ export default function Profile() {
           </View>
         </GlassCard>
 
+        <LinkRow icon="wallet" label={lang === 'ru' ? 'Способ оплаты' : 'Payment method'}
+          onPress={() => router.push('/payment-method' as any)} />
+
         <LinkRow icon="compass" label={lang === 'ru' ? 'Гид по приложению' : 'App tour'}
           onPress={async () => {
             await update((s) => ({ ...s, tourV1Done: false }));

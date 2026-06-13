@@ -59,11 +59,17 @@ let subs = loadStore();
 function statusOf(deviceId) {
   const s = subs[deviceId];
   const premium = !!(s && (s.lifetime || s.paidUntil > Date.now()));
-  return { premium, until: s ? (s.lifetime ? LIFETIME_UNTIL : s.paidUntil) : 0, plan: s ? s.plan : null };
+  return {
+    premium,
+    until: s ? (s.lifetime ? LIFETIME_UNTIL : s.paidUntil) : 0,
+    plan: s ? s.plan : null,
+    card: (s && s.paymentMethodId && s.card) ? s.card : null, // привязанная карта для автопродления
+    autopay: !!(s && s.paymentMethodId),
+  };
 }
 
 // Идемпотентно по paymentId: повторное применение того же платежа — no-op.
-function grant(deviceId, plan, paymentId, paymentMethodId, email) {
+function grant(deviceId, plan, paymentId, paymentMethodId, email, card) {
   const p = PLANS[plan];
   if (!p || !isDevice(deviceId)) return;
   const now = Date.now();
@@ -77,6 +83,7 @@ function grant(deviceId, plan, paymentId, paymentMethodId, email) {
       ? (cur ? cur.paidUntil || now : now)
       : ((cur && cur.paidUntil > now ? cur.paidUntil : now) + p.days * 86400_000),
     paymentMethodId: paymentMethodId || (cur && cur.paymentMethodId) || null,
+    card: card || (cur && cur.card) || null,
     email: email || (cur && cur.email) || null,
     applied: (paymentId ? [...applied, paymentId] : applied).slice(-50),
     updatedAt: now,
@@ -132,7 +139,9 @@ function applyPayment(pay, expectDevice) {
   if (!m || m.kind !== 'briz-sub' || !PLANS[m.plan]) return false;
   if (!isDevice(m.deviceId)) return false;
   if (expectDevice && m.deviceId !== expectDevice) return false;
-  grant(m.deviceId, m.plan, pay.id, pay.payment_method && pay.payment_method.id, m.email || undefined);
+  const pm = pay.payment_method;
+  const card = pm && pm.card ? { last4: pm.card.last4 || '', type: pm.card.card_type || pm.title || 'card' } : null;
+  grant(m.deviceId, m.plan, pay.id, pm && pm.saved ? pm.id : null, m.email || undefined, pm && pm.saved ? card : null);
   return true;
 }
 
@@ -251,5 +260,19 @@ module.exports = function attach(app) {
     }
   });
 
-  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · GET /sub/:id · POST /webhook');
+  // Отвязать карту: убираем сохранённый способ оплаты → автопродление больше не
+  // списывает. Требование ЮKassa для подключения рекуррентов.
+  app.post('/api/briz/unbind', (req, res) => {
+    try {
+      const { deviceId } = req.body || {};
+      if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
+      const s = subs[deviceId];
+      if (s) { s.paymentMethodId = null; s.card = null; s.updatedAt = Date.now(); subs[deviceId] = s; saveStore(subs); }
+      res.json(statusOf(deviceId));
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · GET /sub/:id · POST /webhook');
 };
