@@ -287,7 +287,7 @@ export default function Paywall() {
         {/* Soft fade so the button reads against whatever scrolls under it */}
         <LinearGradient colors={['transparent', t.bg]} locations={[0, 0.55]}
           style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 }} pointerEvents="none" />
-        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: insets.bottom + 10, gap: 8 }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: insets.bottom + 8, gap: 6 }}>
           <Pressable onPress={purchase} accessibilityRole="button"
             style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
             <LinearGradient colors={CTA_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
@@ -302,23 +302,17 @@ export default function Paywall() {
               </Text>
             </LinearGradient>
           </Pressable>
-          <Text style={{ color: t.textDim, fontSize: 10.5, textAlign: 'center', lineHeight: 15 }}>
+          <Text style={{ color: t.textDim, fontSize: 10.5, textAlign: 'center', lineHeight: 14 }}>
             {selected === 'lifetime'
-              ? (ru ? 'Разовый платёж через ЮKassa. Доступ навсегда, без автосписаний.'
-                    : 'One-time payment via YooKassa. Lifetime access, no recurring charges.')
-              : (ru ? 'Оплата через ЮKassa. Продлевается автоматически, отмена в любой момент в профиле.'
-                    : 'Payment via YooKassa. Renews automatically, cancel anytime in your profile.')}
-          </Text>
-          <Text style={{ color: t.textDim, fontSize: 10.5, textAlign: 'center', lineHeight: 15 }}>
-            {ru ? 'Оформляя подписку, ты принимаешь ' : 'By subscribing, you accept the '}
-            <Text style={{ color: t.info, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(TERMS_URL)}>
-              {ru ? 'Условия использования' : 'Terms of Use'}
+              ? (ru ? 'Разовый платёж · ' : 'One-time payment · ')
+              : (ru ? 'Автопродление, отмена в профиле · ' : 'Auto-renews, cancel in profile · ')}
+            <Text style={{ color: t.info }} onPress={() => Linking.openURL(TERMS_URL)}>
+              {ru ? 'Условия' : 'Terms'}
             </Text>
-            {ru ? ' и ' : ' and '}
-            <Text style={{ color: t.info, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(PRIVACY_URL)}>
-              {ru ? 'Политику конфиденциальности' : 'Privacy Policy'}
+            {ru ? ' и ' : ' & '}
+            <Text style={{ color: t.info }} onPress={() => Linking.openURL(PRIVACY_URL)}>
+              {ru ? 'Политика' : 'Privacy'}
             </Text>
-            {ru ? '.' : '.'}
           </Text>
         </View>
       </View>
