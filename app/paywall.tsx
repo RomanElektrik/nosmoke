@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
@@ -65,6 +65,7 @@ export default function Paywall() {
   const premium = !!state.profile?.devPremium;
   const plan = PLANS.find((pl) => pl.id === selected)!;
   const planPrice = lang === 'ru' ? plan.priceRu : plan.priceEn;
+  const insets = useSafeAreaInsets();
 
   // ── Personal money anchor ──
   // «Ты уже сэкономил X» + «год окупается за ~N недель твоего курения».
@@ -105,30 +106,30 @@ export default function Paywall() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
-      {/* Close — floating, so it doesn't push the hero down the screen */}
-      <Pressable onPress={() => router.back()} hitSlop={12}
-        style={{ position: 'absolute', top: 8, right: spacing.lg, zIndex: 10, padding: 6 }}>
-        <Text style={{ color: t.textDim, fontSize: 26, lineHeight: 28 }}>×</Text>
+      {/* Close — floating chip, below the notch and clearly tappable */}
+      <Pressable onPress={() => router.back()} hitSlop={14}
+        style={{
+          position: 'absolute', top: insets.top + 6, right: spacing.lg, zIndex: 10,
+          width: 34, height: 34, borderRadius: 17,
+          backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+        <Text style={{ color: t.text, fontSize: 21, lineHeight: 23, fontWeight: '600' }}>×</Text>
       </Pressable>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: 6, paddingBottom: 40, gap: 18 }}>
-        <View style={{ alignItems: 'center', gap: 8, marginTop: 0 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: 8, paddingBottom: 40, gap: 16 }}>
+        <View style={{ alignItems: 'center', gap: 8 }}>
           <View style={{
-            width: 64, height: 64, borderRadius: 20,
+            width: 56, height: 56, borderRadius: 18,
             backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Icon.star size={32} color={t.accent} />
+            <Icon.star size={28} color={t.accent} />
           </View>
           <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', letterSpacing: 1.5 }}>
             {lang === 'ru' ? 'БРИЗ ПРЕМИУМ' : 'BREEZE PREMIUM'}
           </Text>
-          <Text style={{ color: t.text, fontSize: 27, fontWeight: '800', letterSpacing: -0.6, textAlign: 'center', lineHeight: 32 }}>
-            {lang === 'ru' ? 'Ты справишься.\nБриз — рядом 24/7.' : 'You’ve got this.\nBreeze is here 24/7.'}
-          </Text>
-          <Text style={{ color: t.textDim, fontSize: 15, textAlign: 'center', lineHeight: 21, paddingHorizontal: 14 }}>
-            {lang === 'ru'
-              ? 'Без лимитов, когда тяжело. Всё, что помогает не сорваться — в одном месте.'
-              : 'No limits when it’s hard. Everything that helps you not relapse — in one place.'}
+          <Text style={{ color: t.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.5, textAlign: 'center', lineHeight: 29 }}>
+            {lang === 'ru' ? 'Ты справишься — Бриз рядом' : 'You’ve got this — Breeze is here'}
           </Text>
           {premium && (
             <View style={{
