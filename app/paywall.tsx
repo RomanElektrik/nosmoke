@@ -14,7 +14,7 @@ import { Icon } from '../components/Icon';
 import { secondsClean } from '../lib/health';
 import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
 
-type PlanId = 'weekly' | 'monthly' | 'yearly' | 'lifetime';
+type PlanId = 'monthly' | 'yearly' | 'lifetime';
 
 type Plan = {
   id: PlanId;
@@ -22,23 +22,19 @@ type Plan = {
   en: string;
   priceRu: string;
   priceEn: string;
-  // Numeric price in the profile's currency — used for the «окупается за N недель»
-  // anchor. ru ≈ RUB, en ≈ USD; matches the displayed string above.
-  amountRu: number;
-  amountEn: number;
   perRu?: string;
   perEn?: string;
   badge?: { ru: string; en: string };
 };
 
 const PLANS: Plan[] = [
-  { id: 'weekly',   ru: 'Неделя',  en: 'Weekly',    priceRu: '199 ₽',   priceEn: '$2.99',  amountRu: 199,  amountEn: 2.99 },
-  { id: 'monthly',  ru: 'Месяц',   en: 'Monthly',   priceRu: '399 ₽',   priceEn: '$5.99',  amountRu: 399,  amountEn: 5.99 },
-  { id: 'yearly',   ru: 'Год',     en: 'Yearly',    priceRu: '1 990 ₽', priceEn: '$29.99', amountRu: 1990, amountEn: 29.99,
-    perRu: '≈ 166 ₽/мес', perEn: '≈ $2.50/mo',
-    badge: { ru: '7 дней бесплатно · −58%', en: '7-day trial · −58%' } },
-  { id: 'lifetime', ru: 'Навсегда', en: 'Lifetime', priceRu: '3 990 ₽', priceEn: '$59.99', amountRu: 3990, amountEn: 59.99,
-    badge: { ru: 'Один раз', en: 'One-time' } },
+  { id: 'monthly',  ru: 'Месяц',   en: 'Monthly',   priceRu: '399 ₽',   priceEn: '$5.99' },
+  { id: 'yearly',   ru: 'Год',     en: 'Yearly',    priceRu: '1 990 ₽', priceEn: '$29.99',
+    perRu: '166 ₽/мес — выгоднее всего', perEn: '$2.50/mo — best value',
+    badge: { ru: 'ХИТ · −58%', en: 'POPULAR · −58%' } },
+  { id: 'lifetime', ru: 'Навсегда', en: 'Lifetime', priceRu: '3 990 ₽', priceEn: '$59.99',
+    perRu: 'один платёж, доступ навсегда', perEn: 'one payment, forever',
+    badge: { ru: 'НАВСЕГДА', en: 'FOREVER' } },
 ];
 
 // Outcome-framed, not inventory: what the user GETS in their day, not how many
@@ -67,6 +63,8 @@ export default function Paywall() {
   const [selected, setSelected] = useState<PlanId>('yearly');
   const features = lang === 'ru' ? FEATURES_RU : FEATURES_EN;
   const premium = !!state.profile?.devPremium;
+  const plan = PLANS.find((pl) => pl.id === selected)!;
+  const planPrice = lang === 'ru' ? plan.priceRu : plan.priceEn;
 
   // ── Personal money anchor ──
   // «Ты уже сэкономил X» + «год окупается за ~N недель твоего курения».
@@ -114,20 +112,23 @@ export default function Paywall() {
           <Text style={{ color: t.textDim, fontSize: 26, lineHeight: 28 }}>×</Text>
         </Pressable>
 
-        <View style={{ alignItems: 'center', gap: 10, marginTop: 4 }}>
+        <View style={{ alignItems: 'center', gap: 8, marginTop: 4 }}>
           <View style={{
             width: 64, height: 64, borderRadius: 20,
             backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center',
           }}>
             <Icon.star size={32} color={t.accent} />
           </View>
-          <Text style={{ color: t.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6, textAlign: 'center' }}>
-            {lang === 'ru' ? 'Премиум' : 'Premium'}
+          <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', letterSpacing: 1.5 }}>
+            {lang === 'ru' ? 'БРИЗ ПРЕМИУМ' : 'BREEZE PREMIUM'}
+          </Text>
+          <Text style={{ color: t.text, fontSize: 27, fontWeight: '800', letterSpacing: -0.6, textAlign: 'center', lineHeight: 32 }}>
+            {lang === 'ru' ? 'Ты справишься.\nБриз — рядом 24/7.' : 'You’ve got this.\nBreeze is here 24/7.'}
           </Text>
           <Text style={{ color: t.textDim, fontSize: 15, textAlign: 'center', lineHeight: 21, paddingHorizontal: 14 }}>
             {lang === 'ru'
-              ? 'Безлимит разговоров с Бризом, все аудиопрактики, техники, статьи и полная аналитика тяги.'
-              : 'Unlimited Breeze conversations, all audio practices, techniques, articles and full craving analytics.'}
+              ? 'Без лимитов, когда тяжело. Всё, что помогает не сорваться — в одном месте.'
+              : 'No limits when it’s hard. Everything that helps you not relapse — in one place.'}
           </Text>
           {premium && (
             <View style={{
@@ -171,16 +172,17 @@ export default function Paywall() {
             return (
               <View key={f.t} style={{
                 flexDirection: 'row', alignItems: 'center', gap: 12,
-                padding: 12, borderRadius: radius.md,
+                padding: 13, borderRadius: radius.md,
                 backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
               }}>
                 <View style={{
-                  width: 36, height: 36, borderRadius: 11,
+                  width: 38, height: 38, borderRadius: 12,
                   backgroundColor: t.accent + '20', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <I size={18} color={t.accent} />
+                  <I size={19} color={t.accent} />
                 </View>
-                <Text style={{ color: t.text, fontSize: 15, fontWeight: '600', flex: 1 }}>{f.t}</Text>
+                <Text style={{ color: t.text, fontSize: 15, fontWeight: '600', flex: 1, lineHeight: 20 }}>{f.t}</Text>
+                <Icon.check size={17} color={t.accent} />
               </View>
             );
           })}
@@ -238,20 +240,29 @@ export default function Paywall() {
 
         <Pressable onPress={purchase}
           style={{
-            padding: 18, borderRadius: radius.xl, backgroundColor: t.accent,
-            alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8,
+            paddingVertical: 16, paddingHorizontal: 18, borderRadius: radius.xl, backgroundColor: t.accent,
+            alignItems: 'center', justifyContent: 'center', gap: 2,
           }}>
-          <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>
-            {selected === 'yearly'
-              ? (lang === 'ru' ? 'Попробовать 7 дней бесплатно' : 'Start 7-day free trial')
-              : (lang === 'ru' ? 'Подписаться' : 'Subscribe')}
+          <Text style={{ color: '#fff', fontSize: 17.5, fontWeight: '800' }}>
+            {lang === 'ru' ? 'Начать менять жизнь' : 'Start changing your life'}
+          </Text>
+          <Text style={{ color: '#ffffffcc', fontSize: 13, fontWeight: '600' }}>
+            {selected === 'lifetime'
+              ? (lang === 'ru' ? `${planPrice} — один раз, навсегда` : `${planPrice} — once, forever`)
+              : selected === 'yearly'
+                ? (lang === 'ru' ? `${planPrice}/год · ≈ 166 ₽/мес` : `${planPrice}/yr · ≈ $2.50/mo`)
+                : (lang === 'ru' ? `${planPrice}/мес` : `${planPrice}/mo`)}
           </Text>
         </Pressable>
 
         <Text style={{ color: t.textDim, fontSize: 11, textAlign: 'center', lineHeight: 16, paddingHorizontal: 10 }}>
-          {lang === 'ru'
-            ? 'Подписка возобновляется автоматически. Отмена в любой момент в настройках Apple ID.'
-            : 'Subscription auto-renews. Cancel anytime in Apple ID settings.'}
+          {selected === 'lifetime'
+            ? (lang === 'ru'
+                ? 'Разовый платёж картой через ЮKassa. Доступ навсегда, без автосписаний.'
+                : 'One-time card payment via YooKassa. Lifetime access, no recurring charges.')
+            : (lang === 'ru'
+                ? 'Оплата картой через ЮKassa. Продлевается автоматически, отменить можно в любой момент в профиле.'
+                : 'Card payment via YooKassa. Renews automatically, cancel anytime in your profile.')}
         </Text>
 
         {/* Dev mode toggle — dev builds only, never in TestFlight/production:
