@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F1A14"/>
+      <stop offset="1" stop-color="#1B3528"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#A3D977"/>
+      <stop offset="1" stop-color="#34C759"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.45" r="0.55">
+      <stop offset="0" stop-color="#34C759" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#34C759" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- background -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="512" cy="460" r="400" fill="url(#glow)"/>
+
+  <!-- main leaf -->
+  <g transform="translate(512 540)">
+    <path d="M0 -260
+             C 180 -260, 280 -120, 260 60
+             C 240 220, 100 280, 0 280
+             C -100 280, -240 220, -260 60
+             C -280 -120, -180 -260, 0 -260 Z"
+          fill="url(#leaf)"/>
+    <!-- vein -->
+    <path d="M0 -240 L0 260" stroke="#0F1A14" stroke-width="14" stroke-linecap="round" opacity="0.5"/>
+    <path d="M0 -160 L 130 -100" stroke="#0F1A14" stroke-width="10" stroke-linecap="round" opacity="0.4"/>
+    <path d="M0 -160 L -130 -100" stroke="#0F1A14" stroke-width="10" stroke-linecap="round" opacity="0.4"/>
+    <path d="M0 -60 L 170 0" stroke="#0F1A14" stroke-width="10" stroke-linecap="round" opacity="0.4"/>
+    <path d="M0 -60 L -170 0" stroke="#0F1A14" stroke-width="10" stroke-linecap="round" opacity="0.4"/>
+    <path d="M0 60 L 150 110" stroke="#0F1A14" stroke-width="10" stroke-linecap="round" opacity="0.4"/>
+    <path d="M0 60 L -150 110" stroke="#0F1A14" stroke-width="10" stroke-linecap="round" opacity="0.4"/>
+  </g>
+</svg>
