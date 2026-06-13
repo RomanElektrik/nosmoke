@@ -7,10 +7,11 @@ import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
 import { update, useAppState } from '../lib/storage';
-import { Icon } from '../components/Icon';
+import { Icon, IconKey } from '../components/Icon';
 import { secondsClean } from '../lib/health';
 import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
 
@@ -20,69 +21,78 @@ type Plan = {
   id: PlanId;
   ru: string;
   en: string;
-  priceRu: string;
-  priceEn: string;
-  perRu?: string;
-  perEn?: string;
+  // Right-hand figure (per-month for recurring, total for lifetime).
+  rightRu: string;
+  rightEn: string;
+  // Small line under the name (duration · total). Empty = none.
+  subRu?: string;
+  subEn?: string;
   badge?: { ru: string; en: string };
+  // Total charged + period — used on the sticky CTA.
+  ctaPriceRu: string;
+  ctaPriceEn: string;
+  ctaPeriodRu: string;
+  ctaPeriodEn: string;
 };
 
 const PLANS: Plan[] = [
-  { id: 'monthly',  ru: 'Месяц',   en: 'Monthly',   priceRu: '399 ₽',   priceEn: '$5.99' },
-  { id: 'yearly',   ru: 'Год',     en: 'Yearly',    priceRu: '1 990 ₽', priceEn: '$29.99',
-    perRu: '166 ₽/мес — выгоднее всего', perEn: '$2.50/mo — best value',
-    badge: { ru: 'ХИТ · −58%', en: 'POPULAR · −58%' } },
-  { id: 'lifetime', ru: 'Навсегда', en: 'Lifetime', priceRu: '3 990 ₽', priceEn: '$59.99',
-    perRu: 'один платёж, доступ навсегда', perEn: 'one payment, forever',
-    badge: { ru: 'НАВСЕГДА', en: 'FOREVER' } },
+  { id: 'yearly', ru: 'Год', en: 'Yearly',
+    rightRu: '166 ₽/мес', rightEn: '$2.50/mo',
+    subRu: '12 месяцев · 1 990 ₽', subEn: '12 months · $29.99',
+    badge: { ru: '−58%', en: '−58%' },
+    ctaPriceRu: '1 990 ₽', ctaPriceEn: '$29.99', ctaPeriodRu: 'на год', ctaPeriodEn: 'for a year' },
+  { id: 'monthly', ru: 'Месяц', en: 'Monthly',
+    rightRu: '399 ₽/мес', rightEn: '$5.99/mo',
+    ctaPriceRu: '399 ₽', ctaPriceEn: '$5.99', ctaPeriodRu: 'в месяц', ctaPeriodEn: 'per month' },
+  { id: 'lifetime', ru: 'Навсегда', en: 'Lifetime',
+    rightRu: '3 990 ₽', rightEn: '$59.99',
+    subRu: 'разовый платёж', subEn: 'one-time payment',
+    badge: { ru: 'НАВСЕГДА', en: 'FOREVER' },
+    ctaPriceRu: '3 990 ₽', ctaPriceEn: '$59.99', ctaPeriodRu: 'навсегда', ctaPeriodEn: 'forever' },
 ];
 
-// Outcome-framed, not inventory: what the user GETS in their day, not how many
-// items unlock. Every line must still be ACTUALLY gated in code — promising
-// free/non-existent features is an App Store 2.3.1 reject and a refund magnet.
-const FEATURES_RU = [
-  { i: 'spark' as const, t: 'Бриз рядом круглосуточно — без лимита сообщений' },
-  { i: 'pulse' as const, t: 'Видишь свои опасные часы и триггеры заранее' },
-  { i: 'headphones' as const, t: 'Любая аудиопрактика под рукой в момент тяги' },
-  { i: 'toolbox' as const, t: 'Все техники, чтобы пережить волну' },
-  { i: 'feather' as const, t: 'Все статьи и материалы программы' },
+// Outcome-framed, not inventory. Every line is ACTUALLY gated in code —
+// promising free/non-existent features is an App Store 2.3.1 reject.
+type Feature = { i: IconKey; c: string; t: string; d: string };
+const FEATURES_RU: Feature[] = [
+  { i: 'spark', c: '#34C759', t: 'Безлимит с Бризом', d: 'Сколько угодно сообщений в день — без дневного лимита, особенно когда тяжело.' },
+  { i: 'pulse', c: '#BF5AF2', t: 'Аналитика тяги', d: 'Опасные часы, твои триггеры и тренд силы тяги — видишь заранее.' },
+  { i: 'headphones', c: '#0A84FF', t: 'Все аудиопрактики', d: 'Голос на любой момент: тяга, тревога, вечер, сон.' },
+  { i: 'toolbox', c: '#FF9F0A', t: 'Все техники', d: 'Полный набор приёмов, чтобы пережить волну.' },
+  { i: 'feather', c: '#FF2D78', t: 'Все материалы', d: 'Статьи и материалы программы без ограничений.' },
 ];
-const FEATURES_EN = [
-  { i: 'spark' as const, t: 'Breeze with you 24/7 — no message limit' },
-  { i: 'pulse' as const, t: 'See your risk hours and triggers ahead of time' },
-  { i: 'headphones' as const, t: 'Any audio practice ready the moment a craving hits' },
-  { i: 'toolbox' as const, t: 'Every technique to ride out the wave' },
-  { i: 'feather' as const, t: 'All articles and program content' },
+const FEATURES_EN: Feature[] = [
+  { i: 'spark', c: '#34C759', t: 'Unlimited Breeze', d: 'As many messages a day as you need — no daily cap, especially when it’s hard.' },
+  { i: 'pulse', c: '#BF5AF2', t: 'Craving analytics', d: 'Risk hours, your triggers and intensity trend — seen ahead of time.' },
+  { i: 'headphones', c: '#0A84FF', t: 'All audio practices', d: 'A voice for any moment: craving, anxiety, evening, sleep.' },
+  { i: 'toolbox', c: '#FF9F0A', t: 'All techniques', d: 'The full toolkit to ride out the wave.' },
+  { i: 'feather', c: '#FF2D78', t: 'All content', d: 'Every article and program material, unrestricted.' },
 ];
 
 export default function Paywall() {
   const t = useTheme();
   const router = useRouter();
   const lang = currentLang();
+  const ru = lang === 'ru';
   const [state] = useAppState();
   const [selected, setSelected] = useState<PlanId>('yearly');
-  const features = lang === 'ru' ? FEATURES_RU : FEATURES_EN;
+  const features = ru ? FEATURES_RU : FEATURES_EN;
   const premium = !!state.profile?.devPremium;
   const plan = PLANS.find((pl) => pl.id === selected)!;
-  const planPrice = lang === 'ru' ? plan.priceRu : plan.priceEn;
   const insets = useSafeAreaInsets();
 
   // ── Personal money anchor ──
-  // «Ты уже сэкономил X» + «год окупается за ~N недель твоего курения».
-  // Honest, never shown when we have no spend data (fresh profile / no price).
   const p = state.profile;
-  const localeStr = lang === 'ru' ? 'ru-RU' : 'en-US';
+  const localeStr = ru ? 'ru-RU' : 'en-US';
   const currency = p?.currency ?? 'RUB';
   const saved = p ? moneySaved(p, secondsClean(p.quitDate)) : 0;
-  // Don't show «ты сэкономил 3 ₽» on day one — it reads as pathetic. Only
-  // surface the saved line once it's a number worth bragging about.
   const savedMin = currency === 'RUB' ? 500 : 5;
   const showSaved = saved >= savedMin;
-  const yearlyAmount = lang === 'ru' ? 1990 : 29.99;
+  const yearlyAmount = ru ? 1990 : 29.99;
   const weeks = p ? paybackWeeks(p, yearlyAmount) : null;
   const paybackWk = weeks && weeks >= 0.5 && weeks <= 52 ? Math.max(1, Math.round(weeks)) : null;
   const wkWord = (n: number) =>
-    lang === 'ru'
+    ru
       ? (n % 10 === 1 && n % 100 !== 11 ? 'неделю' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'недели' : 'недель'))
       : (n === 1 ? 'week' : 'weeks');
 
@@ -97,15 +107,13 @@ export default function Paywall() {
   function purchase() {
     Haptics.selectionAsync();
     Alert.alert(
-      lang === 'ru' ? 'Подключение оплаты в разработке' : 'Payments not yet wired',
-      lang === 'ru'
-        ? 'Подписка появится в следующей версии приложения.'
-        : 'Subscriptions are coming in the next release.',
+      ru ? 'Подключение оплаты в разработке' : 'Payments not yet wired',
+      ru ? 'Подписка появится в следующей версии приложения.' : 'Subscriptions are coming in the next release.',
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top', 'left', 'right']}>
       {/* Close — floating chip, below the notch and clearly tappable */}
       <Pressable onPress={() => router.back()} hitSlop={14}
         style={{
@@ -117,7 +125,9 @@ export default function Paywall() {
         <Text style={{ color: t.text, fontSize: 21, lineHeight: 23, fontWeight: '600' }}>×</Text>
       </Pressable>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: 8, paddingBottom: 40, gap: 16 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: 8, paddingBottom: 28, gap: 18 }}
+        showsVerticalScrollIndicator={false}>
+        {/* ── Hero ── */}
         <View style={{ alignItems: 'center', gap: 8 }}>
           <View style={{
             width: 56, height: 56, borderRadius: 18,
@@ -126,39 +136,81 @@ export default function Paywall() {
             <Icon.star size={28} color={t.accent} />
           </View>
           <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', letterSpacing: 1.5 }}>
-            {lang === 'ru' ? 'БРИЗ ПРЕМИУМ' : 'BREEZE PREMIUM'}
+            {ru ? 'БРИЗ ПРЕМИУМ' : 'BREEZE PREMIUM'}
           </Text>
           <Text style={{ color: t.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.5, textAlign: 'center', lineHeight: 29 }}>
-            {lang === 'ru' ? 'Ты справишься — Бриз рядом' : 'You’ve got this — Breeze is here'}
+            {ru ? 'Ты справишься — Бриз рядом' : 'You’ve got this — Breeze is here'}
           </Text>
           {premium && (
             <View style={{
-              marginTop: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+              marginTop: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
               backgroundColor: t.accent + '22', borderWidth: 1, borderColor: t.accent + '55',
             }}>
               <Text style={{ color: t.accent, fontWeight: '800', fontSize: 12, letterSpacing: 0.5 }}>
-                {lang === 'ru' ? 'ПРЕМИУМ АКТИВЕН (DEV)' : 'PREMIUM ACTIVE (DEV)'}
+                {ru ? 'ПРЕМИУМ АКТИВЕН (DEV)' : 'PREMIUM ACTIVE (DEV)'}
               </Text>
             </View>
           )}
         </View>
 
-        {/* Personal money anchor — only when we have real numbers to show */}
+        {/* ── Plans (grouped card, like the reference) ── */}
+        <View style={{
+          borderRadius: radius.lg, backgroundColor: t.card,
+          borderWidth: 1, borderColor: t.border, overflow: 'hidden',
+        }}>
+          {PLANS.map((pl, idx) => {
+            const sel = selected === pl.id;
+            return (
+              <Pressable key={pl.id} onPress={() => { Haptics.selectionAsync(); setSelected(pl.id); }}
+                style={{
+                  flexDirection: 'row', alignItems: 'center', gap: 12,
+                  paddingVertical: 14, paddingHorizontal: 14,
+                  borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: t.border,
+                  backgroundColor: sel ? t.accent + '12' : 'transparent',
+                }}>
+                {/* Radio / check */}
+                <View style={{
+                  width: 24, height: 24, borderRadius: 12,
+                  borderWidth: 2, borderColor: sel ? t.accent : t.border,
+                  backgroundColor: sel ? t.accent : 'transparent',
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {sel && <Icon.check size={13} color="#fff" />}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ color: t.text, fontSize: 17, fontWeight: '700' }}>{ru ? pl.ru : pl.en}</Text>
+                    {pl.badge && (
+                      <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: t.accent }}>
+                        <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{ru ? pl.badge.ru : pl.badge.en}</Text>
+                      </View>
+                    )}
+                  </View>
+                  {(pl.subRu || pl.subEn) && (
+                    <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>{ru ? pl.subRu : pl.subEn}</Text>
+                  )}
+                </View>
+                <Text style={{ color: sel ? t.text : t.textDim, fontSize: 16, fontWeight: '800' }}>
+                  {ru ? pl.rightRu : pl.rightEn}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Money anchor — honest justification, only with real numbers */}
         {(showSaved || paybackWk) && (
-          <View style={{
-            padding: 16, borderRadius: radius.lg, gap: 6,
-            backgroundColor: t.accent + '12', borderWidth: 1, borderColor: t.accent + '33',
-          }}>
+          <View style={{ paddingHorizontal: 4, gap: 3 }}>
             {showSaved && (
-              <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', lineHeight: 21 }}>
-                {lang === 'ru'
+              <Text style={{ color: t.text, fontSize: 14, fontWeight: '700', lineHeight: 20 }}>
+                {ru
                   ? `Ты уже сэкономил ${formatMoney(saved, currency, localeStr)} на несожжённых сигаретах.`
                   : `You've already saved ${formatMoney(saved, currency, localeStr)} on cigarettes not smoked.`}
               </Text>
             )}
             {paybackWk && (
-              <Text style={{ color: t.textDim, fontSize: 13.5, lineHeight: 19 }}>
-                {lang === 'ru'
+              <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 18 }}>
+                {ru
                   ? `Год Премиума ≈ ${paybackWk} ${wkWord(paybackWk)} твоего прежнего курения.`
                   : `A year of Premium ≈ ${paybackWk} ${wkWord(paybackWk)} of your old smoking spend.`}
               </Text>
@@ -166,134 +218,83 @@ export default function Paywall() {
           </View>
         )}
 
-        {/* Features */}
-        <View style={{ gap: 10 }}>
-          {features.map((f) => {
+        {/* ── Features (grouped card, scrolls under the sticky button) ── */}
+        <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '800', letterSpacing: 1, marginTop: 2, marginLeft: 4 }}>
+          {ru ? 'ПРЕИМУЩЕСТВА ПОДПИСКИ' : 'WHAT YOU GET'}
+        </Text>
+        <View style={{
+          borderRadius: radius.lg, backgroundColor: t.card,
+          borderWidth: 1, borderColor: t.border, overflow: 'hidden',
+        }}>
+          {features.map((f, idx) => {
             const I = Icon[f.i];
             return (
               <View key={f.t} style={{
-                flexDirection: 'row', alignItems: 'center', gap: 12,
-                padding: 13, borderRadius: radius.md,
-                backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
+                flexDirection: 'row', alignItems: 'center', gap: 13,
+                paddingVertical: 13, paddingHorizontal: 14,
+                borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: t.border,
               }}>
                 <View style={{
-                  width: 38, height: 38, borderRadius: 12,
-                  backgroundColor: t.accent + '20', alignItems: 'center', justifyContent: 'center',
+                  width: 38, height: 38, borderRadius: 10,
+                  backgroundColor: f.c, alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <I size={19} color={t.accent} />
+                  <I size={20} color="#fff" />
                 </View>
-                <Text style={{ color: t.text, fontSize: 15, fontWeight: '600', flex: 1, lineHeight: 20 }}>{f.t}</Text>
-                <Icon.check size={17} color={t.accent} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>{f.t}</Text>
+                  <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 18, marginTop: 1 }}>{f.d}</Text>
+                </View>
+                <Text style={{ color: t.textDim, fontSize: 20, fontWeight: '400' }}>›</Text>
               </View>
             );
           })}
         </View>
 
-        {/* Plans */}
-        <View style={{ gap: 10, marginTop: 6 }}>
-          {PLANS.map((p) => {
-            const sel = selected === p.id;
-            return (
-              <Pressable key={p.id} onPress={() => { Haptics.selectionAsync(); setSelected(p.id); }}
-                style={{
-                  padding: 16, borderRadius: radius.lg,
-                  backgroundColor: sel ? t.accent + '14' : t.card,
-                  borderWidth: 2, borderColor: sel ? t.accent : t.border,
-                  flexDirection: 'row', alignItems: 'center', gap: 12,
-                }}>
-                <View style={{
-                  width: 22, height: 22, borderRadius: 11,
-                  borderWidth: 2, borderColor: sel ? t.accent : t.border,
-                  backgroundColor: sel ? t.accent : 'transparent',
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {sel && <Icon.check size={12} color="#fff" />}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={{ color: t.text, fontSize: 17, fontWeight: '700' }}>
-                      {lang === 'ru' ? p.ru : p.en}
-                    </Text>
-                    {p.badge && (
-                      <View style={{
-                        paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-                        backgroundColor: t.warn + '24',
-                      }}>
-                        <Text style={{ color: t.warn, fontSize: 11, fontWeight: '800' }}>
-                          {lang === 'ru' ? p.badge.ru : p.badge.en}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  {(p.perRu || p.perEn) && (
-                    <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>
-                      {lang === 'ru' ? p.perRu : p.perEn}
-                    </Text>
-                  )}
-                </View>
-                <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>
-                  {lang === 'ru' ? p.priceRu : p.priceEn}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Pressable onPress={purchase}
-          style={{
-            paddingVertical: 16, paddingHorizontal: 18, borderRadius: radius.xl, backgroundColor: t.accent,
-            alignItems: 'center', justifyContent: 'center', gap: 2,
-          }}>
-          <Text style={{ color: '#fff', fontSize: 17.5, fontWeight: '800' }}>
-            {lang === 'ru' ? 'Начать менять жизнь' : 'Start changing your life'}
-          </Text>
-          <Text style={{ color: '#ffffffcc', fontSize: 13, fontWeight: '600' }}>
-            {selected === 'lifetime'
-              ? (lang === 'ru' ? `${planPrice} — один раз, навсегда` : `${planPrice} — once, forever`)
-              : selected === 'yearly'
-                ? (lang === 'ru' ? `${planPrice}/год · ≈ 166 ₽/мес` : `${planPrice}/yr · ≈ $2.50/mo`)
-                : (lang === 'ru' ? `${planPrice}/мес` : `${planPrice}/mo`)}
-          </Text>
-        </Pressable>
-
-        <Text style={{ color: t.textDim, fontSize: 11, textAlign: 'center', lineHeight: 16, paddingHorizontal: 10 }}>
-          {selected === 'lifetime'
-            ? (lang === 'ru'
-                ? 'Разовый платёж картой через ЮKassa. Доступ навсегда, без автосписаний.'
-                : 'One-time card payment via YooKassa. Lifetime access, no recurring charges.')
-            : (lang === 'ru'
-                ? 'Оплата картой через ЮKassa. Продлевается автоматически, отменить можно в любой момент в профиле.'
-                : 'Card payment via YooKassa. Renews automatically, cancel anytime in your profile.')}
-        </Text>
-
-        {/* Dev mode toggle — dev builds only, never in TestFlight/production:
-            a visible toggle would hand out premium for free AND fail review. */}
+        {/* Dev mode toggle — dev builds only, never in TestFlight/production */}
         {__DEV__ && <View style={{
-          marginTop: 14, padding: 14, borderRadius: radius.md,
+          marginTop: 6, padding: 14, borderRadius: radius.md,
           backgroundColor: t.warn + '12', borderWidth: 1, borderColor: t.warn + '40', gap: 10,
         }}>
           <Text style={{ color: t.warn, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-            {lang === 'ru' ? 'РЕЖИМ РАЗРАБОТЧИКА' : 'DEV MODE'}
+            {ru ? 'РЕЖИМ РАЗРАБОТЧИКА' : 'DEV MODE'}
           </Text>
           <Text style={{ color: t.text, fontSize: 13, lineHeight: 19 }}>
-            {lang === 'ru'
+            {ru
               ? 'Реальная оплата ещё не подключена. Кнопкой ниже включи Премиум локально, чтобы протестировать заблокированные функции.'
               : 'Real payments are not wired yet. Use the toggle below to unlock premium locally for testing.'}
           </Text>
           <Pressable onPress={devToggle}
-            style={{
-              padding: 12, borderRadius: radius.md,
-              backgroundColor: premium ? t.danger : t.accent,
-              alignItems: 'center',
-            }}>
+            style={{ padding: 12, borderRadius: radius.md, backgroundColor: premium ? t.danger : t.accent, alignItems: 'center' }}>
             <Text style={{ color: '#fff', fontWeight: '700' }}>
-              {premium
-                ? (lang === 'ru' ? 'Выключить Премиум' : 'Disable Premium')
-                : (lang === 'ru' ? 'Включить Премиум (dev)' : 'Enable Premium (dev)')}
+              {premium ? (ru ? 'Выключить Премиум' : 'Disable Premium') : (ru ? 'Включить Премиум (dev)' : 'Enable Premium (dev)')}
             </Text>
           </Pressable>
         </View>}
       </ScrollView>
+
+      {/* ── Sticky CTA — always pinned, features scroll above it ── */}
+      <View style={{
+        paddingHorizontal: spacing.lg, paddingTop: 10, paddingBottom: insets.bottom + 10,
+        borderTopWidth: 1, borderTopColor: t.border, backgroundColor: t.bg, gap: 7,
+      }}>
+        <Pressable onPress={purchase} accessibilityRole="button">
+          <LinearGradient colors={[t.accent, t.info]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={{ borderRadius: radius.xl, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>
+              {ru
+                ? `Подключить за ${plan.ctaPriceRu} ${plan.ctaPeriodRu}`
+                : `Get Premium — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}`}
+            </Text>
+          </LinearGradient>
+        </Pressable>
+        <Text style={{ color: t.textDim, fontSize: 10.5, textAlign: 'center', lineHeight: 15 }}>
+          {selected === 'lifetime'
+            ? (ru ? 'Разовый платёж через ЮKassa. Доступ навсегда, без автосписаний.'
+                  : 'One-time payment via YooKassa. Lifetime access, no recurring charges.')
+            : (ru ? 'Оплата через ЮKassa. Продлевается автоматически, отмена в любой момент в профиле.'
+                  : 'Payment via YooKassa. Renews automatically, cancel anytime in your profile.')}
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }
