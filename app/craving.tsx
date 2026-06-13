@@ -186,17 +186,12 @@ export default function Craving() {
                 <MiniTile t={t} icon={Icon.headphones} color="#5AC8FA"
                   title={ru ? 'Слушать' : 'Listen'} sub={ru ? 'голос' : 'voice'}
                   onPress={() => { Haptics.selectionAsync(); router.push('/audio/calm_now' as any); }} />
-                <MiniTile t={t} icon={Icon.chat} color="#30D158"
-                  title={ru ? 'Написать' : 'Message'} sub={ru ? 'мне' : 'me'}
-                  onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support&opener=sos' as any); }} />
-              </View>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
                 <MiniTile t={t} icon={Icon.play} color="#BF5AF2"
                   title={ru ? 'Отвлечься' : 'Distract'} sub={ru ? 'игра' : 'game'}
                   onPress={() => { Haptics.selectionAsync(); router.push('/game'); }} />
-                <MiniTile t={t} icon={Icon.brain} color="#FF9F0A"
-                  title="HALT" sub={ru ? 'что мне нужно?' : 'what do I need?'}
-                  onPress={() => { Haptics.selectionAsync(); router.push('/practice/halt_check' as any); }} />
+                  <MiniTile t={t} icon={Icon.chat} color="#30D158"
+                    title={ru ? 'Написать' : 'Message'} sub={ru ? 'мне' : 'me'}
+                    onPress={() => { Haptics.selectionAsync(); router.push('/chat?mode=support&opener=sos' as any); }} />
               </View>
 
               {/* ── Logging is post-hoc — quiet link, not a competing button ── */}
