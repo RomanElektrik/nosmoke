@@ -27,12 +27,16 @@ const tpl = (f) => `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{width:1290px;height:2796px;overflow:hidden}
   body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:radial-gradient(125% 55% at 50% 0%, ${hexA(f.accent, 0.38)} 0%, ${hexA(f.accent, 0.08)} 32%, #0A0E13 60%);
-    color:#F4F6F8;position:relative;display:flex;flex-direction:column;align-items:center}
-  .glow{position:absolute;width:1000px;height:1000px;border-radius:50%;background:${f.accent};filter:blur(200px);opacity:0.24;top:-340px;left:50%;transform:translateX(-50%);pointer-events:none}
-  .cap{text-align:center;padding:0 90px;margin-top:172px;z-index:2}
+    background:
+      radial-gradient(80% 38% at 50% 66%, ${hexA(f.accent, 0.40)} 0%, ${hexA(f.accent, 0.07)} 44%, rgba(10,14,19,0) 68%),
+      #0A0E13;
+    color:#FFFFFF;position:relative;display:flex;flex-direction:column;align-items:center}
+  /* Accent halo lives BEHIND the phone, not under the caption — keeps the top
+     dark so the white caption stays high-contrast and legible. */
+  .glow{position:absolute;width:1040px;height:1040px;border-radius:50%;background:${f.accent};filter:blur(210px);opacity:0.20;top:1180px;left:50%;transform:translateX(-50%);pointer-events:none}
+  .cap{text-align:center;padding:0 84px;margin-top:172px;z-index:2}
   .eyebrow{font-size:33px;font-weight:800;letter-spacing:7px;color:${f.accent};margin-bottom:26px}
-  h1{font-size:98px;line-height:1.06;font-weight:850;letter-spacing:-2px;white-space:pre-line}
+  h1{font-size:98px;line-height:1.06;font-weight:850;letter-spacing:-2px;white-space:pre-line;text-shadow:0 2px 40px rgba(0,0,0,0.55)}
   /* Stage takes the rest of the height and centres the FULL phone — never cut */
   .stage{flex:1;width:100%;display:flex;align-items:center;justify-content:center;padding:60px 0 90px;z-index:1;min-height:0}
   .phone{width:912px;border-radius:96px;background:#05070A;padding:22px;
