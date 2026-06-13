@@ -23,6 +23,7 @@ const PLANS = {
   monthly:  { amount: 399,  days: 30,  title: 'Бриз Премиум — месяц' },
   yearly:   { amount: 1990, days: 365, title: 'Бриз Премиум — год' },
   lifetime: { amount: 3990, days: 0,   title: 'Бриз Премиум — навсегда', lifetime: true },
+  test:     { amount: 10,   days: 1,   title: 'Бриз — проверка оплаты' }, // ВРЕМЕННЫЙ, убрать перед релизом
 };
 
 const isDevice = (d) => typeof d === 'string' && /^[0-9a-fA-F-]{8,64}$/.test(d);
