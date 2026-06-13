@@ -86,3 +86,11 @@ export async function cancelSubscription(): Promise<SubStatus> {
   const deviceId = await getDeviceId();
   return postJson('/forget', { deviceId });
 }
+
+// Запросить возврат денег за последнюю оплату (самообслуживание, окно 14 дней).
+// Сервер делает реальный возврат через ЮKassa и снимает премиум. При ошибке
+// бросает Error с кодом в message: window_expired | no_payment | no_active | refund_failed.
+export async function requestRefund(): Promise<{ ok: boolean } & Partial<SubStatus>> {
+  const deviceId = await getDeviceId();
+  return postJson('/refund', { deviceId });
+}

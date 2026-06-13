@@ -1,6 +1,6 @@
-// Способ оплаты — привязанная карта для автопродления и её отвязка.
-// Требование ЮKassa для подключения рекуррентных платежей: пользователь должен
-// иметь возможность сам отвязать карту, без обращения в поддержку.
+// Способ оплаты и управление подпиской: статус, отвязка карты (для рекуррента),
+// и самообслуживание-возврат денег. Никаких карт-образцов — только то, что есть
+// на самом деле, чтобы экран не противоречил реальности.
 
 import { useState } from 'react';
 import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
@@ -10,29 +10,32 @@ import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
 import { update, useAppState } from '../lib/storage';
+import { usePremium } from '../lib/subscription';
 import { Icon } from '../components/Icon';
-import { unbindCard } from '../lib/billing';
+import { unbindCard, requestRefund } from '../lib/billing';
 
-// До первой реальной привязки карты (рекуррент у магазина включается) показываем
-// карту-образец, чтобы сценарий отвязки был виден. Реальная карта её заменит.
-const DEMO = { type: 'МИР', last4: '4321' };
+const SUPPORT = 'istrelkov829@gmail.com';
 
 export default function PaymentMethod() {
   const t = useTheme();
   const router = useRouter();
   const ru = currentLang() === 'ru';
   const [state] = useAppState();
+  const premium = usePremium();
   const [busy, setBusy] = useState(false);
 
-  // undefined → ещё не отвязывал (показываем образец); {..} → реальная карта; null → отвязана.
-  const card = state.boundCard === null ? null : (state.boundCard ?? DEMO);
+  const until = state.premiumUntil ?? 0;
+  const lifetime = until > Date.now() + 40 * 365 * 86400_000;
+  const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
+  // Реальная привязанная карта (для автопродления). Образцов больше не показываем.
+  const realCard = !!(state.boundCard && state.boundCard.last4) ? state.boundCard! : null;
 
   function confirmUnbind() {
     Haptics.selectionAsync();
     Alert.alert(
       ru ? 'Отвязать карту?' : 'Remove card?',
-      ru ? 'Автопродление больше не будет списывать с этой карты. Текущая подписка продолжит действовать до конца оплаченного периода.'
-         : 'Auto-renewal will no longer charge this card. Your current subscription stays active until the paid period ends.',
+      ru ? 'Автопродление больше не будет списывать с этой карты. Доступ сохранится до конца оплаченного периода.'
+         : 'Auto-renewal will no longer charge this card. Access stays until the paid period ends.',
       [
         { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
         { text: ru ? 'Отвязать' : 'Remove', style: 'destructive', onPress: doUnbind },
@@ -42,14 +45,54 @@ export default function PaymentMethod() {
 
   async function doUnbind() {
     setBusy(true);
-    try {
-      await unbindCard();
-    } catch {}
+    try { await unbindCard(); } catch {}
     await update((s) => ({ ...s, boundCard: null }));
     setBusy(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert(ru ? 'Карта отвязана' : 'Card removed',
       ru ? 'Автосписаний по этой карте больше не будет.' : 'No more automatic charges on this card.');
+  }
+
+  function confirmRefund() {
+    Haptics.selectionAsync();
+    Alert.alert(
+      ru ? 'Вернуть деньги за подписку?' : 'Refund your subscription?',
+      ru ? 'Мы вернём оплату на твою карту, а Премиум отключится. Деньги приходят за несколько дней.'
+         : 'We refund your card and turn Premium off. The money arrives within a few days.',
+      [
+        { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
+        { text: ru ? 'Вернуть деньги' : 'Refund', style: 'destructive', onPress: doRefund },
+      ],
+    );
+  }
+
+  async function doRefund() {
+    setBusy(true);
+    try {
+      await requestRefund();
+      await update((s) => ({ ...s, premiumUntil: 0, boundCard: null }));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        ru ? 'Возврат отправлен' : 'Refund sent',
+        ru ? 'Деньги вернутся на ту же карту в течение нескольких дней. Премиум отключён.'
+           : 'The money returns to your card within a few days. Premium is off.',
+      );
+    } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.includes('window_expired')) {
+        Alert.alert(ru ? 'Срок авто-возврата истёк' : 'Auto-refund window passed',
+          ru ? `С оплаты прошло больше 14 дней. Напиши на ${SUPPORT} — вернём вручную.`
+             : `More than 14 days since payment. Email ${SUPPORT} — we will refund manually.`);
+      } else if (msg.includes('no_payment') || msg.includes('no_active')) {
+        Alert.alert(ru ? 'Активной оплаты нет' : 'No active payment',
+          ru ? 'Не нашли оплату для возврата на этом устройстве.' : 'No payment found to refund on this device.');
+      } else {
+        Alert.alert(ru ? 'Не получилось автоматически' : 'Could not refund automatically',
+          ru ? `Напиши на ${SUPPORT} — вернём деньги вручную.` : `Email ${SUPPORT} — we will refund manually.`);
+      }
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -60,21 +103,49 @@ export default function PaymentMethod() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: 18 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: 16 }}>
         <View>
           <Text style={{ color: t.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.6 }}>
-            {ru ? 'Способ оплаты' : 'Payment method'}
+            {ru ? 'Подписка' : 'Subscription'}
           </Text>
           <Text style={{ color: t.textDim, fontSize: 14, marginTop: 6, lineHeight: 20 }}>
-            {ru
-              ? 'Карта, с которой продлевается подписка. Можешь отвязать её в любой момент — списаний больше не будет.'
-              : 'The card your subscription renews from. You can remove it any time — no more charges.'}
+            {ru ? 'Статус, способ оплаты и возврат денег — всё здесь.'
+                : 'Status, payment method and refunds — all here.'}
           </Text>
         </View>
 
-        {card ? (
+        {/* Статус подписки */}
+        <View style={{
+          padding: 16, borderRadius: radius.lg,
+          backgroundColor: premium ? t.accent + '14' : t.card,
+          borderWidth: 1, borderColor: premium ? t.accent + '55' : t.border,
+          flexDirection: 'row', alignItems: 'center', gap: 14,
+        }}>
+          <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: t.accent + '20', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon.star size={22} color={t.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
+              {premium ? (ru ? 'Премиум активен' : 'Premium active') : (ru ? 'Подписка не активна' : 'No active subscription')}
+            </Text>
+            <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>
+              {premium
+                ? lifetime ? (ru ? 'Доступ навсегда' : 'Lifetime access') : (ru ? `Активен до ${dateStr}` : `Active until ${dateStr}`)
+                : (ru ? 'Оформи Премиум, чтобы открыть всё' : 'Get Premium to unlock everything')}
+            </Text>
+          </View>
+        </View>
+
+        {!premium && (
+          <Pressable onPress={() => router.push('/paywall' as any)}
+            style={{ padding: 16, borderRadius: radius.lg, alignItems: 'center', backgroundColor: t.accent }}>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{ru ? 'Открыть Премиум' : 'Get Premium'}</Text>
+          </Pressable>
+        )}
+
+        {/* Привязанная карта — только если реально есть */}
+        {realCard && (
           <>
-            {/* Привязанная карта */}
             <View style={{
               padding: 16, borderRadius: radius.lg, backgroundColor: t.card,
               borderWidth: 1, borderColor: t.border, flexDirection: 'row', alignItems: 'center', gap: 14,
@@ -84,7 +155,7 @@ export default function PaymentMethod() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
-                  {card.type} •••• {card.last4}
+                  {realCard.type} •••• {realCard.last4}
                 </Text>
                 <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>
                   {ru ? 'Привязана для автопродления' : 'Saved for auto-renewal'}
@@ -92,7 +163,6 @@ export default function PaymentMethod() {
               </View>
             </View>
 
-            {/* Отвязать */}
             <Pressable onPress={confirmUnbind} disabled={busy}
               style={{
                 padding: 16, borderRadius: radius.lg, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 10,
@@ -105,21 +175,37 @@ export default function PaymentMethod() {
               </Text>
             </Pressable>
           </>
-        ) : (
-          <View style={{ padding: 18, borderRadius: radius.lg, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, alignItems: 'center', gap: 8 }}>
-            <Icon.wallet size={30} color={t.textDim} />
-            <Text style={{ color: t.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
-              {ru
-                ? 'Карта не привязана. Она появится здесь после оплаты с автопродлением — и её можно будет отвязать.'
-                : 'No card saved. It will appear here after a payment with auto-renewal — and you can remove it.'}
+        )}
+
+        {/* Премиум есть, но карта не привязана (разовая оплата за период) */}
+        {premium && !realCard && !lifetime && (
+          <View style={{ padding: 14, borderRadius: radius.lg, backgroundColor: t.card, borderWidth: 1, borderColor: t.border }}>
+            <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 19 }}>
+              {ru ? 'Оплата разовая за период — карта не привязана, автосписаний нет.'
+                  : 'One-time payment for the period — no card saved, no automatic charges.'}
             </Text>
           </View>
         )}
 
+        {/* Возврат денег — самообслуживание */}
+        {premium && (
+          <Pressable onPress={confirmRefund} disabled={busy}
+            style={{
+              padding: 16, borderRadius: radius.lg, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 10,
+              backgroundColor: t.danger + '14', borderWidth: 1, borderColor: t.danger + '55',
+            }}>
+            {busy && <ActivityIndicator color={t.danger} />}
+            <Icon.wallet size={18} color={t.danger} />
+            <Text style={{ color: t.danger, fontSize: 16, fontWeight: '700' }}>
+              {ru ? 'Вернуть деньги за подписку' : 'Refund subscription'}
+            </Text>
+          </Pressable>
+        )}
+
         <Text style={{ color: t.textDim, fontSize: 12, lineHeight: 18, paddingHorizontal: 2 }}>
           {ru
-            ? 'Отвязка карты не отменяет уже оплаченный период — доступ сохранится до его конца. Вопрос по возврату — напиши в поддержку: istrelkov829@gmail.com.'
-            : 'Removing the card does not cancel the already-paid period — access remains until it ends. Refund questions: istrelkov829@gmail.com.'}
+            ? `Возврат доступен в течение 14 дней после оплаты — деньги вернутся на ту же карту, Премиум отключится. Если получил возврат через банк или ЮKassa — Премиум снимется автоматически. Вопросы: ${SUPPORT}.`
+            : `Refunds are available within 14 days of payment — the money returns to the same card and Premium turns off. If you got a refund via your bank or YooKassa, Premium is revoked automatically. Questions: ${SUPPORT}.`}
         </Text>
       </ScrollView>
     </SafeAreaView>

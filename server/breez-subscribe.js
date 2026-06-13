@@ -15,6 +15,8 @@ const path = require('path');
 const SHOP_ID = process.env.BRIZ_YOOKASSA_SHOP_ID || '1382668';
 const SECRET_KEY = process.env.BRIZ_YOOKASSA_SECRET_KEY || '';
 const YK_URL = 'https://api.yookassa.ru/v3/payments';
+const YK_REFUNDS_URL = 'https://api.yookassa.ru/v3/refunds';
+const REFUND_WINDOW_MS = 14 * 86400_000; // самообслуживание-возврат доступен 14 дней после оплаты
 const STORE = path.join(__dirname, 'data', 'briz-subs.json');
 const RETURN_URL = process.env.BRIZ_RETURN_URL || 'https://breezapp.ru/pay-ok.html';
 const LIFETIME_UNTIL = 4102444800000; // 2100-01-01 — отображаемая «дата» для навсегда
@@ -85,6 +87,7 @@ function grant(deviceId, plan, paymentId, paymentMethodId, email, card) {
     paymentMethodId: paymentMethodId || (cur && cur.paymentMethodId) || null,
     card: card || (cur && cur.card) || null,
     email: email || (cur && cur.email) || null,
+    lastPaymentId: paymentId || (cur && cur.lastPaymentId) || null, // для авто-перепроверки и возврата
     applied: (paymentId ? [...applied, paymentId] : applied).slice(-50),
     updatedAt: now,
   };
@@ -156,6 +159,53 @@ function applyPayment(pay, expectDevice) {
   const card = pm && pm.card ? { last4: pm.card.last4 || '', type: pm.card.card_type || pm.title || 'card' } : null;
   grant(m.deviceId, m.plan, pay.id, pm && pm.saved ? pm.id : null, m.email || undefined, pm && pm.saved ? card : null);
   return true;
+}
+
+// Id платежа для перепроверки/возврата: новое поле, иначе — последний из applied
+// (бэк-совместимость со старыми записями до появления lastPaymentId).
+function lastPaymentOf(s) {
+  if (!s) return null;
+  if (s.lastPaymentId) return s.lastPaymentId;
+  if (Array.isArray(s.applied) && s.applied.length) return s.applied[s.applied.length - 1];
+  return null;
+}
+
+// Сколько уже возвращено по платежу (руб). >0 → возврат был.
+function refundedValue(pay) {
+  const v = pay && pay.refunded_amount && pay.refunded_amount.value;
+  const n = v ? parseFloat(v) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+// Создать возврат в ЮKassa. Idempotence-Key привязан к платежу — повторный тап
+// не делает второй возврат.
+async function ykRefund(paymentId, amount) {
+  const r = await fetch(YK_REFUNDS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotence-Key': 'refund-' + paymentId, 'Authorization': basicAuth() },
+    body: JSON.stringify({ payment_id: paymentId, amount }),
+  });
+  const text = await r.text();
+  let json = null; try { json = JSON.parse(text); } catch {}
+  if (!r.ok) { const e = new Error('YK refund: ' + String((json && json.description) || text).slice(0, 300)); e.status = r.status; throw e; }
+  return json;
+}
+
+// При опросе статуса перепроверяем в ЮKassa, не отрефанжен ли платёж, — чтобы
+// премиум снимался САМ после возврата, даже если вебхук не настроен. Троттлинг
+// 10 мин/устройство, ошибки сети глушим (премиум не трогаем).
+async function reverify(deviceId) {
+  const s = subs[deviceId];
+  const pid = lastPaymentOf(s);
+  if (!s || !pid) return;
+  if (!(s.lifetime || s.paidUntil > Date.now())) return; // не премиум — нечего проверять
+  const now = Date.now();
+  if (s.lastVerify && now - s.lastVerify < 10 * 60_000) return;
+  try {
+    const pay = await ykGet(pid);
+    if (refundedValue(pay) > 0) { revoke(deviceId); return; }
+    s.lastVerify = now; subs[deviceId] = s; saveStore(subs);
+  } catch { /* сеть/ЮKassa недоступны — не трогаем премиум */ }
 }
 
 module.exports = function attach(app) {
@@ -230,8 +280,45 @@ module.exports = function attach(app) {
     }
   });
 
-  app.get('/api/briz/sub/:deviceId', (req, res) => {
-    res.json(statusOf(String(req.params.deviceId)));
+  app.get('/api/briz/sub/:deviceId', async (req, res) => {
+    const d = String(req.params.deviceId);
+    if (isDevice(d) && SHOP_ID && SECRET_KEY) { try { await reverify(d); } catch {} }
+    res.json(statusOf(d));
+  });
+
+  // Самообслуживание-возврат: возвращаем деньги на карту через ЮKassa и снимаем
+  // премиум. Только своё устройство, только в окне 14 дней, идемпотентно.
+  app.post('/api/briz/refund', async (req, res) => {
+    try {
+      if (!SHOP_ID || !SECRET_KEY) return res.status(503).json({ error: 'not configured' });
+      const { deviceId } = req.body || {};
+      if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
+      const s = subs[deviceId];
+      const pid = lastPaymentOf(s);
+      if (!s || !pid) return res.status(400).json({ error: 'no_payment' });
+      if (!(s.lifetime || s.paidUntil > Date.now())) return res.status(400).json({ error: 'no_active' });
+
+      let pay;
+      try { pay = await ykGet(pid); }
+      catch { return res.status(503).json({ error: 'yk_unavailable' }); }
+      if (!pay || pay.status !== 'succeeded' || !pay.paid) return res.status(400).json({ error: 'not_refundable' });
+
+      // Уже возвращён ранее → просто снять премиум (идемпотентно).
+      if (refundedValue(pay) > 0) { revoke(deviceId); return res.json({ ok: true, ...statusOf(deviceId) }); }
+
+      // Окно автоматического возврата.
+      const paidAt = Date.parse(pay.captured_at || pay.created_at || '') || 0;
+      if (paidAt && Date.now() - paidAt > REFUND_WINDOW_MS) return res.status(400).json({ error: 'window_expired' });
+
+      try { await ykRefund(pay.id, pay.amount); }
+      catch (e) { return res.status(e.status || 502).json({ error: 'refund_failed', detail: e.message }); }
+
+      revoke(deviceId);
+      res.json({ ok: true, ...statusOf(deviceId) });
+    } catch (e) {
+      console.error('[briz] refund:', e.message);
+      res.status(500).json({ error: e.message });
+    }
   });
 
   // Webhook — НЕ доверяет телу: берёт id и перепроверяет в ЮKassa.
@@ -310,5 +397,5 @@ module.exports = function attach(app) {
     }
   });
 
-  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · GET /sub/:id · POST /webhook');
+  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /refund · /restore · /unbind · GET /sub/:id (auto-reverify) · POST /webhook');
 };

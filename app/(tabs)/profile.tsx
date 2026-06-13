@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ScrollView, View, Text, Pressable, Alert, TextInput, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, setLanguage, currentLang } from '../../lib/i18n';
 import { reset, update, useAppState } from '../../lib/storage';
@@ -10,7 +11,7 @@ import { getStep } from '../../lib/stepped';
 import { Icon } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
 import { usePremium } from '../../lib/subscription';
-import { cancelSubscription } from '../../lib/billing';
+import { requestRefund } from '../../lib/billing';
 
 const PRIVACY_URL = 'https://breezapp.ru/privacy-policy.html';
 const TERMS_URL = 'https://breezapp.ru/terms.html';
@@ -147,9 +148,49 @@ function PremiumCard() {
   // Авто-продление обещаем только когда реально привязана карта.
   const realCard = !!(state.boundCard && state.boundCard.last4);
 
-  async function doCancel() {
-    try { await cancelSubscription(); } catch {}
-    await update((s) => ({ ...s, premiumUntil: 0 }));
+  async function doRefund() {
+    try {
+      await requestRefund();
+      await update((s) => ({ ...s, premiumUntil: 0, boundCard: null }));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        ru ? 'Возврат отправлен' : 'Refund sent',
+        ru ? 'Деньги вернутся на ту же карту в течение нескольких дней. Премиум отключён.'
+           : 'The money returns to your card within a few days. Premium is off.',
+      );
+    } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.includes('window_expired')) {
+        Alert.alert(
+          ru ? 'Срок авто-возврата истёк' : 'Auto-refund window passed',
+          ru ? 'С оплаты прошло больше 14 дней. Напиши на istrelkov829@gmail.com — вернём вручную.'
+             : 'More than 14 days since payment. Email istrelkov829@gmail.com — we will refund manually.',
+        );
+      } else if (msg.includes('no_payment') || msg.includes('no_active')) {
+        Alert.alert(
+          ru ? 'Активной оплаты нет' : 'No active payment',
+          ru ? 'Не нашли оплату для возврата на этом устройстве.' : 'No payment found to refund on this device.',
+        );
+      } else {
+        Alert.alert(
+          ru ? 'Не получилось автоматически' : 'Could not refund automatically',
+          ru ? 'Напиши на istrelkov829@gmail.com — вернём деньги вручную.'
+             : 'Email istrelkov829@gmail.com — we will refund manually.',
+        );
+      }
+    }
+  }
+
+  function confirmRefund() {
+    Alert.alert(
+      ru ? 'Вернуть деньги за подписку?' : 'Refund your subscription?',
+      ru ? 'Мы вернём оплату на твою карту, а Премиум отключится. Деньги приходят за несколько дней.'
+         : 'We refund your card and turn Premium off. The money arrives within a few days.',
+      [
+        { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
+        { text: ru ? 'Вернуть деньги' : 'Refund', style: 'destructive', onPress: doRefund },
+      ],
+    );
   }
 
   function manage() {
@@ -162,14 +203,7 @@ function PremiumCard() {
     Alert.alert(ru ? 'Подписка Премиум' : 'Premium subscription', head + '\n\n' + note, [
       { text: ru ? 'Закрыть' : 'Close' },
       ...(realCard ? [{ text: ru ? 'Способ оплаты' : 'Payment method', onPress: () => router.push('/payment-method' as any) }] : []),
-      {
-        text: ru ? 'Отменить подписку' : 'Cancel subscription', style: 'destructive' as const,
-        onPress: () => Alert.alert(
-          ru ? 'Отменить подписку?' : 'Cancel subscription?',
-          ru ? 'Премиум на этом устройстве отключится. Если оформлял возврат — так и нужно.' : 'Premium on this device will turn off.',
-          [{ text: ru ? 'Нет' : 'No', style: 'cancel' }, { text: ru ? 'Отключить' : 'Turn off', style: 'destructive', onPress: doCancel }],
-        ),
-      },
+      { text: ru ? 'Вернуть деньги' : 'Refund', style: 'destructive' as const, onPress: confirmRefund },
     ]);
   }
 
