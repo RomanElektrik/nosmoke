@@ -29,10 +29,12 @@ export function isTechniquePremium(techId: string, tags?: readonly string[]): bo
   return !FREE_TECHNIQUE_IDS.has(techId);
 }
 
-/** Hook: returns whether the current user has premium access. */
+/** Hook: returns whether the current user has premium access — dev toggle OR a
+ *  server-validated ЮKassa subscription that hasn't expired. */
 export function usePremium(): boolean {
   const [state] = useAppState();
-  return !!state.profile?.devPremium;
+  if (state.profile?.devPremium) return true;
+  return !!state.premiumUntil && state.premiumUntil > Date.now();
 }
 
 /** AI usage helpers — count messages sent today (free tier). */

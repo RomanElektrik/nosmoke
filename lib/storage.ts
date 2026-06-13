@@ -189,6 +189,7 @@ export type AppState = {
   symptoms?: SymptomLog[];                     // weekly body-recovery survey
   identityLog?: string[];                      // localDateKey[] of identity affirmations — never punishes
   tourV1Done?: boolean;                        // first-run in-app guided tour seen
+  premiumUntil?: number;                       // ms — server-validated ЮKassa subscription expiry
 };
 
 // Messenger-style chat threads. Each thread has a persona (coach character)

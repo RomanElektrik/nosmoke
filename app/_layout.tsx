@@ -11,6 +11,7 @@ import * as Notifications from 'expo-notifications';
 import { scheduleCravingNudge, scheduleQuitProgram, scheduleMedicationDoses, scheduleWeeklyReflection, scheduleSymptomReminder } from '../lib/notifications';
 import { currentLang } from '../lib/i18n';
 import { TourProvider } from '../components/Tour';
+import { fetchSub } from '../lib/billing';
 import '../lib/i18n';
 
 export default function Root() {
@@ -65,6 +66,12 @@ export default function Root() {
           await scheduleWeeklyReflection(lang);
           await scheduleSymptomReminder(lang);
         }
+      } catch {}
+      // Refresh ЮKassa subscription status (server-validated). Fire-and-forget;
+      // keeps the cached premiumUntil if offline.
+      try {
+        const sub = await fetchSub();
+        await update((prev) => ({ ...prev, premiumUntil: sub?.premium ? sub.until : (prev.premiumUntil && prev.premiumUntil > Date.now() ? prev.premiumUntil : 0) }));
       } catch {}
       setReady(true);
     });

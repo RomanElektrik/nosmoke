@@ -2,8 +2,8 @@
 // "Включить (dev)" flips the local devPremium flag so the developer
 // can test premium-gated features without making a purchase.
 
-import { useState } from 'react';
-import { View, Text, Pressable, ScrollView, Alert, Linking } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, Pressable, ScrollView, Alert, Linking, AppState, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -14,6 +14,7 @@ import { update, useAppState } from '../lib/storage';
 import { Icon, IconKey } from '../components/Icon';
 import { secondsClean } from '../lib/health';
 import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
+import { createPayment, confirmPayment, restorePurchase } from '../lib/billing';
 
 type PlanId = 'monthly' | 'yearly' | 'lifetime';
 
@@ -85,9 +86,45 @@ export default function Paywall() {
   const [state] = useAppState();
   const [selected, setSelected] = useState<PlanId>('yearly');
   const features = ru ? FEATURES_RU : FEATURES_EN;
-  const premium = !!state.profile?.devPremium;
+  const premium = !!state.profile?.devPremium || (!!state.premiumUntil && state.premiumUntil > Date.now());
   const plan = PLANS.find((pl) => pl.id === selected)!;
   const insets = useSafeAreaInsets();
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const pendingRef = useRef<string | null>(null);
+
+  async function applyStatus(until: number): Promise<boolean> {
+    const ok = until > Date.now();
+    if (ok) await update((s) => ({ ...s, premiumUntil: until }));
+    return ok;
+  }
+
+  // After the user pays in the external browser and returns to the app, verify
+  // the payment with our server and unlock premium.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', async (st) => {
+      if (st !== 'active' || !pendingRef.current) return;
+      const pid = pendingRef.current;
+      setBusy(true);
+      // YooKassa status can lag a beat after redirect — retry a few times.
+      let unlocked = false;
+      for (let i = 0; i < 4 && !unlocked; i++) {
+        try {
+          const res = await confirmPayment(pid);
+          if (await applyStatus(res.until)) unlocked = true;
+        } catch {}
+        if (!unlocked) await new Promise((r) => setTimeout(r, 1500));
+      }
+      setBusy(false);
+      pendingRef.current = null;
+      if (unlocked) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(ru ? 'Премиум активен 🎉' : 'Premium active 🎉', ru ? 'Спасибо! Все функции открыты.' : 'Thank you! Everything is unlocked.',
+          [{ text: 'OK', onPress: () => router.back() }]);
+      }
+    });
+    return () => sub.remove();
+  }, [ru]);
 
   // ── Personal money anchor ──
   const p = state.profile;
@@ -112,12 +149,41 @@ export default function Paywall() {
     }));
   }
 
-  function purchase() {
+  async function purchase() {
+    if (busy) return;
     Haptics.selectionAsync();
-    Alert.alert(
-      ru ? 'Подключение оплаты в разработке' : 'Payments not yet wired',
-      ru ? 'Подписка появится в следующей версии приложения.' : 'Subscriptions are coming in the next release.',
-    );
+    setBusy(true);
+    try {
+      const mail = email.trim();
+      const { id, confirmation_url } = await createPayment(selected, mail || undefined);
+      pendingRef.current = id;            // verified when the app regains focus
+      await Linking.openURL(confirmation_url);
+    } catch (e: any) {
+      pendingRef.current = null;
+      Alert.alert(ru ? 'Не удалось начать оплату' : 'Could not start payment',
+        ru ? 'Попробуй ещё раз чуть позже.' : 'Please try again in a moment.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function restore() {
+    const mail = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+      Alert.alert(ru ? 'Нужен email' : 'Email needed',
+        ru ? 'Впиши в поле выше email, на который оформлял подписку.' : 'Enter the email used for the subscription in the field above.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await restorePurchase(mail);
+      const ok = await applyStatus(res.until);
+      Alert.alert(ok ? (ru ? 'Восстановлено 🎉' : 'Restored 🎉') : (ru ? 'Подписка не найдена' : 'No subscription found'),
+        ok ? (ru ? 'Премиум снова активен.' : 'Premium is active again.') : (ru ? 'На этом email активной подписки нет.' : 'No active subscription on that email.'));
+      if (ok) router.back();
+    } catch {
+      Alert.alert(ru ? 'Ошибка' : 'Error', ru ? 'Попробуй позже.' : 'Try again later.');
+    } finally { setBusy(false); }
   }
 
   return (
@@ -259,6 +325,24 @@ export default function Paywall() {
           </View>
         )}
 
+        {/* Email — for the receipt (чек) and restoring on another device */}
+        {!premium && (
+          <View style={{ gap: 8 }}>
+            <TextInput
+              value={email} onChangeText={setEmail}
+              placeholder={ru ? 'Email для чека и восстановления (необязательно)' : 'Email for receipt & restore (optional)'}
+              placeholderTextColor={t.textDim}
+              keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
+              style={{ backgroundColor: t.bgElev, color: t.text, paddingHorizontal: 14, paddingVertical: 13, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, fontSize: 14.5 }}
+            />
+            <Pressable onPress={restore} hitSlop={8} style={{ alignSelf: 'center', paddingVertical: 4 }}>
+              <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '600' }}>
+                {ru ? 'Восстановить покупку' : 'Restore purchase'}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* Dev mode toggle — dev builds only, never in TestFlight/production */}
         {__DEV__ && <View style={{
           marginTop: 6, padding: 14, borderRadius: radius.md,
@@ -287,17 +371,20 @@ export default function Paywall() {
         <LinearGradient colors={['transparent', t.bg]} locations={[0, 0.55]}
           style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 }} pointerEvents="none" />
         <View style={{ paddingHorizontal: spacing.lg, paddingBottom: insets.bottom + 8, gap: 6 }}>
-          <Pressable onPress={purchase} accessibilityRole="button"
-            style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+          <Pressable onPress={purchase} accessibilityRole="button" disabled={busy}
+            style={({ pressed }) => ({ opacity: pressed || busy ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
             <LinearGradient colors={CTA_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={{
-                borderRadius: radius.xl, paddingVertical: 17, alignItems: 'center', justifyContent: 'center',
+                borderRadius: radius.xl, paddingVertical: 17, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10,
                 shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8,
               }}>
+              {busy && <ActivityIndicator color="#fff" />}
               <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.2 }}>
-                {ru
-                  ? `Подключить за ${plan.ctaPriceRu} ${plan.ctaPeriodRu}`
-                  : `Get Premium — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}`}
+                {busy
+                  ? (ru ? 'Открываю оплату…' : 'Opening payment…')
+                  : ru
+                    ? `Подключить за ${plan.ctaPriceRu} ${plan.ctaPeriodRu}`
+                    : `Get Premium — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}`}
               </Text>
             </LinearGradient>
           </Pressable>
