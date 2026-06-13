@@ -27,25 +27,24 @@ const tpl = (f) => `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{width:1290px;height:2796px;overflow:hidden}
   body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:radial-gradient(120% 60% at 50% -8%, ${hexA(f.accent, 0.42)} 0%, ${hexA(f.accent, 0.10)} 34%, #0A0E13 64%);
-    color:#F4F6F8;position:relative}
-  .glow{position:absolute;width:900px;height:900px;border-radius:50%;background:${f.accent};filter:blur(180px);opacity:0.28;top:-280px;left:50%;transform:translateX(-50%)}
-  .cap{position:absolute;top:150px;left:0;right:0;text-align:center;z-index:2;padding:0 80px}
-  .eyebrow{font-size:34px;font-weight:800;letter-spacing:6px;color:${f.accent};margin-bottom:26px}
-  h1{font-size:104px;line-height:1.04;font-weight:850;letter-spacing:-2.5px;white-space:pre-line}
-  .phone{position:absolute;left:50%;bottom:-60px;transform:translateX(-50%);
-    width:712px;border-radius:78px;background:#05070A;padding:20px;
-    border:1.5px solid rgba(255,255,255,0.12);
-    box-shadow:0 60px 140px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 0 120px ${hexA(f.accent, 0.18)}}
-  .screen{position:relative;border-radius:60px;overflow:hidden;background:#0B0F14;width:100%}
+    background:radial-gradient(125% 55% at 50% 0%, ${hexA(f.accent, 0.38)} 0%, ${hexA(f.accent, 0.08)} 32%, #0A0E13 60%);
+    color:#F4F6F8;position:relative;display:flex;flex-direction:column;align-items:center}
+  .glow{position:absolute;width:1000px;height:1000px;border-radius:50%;background:${f.accent};filter:blur(200px);opacity:0.24;top:-340px;left:50%;transform:translateX(-50%);pointer-events:none}
+  .cap{text-align:center;padding:0 90px;margin-top:172px;z-index:2}
+  .eyebrow{font-size:33px;font-weight:800;letter-spacing:7px;color:${f.accent};margin-bottom:26px}
+  h1{font-size:98px;line-height:1.06;font-weight:850;letter-spacing:-2px;white-space:pre-line}
+  /* Stage takes the rest of the height and centres the FULL phone — never cut */
+  .stage{flex:1;width:100%;display:flex;align-items:center;justify-content:center;padding:60px 0 90px;z-index:1;min-height:0}
+  .phone{width:912px;border-radius:96px;background:#05070A;padding:22px;
+    border:2px solid rgba(255,255,255,0.13);
+    box-shadow:0 70px 150px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05) inset, 0 0 140px ${hexA(f.accent, 0.16)}}
+  .screen{position:relative;border-radius:76px;overflow:hidden;background:#0B0F14;width:100%}
   .screen img{width:100%;display:block}
-  .notch{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:210px;height:50px;background:#05070A;border-radius:28px;z-index:3}
-  .mark{position:absolute;bottom:62px;left:0;right:0;text-align:center;font-size:30px;font-weight:800;letter-spacing:0.5px;color:rgba(255,255,255,0.55);z-index:3}
+  .notch{position:absolute;top:22px;left:50%;transform:translateX(-50%);width:250px;height:58px;background:#05070A;border-radius:32px;z-index:3}
 </style></head><body>
   <div class="glow"></div>
   <div class="cap"><div class="eyebrow">${f.eyebrow}</div><h1>${f.title}</h1></div>
-  <div class="phone"><div class="screen"><div class="notch"></div><img src="file://${SHOTS}/${f.img}.png"></div></div>
-  <div class="mark">Бриз — бросить курить</div>
+  <div class="stage"><div class="phone"><div class="screen"><div class="notch"></div><img src="file://${SHOTS}/${f.img}.png"></div></div></div>
 </body></html>`;
 
 frames.forEach((f, i) => {
