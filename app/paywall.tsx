@@ -204,26 +204,6 @@ export default function Paywall() {
           })}
         </View>
 
-        {/* Money anchor — honest justification, only with real numbers */}
-        {(showSaved || paybackWk) && (
-          <View style={{ paddingHorizontal: 4, gap: 3 }}>
-            {showSaved && (
-              <Text style={{ color: t.text, fontSize: 14, fontWeight: '700', lineHeight: 20 }}>
-                {ru
-                  ? `Ты уже сэкономил ${formatMoney(saved, currency, localeStr)} на несожжённых сигаретах.`
-                  : `You've already saved ${formatMoney(saved, currency, localeStr)} on cigarettes not smoked.`}
-              </Text>
-            )}
-            {paybackWk && (
-              <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 18 }}>
-                {ru
-                  ? `Год Премиума ≈ ${paybackWk} ${wkWord(paybackWk)} твоего прежнего курения.`
-                  : `A year of Premium ≈ ${paybackWk} ${wkWord(paybackWk)} of your old smoking spend.`}
-              </Text>
-            )}
-          </View>
-        )}
-
         {/* ── Features (grouped card, scrolls under the sticky button) ── */}
         <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '800', letterSpacing: 1, marginTop: 2, marginLeft: 4 }}>
           {ru ? 'ПРЕИМУЩЕСТВА ПОДПИСКИ' : 'WHAT YOU GET'}
@@ -254,6 +234,26 @@ export default function Paywall() {
             );
           })}
         </View>
+
+        {/* Money anchor — honest justification, below all the features */}
+        {(showSaved || paybackWk) && (
+          <View style={{ paddingHorizontal: 4, gap: 3 }}>
+            {showSaved && (
+              <Text style={{ color: t.text, fontSize: 14, fontWeight: '700', lineHeight: 20 }}>
+                {ru
+                  ? `Ты уже сэкономил ${formatMoney(saved, currency, localeStr)} на несожжённых сигаретах.`
+                  : `You've already saved ${formatMoney(saved, currency, localeStr)} on cigarettes not smoked.`}
+              </Text>
+            )}
+            {paybackWk && (
+              <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 18 }}>
+                {ru
+                  ? `Год Премиума ≈ ${paybackWk} ${wkWord(paybackWk)} твоего прежнего курения.`
+                  : `A year of Premium ≈ ${paybackWk} ${wkWord(paybackWk)} of your old smoking spend.`}
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Dev mode toggle — dev builds only, never in TestFlight/production */}
         {__DEV__ && <View style={{
