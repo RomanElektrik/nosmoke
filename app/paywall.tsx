@@ -38,17 +38,17 @@ type Plan = {
 const PLANS: Plan[] = [
   { id: 'yearly', ru: 'Год', en: 'Yearly',
     rightRu: '166 ₽/мес', rightEn: '$2.50/mo',
-    subRu: '12 месяцев · 1 990 ₽', subEn: '12 months · $29.99',
+    subRu: '12 месяцев · 1990 ₽', subEn: '12 months · $29.99',
     badge: { ru: '−58%', en: '−58%' },
-    ctaPriceRu: '1 990 ₽', ctaPriceEn: '$29.99', ctaPeriodRu: 'на год', ctaPeriodEn: 'for a year' },
+    ctaPriceRu: '1990 ₽', ctaPriceEn: '$29.99', ctaPeriodRu: 'на год', ctaPeriodEn: 'for a year' },
   { id: 'monthly', ru: 'Месяц', en: 'Monthly',
     rightRu: '399 ₽/мес', rightEn: '$5.99/mo',
     ctaPriceRu: '399 ₽', ctaPriceEn: '$5.99', ctaPeriodRu: 'в месяц', ctaPeriodEn: 'per month' },
   { id: 'lifetime', ru: 'Навсегда', en: 'Lifetime',
-    rightRu: '3 990 ₽', rightEn: '$59.99',
+    rightRu: '3990 ₽', rightEn: '$59.99',
     subRu: 'разовый платёж', subEn: 'one-time payment',
     badge: { ru: 'НАВСЕГДА', en: 'FOREVER' },
-    ctaPriceRu: '3 990 ₽', ctaPriceEn: '$59.99', ctaPeriodRu: 'навсегда', ctaPeriodEn: 'forever' },
+    ctaPriceRu: '3990 ₽', ctaPriceEn: '$59.99', ctaPeriodRu: 'навсегда', ctaPeriodEn: 'forever' },
 ];
 
 // Outcome-framed, not inventory. Every line is ACTUALLY gated in code —
@@ -195,7 +195,7 @@ export default function Paywall() {
                     <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>{ru ? pl.subRu : pl.subEn}</Text>
                   )}
                 </View>
-                <Text style={{ color: sel ? t.text : t.textDim, fontSize: 16, fontWeight: '800' }}>
+                <Text style={{ color: sel ? t.text : t.textDim, fontSize: 14, fontWeight: '600' }}>
                   {ru ? pl.rightRu : pl.rightEn}
                 </Text>
               </Pressable>
