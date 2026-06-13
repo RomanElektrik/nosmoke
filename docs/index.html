@@ -4,19 +4,354 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Бриз — бросить курить</title>
+<meta name="description" content="Бриз — приложение, чтобы бросить курить с поддержкой 24/7. Кнопка SOS в момент тяги, ИИ-помощник без осуждения, живой счётчик дней и денег, программа по дням.">
+<meta property="og:title" content="Бриз — бросить курить">
+<meta property="og:description" content="Поддержка 24/7, кнопка SOS в момент тяги, ИИ-помощник без осуждения. Бросай не в одиночку.">
+<meta property="og:type" content="website">
 <style>
-  body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    max-width:620px;margin:0 auto;padding:90px 22px;color:#1a1a1a;line-height:1.6;text-align:center;}
-  h1{font-size:30px;letter-spacing:-0.6px;}
-  p{font-size:16px;color:#555;}
-  a{display:inline-block;margin-top:24px;color:#1f8a4c;font-weight:600;font-size:16px;}
+  :root{
+    --bg:#0A0E13; --bg2:#0E1319; --panel:#12171F; --panel2:#161C25;
+    --line:rgba(255,255,255,0.08); --line2:rgba(255,255,255,0.14);
+    --text:#F4F6F8; --dim:#9AA6B2; --dim2:#6B7682;
+    --green:#30D158; --teal:#16C2A3; --blue:#0A84FF; --amber:#FF9F0A; --red:#FF453A; --violet:#BF5AF2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.6;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+  .grad-text{background:linear-gradient(110deg,#34D266,#16C2A3 60%,#0A84FF);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:0.5;pointer-events:none;z-index:0}
+
+  /* ---------- NAV ---------- */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:saturate(160%) blur(14px);background:rgba(10,14,19,0.7);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;letter-spacing:-0.3px}
+  .brand .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#34D266,#16C2A3);display:flex;align-items:center;justify-content:center}
+  .nav-links{display:flex;gap:22px;align-items:center;font-size:14px;color:var(--dim)}
+  .nav-links a:hover{color:var(--text)}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;border-radius:13px;padding:11px 18px;font-size:14.5px;border:1px solid transparent;cursor:pointer;transition:transform .15s,opacity .15s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{background:linear-gradient(110deg,#1DB85A,#0A84FF);color:#fff}
+  .btn-ghost{background:transparent;border-color:var(--line2);color:var(--text)}
+  @media(max-width:680px){.nav-links{display:none}}
+
+  /* ---------- HERO ---------- */
+  .hero{position:relative;padding:70px 0 40px;overflow:hidden}
+  .hero .glow.g1{width:520px;height:520px;background:#16C2A3;top:-160px;left:-120px}
+  .hero .glow.g2{width:460px;height:460px;background:#0A84FF;top:-60px;right:-140px;opacity:0.35}
+  .hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr 0.95fr;gap:30px;align-items:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;letter-spacing:1px;color:var(--green);text-transform:uppercase;background:rgba(48,209,88,0.1);border:1px solid rgba(48,209,88,0.25);padding:6px 12px;border-radius:999px}
+  h1{font-size:clamp(34px,5.4vw,56px);line-height:1.05;letter-spacing:-1.5px;font-weight:850;margin:18px 0 14px}
+  .lead{font-size:clamp(16px,2.2vw,19px);color:var(--dim);max-width:520px}
+  .cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+  .store{display:inline-flex;align-items:center;gap:11px;background:#000;border:1px solid var(--line2);border-radius:14px;padding:10px 16px}
+  .store small{display:block;font-size:10px;color:var(--dim);line-height:1.1}
+  .store b{font-size:16px;font-weight:700;letter-spacing:-0.3px}
+  .store .soon{font-size:10px;color:var(--green);font-weight:700}
+  .hero-phones{position:relative;height:540px}
+  .hero-phones .phone{position:absolute}
+  .hero-phones .p-main{left:50%;transform:translateX(-58%) rotate(-3deg);top:10px;z-index:2}
+  .hero-phones .p-side{left:50%;transform:translateX(8%) rotate(5deg);top:60px;z-index:1;opacity:0.96}
+
+  /* ---------- PHONE FRAME ---------- */
+  .phone{width:258px;border-radius:38px;background:#05070A;padding:9px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 30px 70px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.04) inset}
+  .phone .screen{position:relative;border-radius:30px;overflow:hidden;background:#0B0F14;aspect-ratio:828/1792}
+  .phone .screen img{width:100%;display:block}
+  .phone .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:96px;height:24px;background:#05070A;border-radius:14px;z-index:3}
+  .phone.sm{width:230px}
+
+  /* ---------- TRUST STRIP ---------- */
+  .trust{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg2)}
+  .trust-in{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;padding:20px 0;color:var(--dim);font-size:14px}
+  .trust b{color:var(--text)}
+
+  /* ---------- SECTION ---------- */
+  section.block{padding:78px 0;position:relative}
+  .sec-head{text-align:center;max-width:680px;margin:0 auto 44px}
+  .sec-head h2{font-size:clamp(26px,3.6vw,40px);letter-spacing:-1px;font-weight:850;line-height:1.1}
+  .sec-head p{color:var(--dim);font-size:17px;margin-top:12px}
+
+  /* ---------- FEATURES ---------- */
+  .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .feat{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:20px;padding:22px}
+  .feat .ic{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px}
+  .feat h3{font-size:18px;font-weight:800;letter-spacing:-0.3px}
+  .feat p{color:var(--dim);font-size:14.5px;margin-top:6px}
+
+  /* ---------- SHOWCASE ROWS ---------- */
+  .show{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;padding:54px 0;border-top:1px solid var(--line)}
+  .show:nth-child(even) .show-txt{order:2}
+  .show-media{display:flex;justify-content:center;position:relative}
+  .show-media .glow{width:340px;height:340px;opacity:0.28}
+  .show-txt .tag{font-size:12.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--teal)}
+  .show-txt h3{font-size:clamp(23px,3vw,32px);letter-spacing:-0.6px;font-weight:850;margin:8px 0 12px;line-height:1.12}
+  .show-txt p{color:var(--dim);font-size:16.5px;max-width:460px}
+  .show-txt ul{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:9px}
+  .show-txt li{display:flex;gap:10px;align-items:flex-start;color:var(--dim);font-size:15px}
+  .show-txt li b{color:var(--text);font-weight:600}
+  .check{color:var(--green);font-weight:800;flex:none}
+
+  /* ---------- STEPS ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;position:relative}
+  .step .n{font-size:13px;font-weight:800;color:var(--green);letter-spacing:1px}
+  .step h3{font-size:18px;font-weight:800;margin:8px 0 6px;letter-spacing:-0.3px}
+  .step p{color:var(--dim);font-size:14.5px}
+
+  /* ---------- CTA ---------- */
+  .cta{position:relative;text-align:center;border:1px solid var(--line);border-radius:28px;padding:54px 24px;background:linear-gradient(160deg,rgba(22,194,163,0.12),rgba(10,132,255,0.08),var(--panel));overflow:hidden}
+  .cta .glow{width:420px;height:420px;background:#16C2A3;top:-180px;left:50%;transform:translateX(-50%);opacity:0.3}
+  .cta h2{font-size:clamp(26px,3.6vw,38px);letter-spacing:-0.8px;font-weight:850;position:relative}
+  .cta p{color:var(--dim);margin:12px auto 24px;max-width:480px;position:relative}
+
+  /* ---------- FOOTER ---------- */
+  footer{border-top:1px solid var(--line);padding:40px 0;color:var(--dim2);font-size:13.5px}
+  .foot-in{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+  .foot-links{display:flex;gap:20px;flex-wrap:wrap}
+  .foot-links a{color:var(--dim)}
+  .foot-links a:hover{color:var(--text)}
+  .disclaimer{color:var(--dim2);font-size:12px;margin-top:18px;max-width:720px;line-height:1.5}
+
+  @media(max-width:860px){
+    .hero-grid{grid-template-columns:1fr;gap:10px}
+    .hero-phones{height:480px;margin-top:10px}
+    .feat-grid,.steps{grid-template-columns:1fr}
+    .show{grid-template-columns:1fr;gap:24px;padding:44px 0}
+    .show:nth-child(even) .show-txt{order:0}
+    .show-txt{text-align:center}
+    .show-txt ul{align-items:flex-start;text-align:left;max-width:380px;margin-left:auto;margin-right:auto}
+    .show-txt p{margin:0 auto}
+  }
 </style>
 </head>
 <body>
-  <h1>Бриз — бросить курить</h1>
-  <p>Приложение помогает бросить курить пошагово — научно-обоснованные техники, ИИ-поддержка и честная статистика. Бесплатно.</p>
-  <p>An app that helps you quit smoking step by step — evidence-based techniques, AI support and honest stats. Free.</p>
-  <a href="./privacy-policy.html">Политика конфиденциальности / Privacy Policy →</a><br>
-  <a href="mailto:istrelkov829@gmail.com">Поддержка / Support: istrelkov829@gmail.com</a>
+
+<nav>
+  <div class="wrap nav-in">
+    <div class="brand">
+      <span class="mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M3 9h11a3 3 0 1 0-3-3"/><path d="M3 14h15a3 3 0 1 1-3 3"/></svg>
+      </span>
+      Бриз
+    </div>
+    <div class="nav-links">
+      <a href="#features">Возможности</a>
+      <a href="#screens">Экраны</a>
+      <a href="#how">Как начать</a>
+    </div>
+    <a href="#get" class="btn btn-primary">Установить</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <span class="glow g1"></span><span class="glow g2"></span>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Бросай не в одиночку</span>
+      <h1>Бросить курить —<br><span class="grad-text">с поддержкой 24/7</span></h1>
+      <p class="lead">«Бриз» рядом в момент тяги: одна кнопка SOS, чтобы переждать волну, ИИ-помощник без осуждения и живой счётчик дней, денег и здоровья.</p>
+      <div class="cta-row" id="get">
+        <a href="#" class="store"><span style="font-size:22px"></span><span><small>Скоро в</small><b>App Store</b></span><span class="soon">скоро</span></a>
+        <a href="#" class="store"><span style="font-size:22px">▶</span><span><small>Скоро в</small><b>Google Play</b></span><span class="soon">скоро</span></a>
+      </div>
+    </div>
+    <div class="hero-phones">
+      <div class="phone p-main"><div class="screen"><div class="notch"></div><img src="shots/home.png" alt="Главный экран Бриз"></div></div>
+      <div class="phone p-side sm"><div class="screen"><div class="notch"></div><img src="shots/wave.png" alt="Экран SOS — переждать волну"></div></div>
+    </div>
+  </div>
+</header>
+
+<!-- TRUST -->
+<div class="trust">
+  <div class="wrap trust-in">
+    <span><b>1 кнопка</b> в момент тяги</span>
+    <span><b>ИИ-помощник</b>, который не стыдит</span>
+    <span><b>Офлайн</b> — данные на твоём устройстве</span>
+    <span><b>Без рекламы</b></span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="block" id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Всё, что помогает <span class="grad-text">не сорваться</span> — в одном месте</h2>
+      <p>Не «сила воли», а инструменты: пережить тягу, понять триггеры и видеть, ради чего держишься.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="ic" style="background:rgba(255,69,58,0.16);color:#FF7A6E">🆘</div>
+        <h3>Кнопка SOS</h3>
+        <p>Накрыла тяга — жми. Дыши и смотри, как 3 минуты проходят: волна спадает сама.</p>
+      </div>
+      <div class="feat">
+        <div class="ic" style="background:rgba(10,132,255,0.16);color:#5AB0FF">💬</div>
+        <h3>ИИ-помощник Бриз</h3>
+        <p>Рядом круглосуточно. Не осуждает за срыв, помнит твою историю, говорит по-человечески.</p>
+      </div>
+      <div class="feat">
+        <div class="ic" style="background:rgba(48,209,88,0.16);color:#5BE07E">📈</div>
+        <h3>Прогресс и деньги</h3>
+        <p>Дни без сигарет, сэкономленные деньги и восстановление тела — вживую, в реальном времени.</p>
+      </div>
+      <div class="feat">
+        <div class="ic" style="background:rgba(191,90,242,0.16);color:#CF8BF6">🎧</div>
+        <h3>Техники и аудио</h3>
+        <p>Аудиопрактики и приёмы на каждый момент: тяга, тревога, вечер, сон.</p>
+      </div>
+      <div class="feat">
+        <div class="ic" style="background:rgba(255,159,10,0.16);color:#FFBE5C">🗺️</div>
+        <h3>Программа по дням</h3>
+        <p>Пошаговый путь с заданиями: что делать сегодня, чтобы продержаться и закрепиться.</p>
+      </div>
+      <div class="feat">
+        <div class="ic" style="background:rgba(22,194,163,0.16);color:#4FD8C0">🏆</div>
+        <h3>Награды и знания</h3>
+        <p>Рубежи без сигарет и короткие статьи без воды — как пережить тягу, срыв, триггеры.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENSHOTS SHOWCASE -->
+<section class="block" id="screens" style="padding-top:10px">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Как это <span class="grad-text">выглядит</span></h2>
+      <p>Тёмный, спокойный интерфейс — ничего лишнего в трудную минуту.</p>
+    </div>
+
+    <div class="show">
+      <div class="show-txt">
+        <div class="tag">Главный экран</div>
+        <h3>Твой прогресс — вживую</h3>
+        <p>Большой счётчик дней без сигарет, сэкономленные деньги и сигареты, которые ты не выкурил — всё тикает в реальном времени.</p>
+        <ul>
+          <li><span class="check">✓</span><span><b>Сколько ты держишься</b> — крупно и по центру</span></li>
+          <li><span class="check">✓</span><span><b>Деньги и здоровье</b> растут на глазах</span></li>
+          <li><span class="check">✓</span><span>Под рукой — помощник, техники и письмо себе</span></li>
+        </ul>
+      </div>
+      <div class="show-media"><span class="glow" style="background:#30D158"></span>
+        <div class="phone"><div class="screen"><div class="notch"></div><img src="shots/home.png" alt="Главная"></div></div>
+      </div>
+    </div>
+
+    <div class="show">
+      <div class="show-txt">
+        <div class="tag">Кнопка SOS</div>
+        <h3>Переждать волну за 3 минуты</h3>
+        <p>«Волна нарастает. Это нормально.» Просто смотри, как круг наполняется — делать ничего не нужно, тяга уходит сама. Внизу всегда красная кнопка.</p>
+        <ul>
+          <li><span class="check">✓</span><span>3-минутный таймер с морской волной</span></li>
+          <li><span class="check">✓</span><span>Что помогает именно тебе — твоя аптечка</span></li>
+          <li><span class="check">✓</span><span>Слушать, отвлечься или написать Бризу</span></li>
+        </ul>
+      </div>
+      <div class="show-media"><span class="glow" style="background:#0A84FF"></span>
+        <div class="phone"><div class="screen"><div class="notch"></div><img src="shots/wave.png" alt="SOS волна"></div></div>
+      </div>
+    </div>
+
+    <div class="show">
+      <div class="show-txt">
+        <div class="tag">Помощник</div>
+        <h3>ИИ, который не стыдит</h3>
+        <p>«Привет. Я не буду тебя стыдить. Расскажи, что происходит.» Бриз рядом 24/7 — поддержит в тяге, разберёт срыв без вины и просто выслушает.</p>
+        <ul>
+          <li><span class="check">✓</span><span>Без осуждения и нравоучений</span></li>
+          <li><span class="check">✓</span><span>Помнит твою историю между разговорами</span></li>
+          <li><span class="check">✓</span><span>Быстрые кнопки: «тянет», «я сорвался», «поговорить»</span></li>
+        </ul>
+      </div>
+      <div class="show-media"><span class="glow" style="background:#0A84FF"></span>
+        <div class="phone"><div class="screen"><div class="notch"></div><img src="shots/chat.png" alt="Чат с Бризом"></div></div>
+      </div>
+    </div>
+
+    <div class="show">
+      <div class="show-txt">
+        <div class="tag">Прогресс</div>
+        <h3>Деньги, здоровье, паттерны тяги</h3>
+        <p>Копилка к твоей цели, динамика самочувствия (дыхание, энергия, сон) и карта триггеров: когда тянет, после чего и как часто ты держишься.</p>
+        <ul>
+          <li><span class="check">✓</span><span>Цель и копилка — ради чего бросаешь</span></li>
+          <li><span class="check">✓</span><span>Самочувствие в динамике</span></li>
+          <li><span class="check">✓</span><span>Паттерны тяги из твоих же отметок</span></li>
+        </ul>
+      </div>
+      <div class="show-media"><span class="glow" style="background:#30D158"></span>
+        <div class="phone"><div class="screen"><div class="notch"></div><img src="shots/progress.png" alt="Прогресс"></div></div>
+      </div>
+    </div>
+
+    <div class="show">
+      <div class="show-txt">
+        <div class="tag">Техники и путь</div>
+        <h3>Аудиопрактики и программа по дням</h3>
+        <p>Голос на любой момент — «когда накрыло», «поймать волну», «сбросить напряжение». А «Твой путь» ведёт по дням: что сделать сегодня, чтобы продержаться.</p>
+        <ul>
+          <li><span class="check">✓</span><span>Аудио и дыхательные техники</span></li>
+          <li><span class="check">✓</span><span>Программа-трек по дням</span></li>
+          <li><span class="check">✓</span><span>Награды за каждый рубеж без сигарет</span></li>
+        </ul>
+      </div>
+      <div class="show-media"><span class="glow" style="background:#BF5AF2"></span>
+        <div class="phone"><div class="screen"><div class="notch"></div><img src="shots/techniques.png" alt="Техники"></div></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="block" id="how" style="background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <div class="sec-head"><h2>Как начать</h2><p>Пара минут — и Бриз уже рядом.</p></div>
+    <div class="steps">
+      <div class="step"><div class="n">ШАГ 1</div><h3>Ответь на пару вопросов</h3><p>Стаж, сколько куришь, что тянет — чтобы поддержка стала твоей.</p></div>
+      <div class="step"><div class="n">ШАГ 2</div><h3>Получи свой план</h3><p>Метод под тебя, программа по дням и счётчик, который сразу пойдёт.</p></div>
+      <div class="step"><div class="n">ШАГ 3</div><h3>Держись — Бриз рядом</h3><p>Накрыло — кнопка SOS снизу. В любой момент, бесплатно.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="block">
+  <div class="wrap">
+    <div class="cta">
+      <span class="glow"></span>
+      <h2>Ты справишься. <span class="grad-text">Бриз рядом.</span></h2>
+      <p>Скоро в App Store и Google Play. Бросай не в одиночку.</p>
+      <div class="cta-row" style="justify-content:center">
+        <a href="#" class="store"><span><small>Скоро в</small><b>App Store</b></span><span class="soon">скоро</span></a>
+        <a href="#" class="store"><span style="font-size:22px">▶</span><span><small>Скоро в</small><b>Google Play</b></span><span class="soon">скоро</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-in">
+      <div class="brand" style="font-size:15px"><span class="mark" style="width:26px;height:26px;border-radius:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M3 9h11a3 3 0 1 0-3-3"/><path d="M3 14h15a3 3 0 1 1-3 3"/></svg></span>Бриз — бросить курить</div>
+      <div class="foot-links">
+        <a href="privacy-policy.html">Политика конфиденциальности</a>
+        <a href="terms.html">Условия использования</a>
+        <a href="mailto:istrelkov829@gmail.com">Поддержка</a>
+      </div>
+    </div>
+    <p class="disclaimer">«Бриз» — приложение для поддержки в отказе от курения (wellness). Оно не является медицинской услугой, не ставит диагнозы и не назначает лечение. По вопросам лекарств и здоровья обращайтесь к врачу. © 2026 Бриз.</p>
+  </div>
+</footer>
+
 </body>
 </html>
