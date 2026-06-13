@@ -91,7 +91,7 @@ async function ykCreate({ amount, description, deviceId, plan, email }) {
     capture: true,
     description,
     confirmation: { type: 'redirect', return_url: RETURN_URL + '?d=' + encodeURIComponent(deviceId) },
-    save_payment_method: plan !== 'lifetime',
+    save_payment_method: false, // рекуррент у магазина пока не включён — продление вручную
     metadata: { kind: 'briz-sub', deviceId, plan, email: validEmail || '' },
   };
   if (validEmail) {
@@ -169,7 +169,7 @@ module.exports = function attach(app) {
         capture: true,
         payment_token: paymentToken,
         description: P.title,
-        save_payment_method: plan !== 'lifetime',
+        save_payment_method: false, // рекуррент у магазина пока не включён — продление вручную
         metadata: { kind: 'briz-sub', deviceId, plan, email: validEmail || '' },
       };
       if (validEmail) {
