@@ -75,6 +75,10 @@ export default function Paywall() {
   const localeStr = lang === 'ru' ? 'ru-RU' : 'en-US';
   const currency = p?.currency ?? 'RUB';
   const saved = p ? moneySaved(p, secondsClean(p.quitDate)) : 0;
+  // Don't show «ты сэкономил 3 ₽» on day one — it reads as pathetic. Only
+  // surface the saved line once it's a number worth bragging about.
+  const savedMin = currency === 'RUB' ? 500 : 5;
+  const showSaved = saved >= savedMin;
   const yearlyAmount = lang === 'ru' ? 1990 : 29.99;
   const weeks = p ? paybackWeeks(p, yearlyAmount) : null;
   const paybackWk = weeks && weeks >= 0.5 && weeks <= 52 ? Math.max(1, Math.round(weeks)) : null;
@@ -138,12 +142,12 @@ export default function Paywall() {
         </View>
 
         {/* Personal money anchor — only when we have real numbers to show */}
-        {(saved >= 1 || paybackWk) && (
+        {(showSaved || paybackWk) && (
           <View style={{
             padding: 16, borderRadius: radius.lg, gap: 6,
             backgroundColor: t.accent + '12', borderWidth: 1, borderColor: t.accent + '33',
           }}>
-            {saved >= 1 && (
+            {showSaved && (
               <Text style={{ color: t.text, fontSize: 15, fontWeight: '700', lineHeight: 21 }}>
                 {lang === 'ru'
                   ? `Ты уже сэкономил ${formatMoney(saved, currency, localeStr)} на несожжённых сигаретах.`
