@@ -69,8 +69,8 @@ const FEATURES_EN: Feature[] = [
   { i: 'feather', c: '#FF375F', t: 'All content', d: 'Every article, unrestricted' },
 ];
 
-const PRIVACY_URL = 'https://romanelektrik.github.io/nosmoke/privacy-policy.html';
-const TERMS_URL = 'https://romanelektrik.github.io/nosmoke/terms.html';
+const PRIVACY_URL = 'https://breezapp.ru/privacy-policy.html';
+const TERMS_URL = 'https://breezapp.ru/terms.html';
 
 // Brand gradient — «бриз»: green → teal. Used for the hero star badge.
 const BRAND_GRADIENT = ['#1DB85A', '#0E9E86'] as const;

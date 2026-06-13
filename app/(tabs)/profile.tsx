@@ -15,7 +15,7 @@ import { usePremium } from '../../lib/subscription';
 import { archetypeIdentity } from '../../lib/identity';
 import { ARCHETYPE_META } from '../../lib/personality';
 
-const PRIVACY_URL = 'https://romanelektrik.github.io/nosmoke/privacy-policy.html';
+const PRIVACY_URL = 'https://breezapp.ru/privacy-policy.html';
 
 export default function Profile() {
   const t = useTheme();
