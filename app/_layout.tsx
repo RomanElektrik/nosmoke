@@ -67,11 +67,13 @@ export default function Root() {
           await scheduleSymptomReminder(lang);
         }
       } catch {}
-      // Refresh ЮKassa subscription status (server-validated). Fire-and-forget;
-      // keeps the cached premiumUntil if offline.
+      // Refresh ЮKassa subscription status (server-validated). Only ever change
+      // premiumUntil on an AUTHORITATIVE 200 response — fetchSub returns null on
+      // any error/parse failure, in which case we keep the cached value (never
+      // wipe a paid user on a transient server hiccup).
       try {
         const sub = await fetchSub();
-        await update((prev) => ({ ...prev, premiumUntil: sub?.premium ? sub.until : (prev.premiumUntil && prev.premiumUntil > Date.now() ? prev.premiumUntil : 0) }));
+        if (sub) await update((prev) => ({ ...prev, premiumUntil: sub.premium ? sub.until : 0 }));
       } catch {}
       setReady(true);
     });

@@ -92,6 +92,8 @@ export default function Paywall() {
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const pendingRef = useRef<string | null>(null);
+  const confirmingRef = useRef(false);
+  const notifiedRef = useRef(false);
 
   async function applyStatus(until: number): Promise<boolean> {
     const ok = until > Date.now();
@@ -100,27 +102,37 @@ export default function Paywall() {
   }
 
   // After the user pays in the external browser and returns to the app, verify
-  // the payment with our server and unlock premium.
+  // the payment with our server and unlock premium. YooKassa status can lag
+  // after redirect, so we retry with backoff (~21s) and — crucially — keep the
+  // pending id on failure so a later foreground (or the launch fetchSub) still
+  // picks it up. The webhook also grants server-side as a backstop.
   useEffect(() => {
     const sub = AppState.addEventListener('change', async (st) => {
-      if (st !== 'active' || !pendingRef.current) return;
+      if (st !== 'active' || !pendingRef.current || confirmingRef.current) return;
+      confirmingRef.current = true;
       const pid = pendingRef.current;
       setBusy(true);
-      // YooKassa status can lag a beat after redirect — retry a few times.
+      const delays = [1500, 2000, 3000, 4000, 5000, 6000];
       let unlocked = false;
-      for (let i = 0; i < 4 && !unlocked; i++) {
+      for (let i = 0; i <= delays.length && !unlocked; i++) {
         try {
           const res = await confirmPayment(pid);
           if (await applyStatus(res.until)) unlocked = true;
         } catch {}
-        if (!unlocked) await new Promise((r) => setTimeout(r, 1500));
+        if (!unlocked && i < delays.length) await new Promise((r) => setTimeout(r, delays[i]));
       }
       setBusy(false);
-      pendingRef.current = null;
+      confirmingRef.current = false;
       if (unlocked) {
+        pendingRef.current = null;
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(ru ? 'Премиум активен 🎉' : 'Premium active 🎉', ru ? 'Спасибо! Все функции открыты.' : 'Thank you! Everything is unlocked.',
           [{ text: 'OK', onPress: () => router.back() }]);
+      } else if (!notifiedRef.current) {
+        notifiedRef.current = true; // keep pendingRef for a later re-check
+        Alert.alert(ru ? 'Проверяем оплату' : 'Confirming payment',
+          ru ? 'Если оплата прошла — Премиум включится в течение минуты. Можно закрыть и зайти позже.'
+             : 'If the payment went through, Premium activates within a minute. You can come back later.');
       }
     });
     return () => sub.remove();

@@ -53,11 +53,19 @@ export async function confirmPayment(paymentId: string): Promise<SubStatus> {
   return postJson('/confirm', { deviceId, paymentId });
 }
 
-// Проверить статус подписки (при запуске приложения).
-export async function fetchSub(): Promise<SubStatus> {
-  const deviceId = await getDeviceId();
-  const r = await fetch(`${API}/sub/${deviceId}`);
-  return r.json();
+// Проверить статус подписки (при запуске). Возвращает null на любой ошибке/
+// неавторитетном ответе — чтобы НЕ стереть валидный локальный премиум.
+export async function fetchSub(): Promise<SubStatus | null> {
+  try {
+    const deviceId = await getDeviceId();
+    const r = await fetch(`${API}/sub/${deviceId}`);
+    if (!r.ok) return null;
+    const j = await r.json().catch(() => null);
+    if (!j || typeof j.premium !== 'boolean' || typeof j.until !== 'number') return null;
+    return j;
+  } catch {
+    return null;
+  }
 }
 
 // Восстановить покупку по email (другое устройство / переустановка).
