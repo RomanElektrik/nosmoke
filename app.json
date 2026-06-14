@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.quitsmoke.client",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -23,6 +24,7 @@
       "expo-localization",
       "expo-notifications",
       "expo-secure-store",
+      "expo-apple-authentication",
       "expo-font",
       [
         "expo-image-picker",

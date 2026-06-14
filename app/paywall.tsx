@@ -15,6 +15,7 @@ import { Icon, IconKey } from '../components/Icon';
 import { secondsClean } from '../lib/health';
 import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
 import { createPayment, confirmPayment, restorePurchase } from '../lib/billing';
+import { AppleSignInButton } from '../components/AppleSignInButton';
 
 type PlanId = 'monthly' | 'yearly' | 'lifetime';
 
@@ -349,9 +350,12 @@ export default function Paywall() {
             />
             <Pressable onPress={restore} hitSlop={8} style={{ alignSelf: 'center', paddingVertical: 4 }}>
               <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '600' }}>
-                {ru ? 'Восстановить покупку' : 'Restore purchase'}
+                {ru ? 'Восстановить покупку по email' : 'Restore purchase by email'}
               </Text>
             </Pressable>
+
+            {/* Вход через Apple — восстановление в один тап (iOS) */}
+            <AppleSignInButton style={{ marginTop: 4 }} dark />
           </View>
         )}
 

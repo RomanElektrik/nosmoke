@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ScrollView, View, Text, Pressable, Alert, TextInput, Linking } from 'react-native';
+import { useState, useEffect } from 'react';
+import { ScrollView, View, Text, Pressable, Alert, TextInput, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme, spacing, radius } from '../../lib/theme';
@@ -11,6 +11,8 @@ import { Icon } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
 import { usePremium } from '../../lib/subscription';
 import { getDeviceId } from '../../lib/billing';
+import { AppleSignInButton } from '../../components/AppleSignInButton';
+import { getStoredAccount, signOutAccount, type Account } from '../../lib/auth';
 
 const PRIVACY_URL = 'https://breezapp.ru/privacy-policy.html';
 const TERMS_URL = 'https://breezapp.ru/terms.html';
@@ -47,6 +49,8 @@ export default function Profile() {
         </Text>
 
         <PremiumCard />
+
+        <AccountCard />
 
         <LinkRow icon="wallet" label={lang === 'ru' ? 'Способ оплаты' : 'Payment method'}
           onPress={() => router.push('/payment-method' as any)} />
@@ -96,6 +100,62 @@ export default function Profile() {
       </ScrollView>
     </SafeAreaView>
     </SwipeToHome>
+  );
+}
+
+function AccountCard() {
+  const t = useTheme();
+  const ru = currentLang() === 'ru';
+  const [acct, setAcct] = useState<Account | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getStoredAccount().then((a) => { if (alive) { setAcct(a); setReady(true); } });
+    return () => { alive = false; };
+  }, []);
+
+  if (Platform.OS !== 'ios') return null; // пока только Apple (iOS); Google — следующим
+  if (!ready) return null;
+
+  if (acct) {
+    return (
+      <GlassCard>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: t.accent + '20', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon.shield size={20} color={t.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>{ru ? 'Вход выполнен' : 'Signed in'}</Text>
+            <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }} numberOfLines={1}>
+              {acct.email || 'Apple ID'}
+            </Text>
+          </View>
+          <Pressable
+            hitSlop={8}
+            onPress={() => Alert.alert(
+              ru ? 'Выйти из аккаунта?' : 'Sign out?',
+              ru ? 'Подписка останется на аккаунте — войдёшь снова и восстановишь.' : 'Your subscription stays on the account — sign in again to restore.',
+              [
+                { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
+                { text: ru ? 'Выйти' : 'Sign out', style: 'destructive', onPress: async () => { await signOutAccount(); setAcct(null); } },
+              ],
+            )}>
+            <Text style={{ color: t.danger, fontSize: 14, fontWeight: '600' }}>{ru ? 'Выйти' : 'Sign out'}</Text>
+          </Pressable>
+        </View>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <GlassCard>
+      <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>{ru ? 'Сохрани подписку' : 'Save your subscription'}</Text>
+      <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 4, lineHeight: 18 }}>
+        {ru ? 'Войди — и подписка восстановится на новом телефоне в один тап.' : 'Sign in — your subscription restores on a new phone in one tap.'}
+      </Text>
+      <AppleSignInButton style={{ marginTop: 12 }} onDone={() => getStoredAccount().then(setAcct)} />
+    </GlassCard>
   );
 }
 

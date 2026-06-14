@@ -60,8 +60,47 @@ function saveStore(o) {
 
 let subs = loadStore();
 
+// ── Аккаунты (вход через Apple/Google) ──────────────────────────────────────
+// Платёж по-прежнему привязан к устройству, НО если устройство вошло в аккаунт,
+// подписка живёт на аккаунте (apple:<sub> / google:<sub>), а устройства — лишь
+// «окна» в него. Это даёт восстановление на любом устройстве в один вход.
+const STORE_ACC = path.join(__dirname, 'data', 'briz-accounts.json');
+function loadAcc() {
+  for (const f of [STORE_ACC, STORE_ACC + '.bak']) {
+    try {
+      const o = JSON.parse(fs.readFileSync(f, 'utf8'));
+      if (o && typeof o === 'object') return { accounts: o.accounts || {}, devLink: o.devLink || {} };
+    } catch (e) { if (fs.existsSync(f)) console.error('[briz] acc parse:', f, e.message); }
+  }
+  return { accounts: {}, devLink: {} };
+}
+function saveAcc() {
+  try {
+    fs.mkdirSync(path.dirname(STORE_ACC), { recursive: true });
+    if (fs.existsSync(STORE_ACC)) { try { fs.copyFileSync(STORE_ACC, STORE_ACC + '.bak'); } catch {} }
+    const tmp = STORE_ACC + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify({ accounts, devLink }));
+    fs.renameSync(tmp, STORE_ACC);
+  } catch (e) { console.error('[briz] acc write:', e.message); }
+}
+let { accounts, devLink } = loadAcc();
+
+// Куда смотрит устройство: в свой аккаунт (если вошло) или в собственную запись.
+function holder(deviceId) {
+  const a = devLink[deviceId];
+  if (a && accounts[a]) return { acct: true, key: a };
+  return { acct: false, key: deviceId };
+}
+function getRec(deviceId) { const h = holder(deviceId); return h.acct ? accounts[h.key] : subs[h.key]; }
+function putRec(deviceId, rec) {
+  const h = holder(deviceId);
+  if (h.acct) { accounts[h.key] = rec; saveAcc(); }
+  else { subs[h.key] = rec; saveStore(subs); }
+}
+
 function statusOf(deviceId) {
-  const s = subs[deviceId];
+  const h = holder(deviceId);
+  const s = h.acct ? accounts[h.key] : subs[h.key];
   const premium = !!(s && (s.lifetime || s.paidUntil > Date.now()));
   return {
     premium,
@@ -69,6 +108,7 @@ function statusOf(deviceId) {
     plan: s ? s.plan : null,
     card: (s && s.paymentMethodId && s.card) ? s.card : null, // привязанная карта для автопродления
     autopay: !!(s && s.paymentMethodId),
+    account: h.acct ? ((s && s.email) || h.key) : null, // вошёл ли в аккаунт и под кем
   };
 }
 
@@ -77,7 +117,7 @@ function grant(deviceId, plan, paymentId, paymentMethodId, email, card) {
   const p = PLANS[plan];
   if (!p || !isDevice(deviceId)) return;
   const now = Date.now();
-  const cur = subs[deviceId];
+  const cur = getRec(deviceId); // запись аккаунта, если устройство вошло — иначе устройства
   const applied = (cur && cur.applied) || [];
   if (paymentId && applied.includes(paymentId)) return; // уже начислено
   const next = {
@@ -93,21 +133,19 @@ function grant(deviceId, plan, paymentId, paymentMethodId, email, card) {
     applied: (paymentId ? [...applied, paymentId] : applied).slice(-50),
     updatedAt: now,
   };
-  subs[deviceId] = next;
-  saveStore(subs);
+  putRec(deviceId, next);
 }
 
-// Возврат платежа → снимаем премиум с устройства.
+// Возврат платежа → снимаем премиум (с аккаунта, если вошёл — иначе с устройства).
 function revoke(deviceId) {
-  const s = subs[deviceId];
+  const s = getRec(deviceId);
   if (!s) return;
   s.paidUntil = Date.now() - 1000;
   s.lifetime = false;
   s.paymentMethodId = null;
   s.card = null;
   s.updatedAt = Date.now();
-  subs[deviceId] = s;
-  saveStore(subs);
+  putRec(deviceId, s);
 }
 
 async function ykCreate({ amount, description, deviceId, plan, email }) {
@@ -183,7 +221,7 @@ function refundedValue(pay) {
 // премиум снимался САМ после возврата, даже если вебхук не настроен. Троттлинг
 // 10 мин/устройство, ошибки сети глушим (премиум не трогаем).
 async function reverify(deviceId) {
-  const s = subs[deviceId];
+  const s = getRec(deviceId);
   const pid = lastPaymentOf(s);
   if (!s || !pid) return;
   if (!(s.lifetime || s.paidUntil > Date.now())) return; // не премиум — нечего проверять
@@ -192,8 +230,63 @@ async function reverify(deviceId) {
   try {
     const pay = await ykGet(pid);
     if (refundedValue(pay) > 0) { revoke(deviceId); return; }
-    s.lastVerify = now; subs[deviceId] = s; saveStore(subs);
+    s.lastVerify = now; putRec(deviceId, s);
   } catch { /* сеть/ЮKassa недоступны — не трогаем премиум */ }
+}
+
+// ── Вход через Apple ────────────────────────────────────────────────────────
+// Проверяем identityToken по публичным ключам Apple (без секретов): подпись,
+// издатель, аудитория (bundle id), срок. Возвращаем стабильный sub + email.
+const APPLE_AUD = process.env.BRIZ_APPLE_BUNDLE || 'app.quitsmoke.client';
+let appleKeys = { k: null, at: 0 };
+async function getAppleKeys() {
+  if (appleKeys.k && Date.now() - appleKeys.at < 3600_000) return appleKeys.k;
+  const r = await fetch('https://appleid.apple.com/auth/keys');
+  const j = await r.json();
+  appleKeys = { k: (j && j.keys) || [], at: Date.now() };
+  return appleKeys.k;
+}
+function b64urlBuf(s) { s = String(s).replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return Buffer.from(s, 'base64'); }
+function b64urlJson(s) { return JSON.parse(b64urlBuf(s).toString('utf8')); }
+async function verifyApple(idToken) {
+  const parts = String(idToken || '').split('.');
+  if (parts.length !== 3) throw new Error('bad token');
+  const header = b64urlJson(parts[0]);
+  const payload = b64urlJson(parts[1]);
+  const jwk = (await getAppleKeys()).find((k) => k.kid === header.kid);
+  if (!jwk) throw new Error('no key');
+  const pub = crypto.createPublicKey({ key: jwk, format: 'jwk' });
+  const ok = crypto.verify('RSA-SHA256', Buffer.from(parts[0] + '.' + parts[1]), pub, b64urlBuf(parts[2]));
+  if (!ok) throw new Error('bad signature');
+  if (payload.iss !== 'https://appleid.apple.com') throw new Error('bad iss');
+  const auds = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+  if (!auds.includes(APPLE_AUD)) throw new Error('bad aud');
+  if (payload.exp && Date.now() / 1000 > payload.exp + 60) throw new Error('expired');
+  if (!payload.sub) throw new Error('no sub');
+  return { sub: String(payload.sub), email: payload.email || null };
+}
+
+// Привязать устройство к аккаунту: при первом входе свернуть подписку устройства
+// в аккаунт; при повторном — взять лучшее из аккаунта и устройства.
+function linkDeviceToAccount(deviceId, acctId, email) {
+  let acc = accounts[acctId];
+  const dev = subs[deviceId];
+  if (!acc) {
+    acc = dev ? { ...dev } : { plan: null, lifetime: false, paidUntil: 0, paymentMethodId: null, card: null, applied: [], updatedAt: Date.now() };
+    acc.email = acc.email || email || null;
+  } else if (dev) {
+    if (dev.lifetime) acc.lifetime = true;
+    if ((dev.paidUntil || 0) > (acc.paidUntil || 0)) acc.paidUntil = dev.paidUntil;
+    if (dev.paymentMethodId && !acc.paymentMethodId) { acc.paymentMethodId = dev.paymentMethodId; acc.card = dev.card; }
+    if (dev.lastPaymentId && !acc.lastPaymentId) acc.lastPaymentId = dev.lastPaymentId;
+    const ap = new Set([...(acc.applied || []), ...(dev.applied || [])]);
+    acc.applied = [...ap].slice(-50);
+    if (email && !acc.email) acc.email = email;
+  } else if (email && !acc.email) { acc.email = email; }
+  acc.updatedAt = Date.now();
+  accounts[acctId] = acc;
+  devLink[deviceId] = acctId;
+  saveAcc();
 }
 
 module.exports = function attach(app) {
@@ -310,13 +403,14 @@ module.exports = function attach(app) {
         return res.status(400).json({ error: 'bad params' });
       }
       const now = Date.now(); let best = null;
-      for (const k of Object.keys(subs)) {
-        const s = subs[k];
-        if (s.email && s.email.toLowerCase() === String(email).toLowerCase() && (s.lifetime || s.paidUntil > now)) {
+      const scan = (s) => {
+        if (s && s.email && s.email.toLowerCase() === String(email).toLowerCase() && (s.lifetime || s.paidUntil > now)) {
           if (!best || (s.lifetime ? Infinity : s.paidUntil) > (best.lifetime ? Infinity : best.paidUntil)) best = s;
         }
-      }
-      if (best) { subs[deviceId] = { ...best, applied: [], updatedAt: now }; saveStore(subs); }
+      };
+      for (const k of Object.keys(subs)) scan(subs[k]);
+      for (const k of Object.keys(accounts)) scan(accounts[k]);
+      if (best) { putRec(deviceId, { ...best, applied: [], updatedAt: now }); }
       res.json(statusOf(deviceId));
     } catch (e) {
       res.status(500).json({ error: e.message });
@@ -342,13 +436,45 @@ module.exports = function attach(app) {
     try {
       const { deviceId } = req.body || {};
       if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
-      const s = subs[deviceId];
-      if (s) { s.paymentMethodId = null; s.card = null; s.updatedAt = Date.now(); subs[deviceId] = s; saveStore(subs); }
+      const s = getRec(deviceId);
+      if (s) { s.paymentMethodId = null; s.card = null; s.updatedAt = Date.now(); putRec(deviceId, s); }
       res.json(statusOf(deviceId));
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
   });
 
-  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · GET /sub/:id (auto-reverify) · POST /webhook');
+  // Вход через Apple: приложение присылает identityToken (+ email при первом
+  // входе). Сервер проверяет токен по ключам Apple, привязывает устройство к
+  // аккаунту apple:<sub> и возвращает статус (восстановление подписки).
+  app.post('/api/briz/auth/apple', async (req, res) => {
+    try {
+      const { deviceId, identityToken, email } = req.body || {};
+      if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
+      if (!identityToken) return res.status(400).json({ error: 'no token' });
+      let v;
+      try { v = await verifyApple(identityToken); }
+      catch (e) { return res.status(401).json({ error: 'apple verify failed: ' + e.message }); }
+      linkDeviceToAccount(deviceId, 'apple:' + v.sub, v.email || email || null);
+      console.log('[briz] apple sign-in → apple:' + v.sub.slice(0, 8) + '…');
+      res.json(statusOf(deviceId));
+    } catch (e) {
+      console.error('[briz] auth/apple:', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Выход: отвязать устройство от аккаунта (подписка остаётся на аккаунте).
+  app.post('/api/briz/auth/signout', (req, res) => {
+    try {
+      const { deviceId } = req.body || {};
+      if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
+      if (devLink[deviceId]) { delete devLink[deviceId]; saveAcc(); }
+      res.json(statusOf(deviceId));
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · /auth/apple · /auth/signout · GET /sub/:id · POST /webhook');
 };
