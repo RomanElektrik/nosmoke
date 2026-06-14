@@ -10,7 +10,7 @@ const DEVICE_KEY = 'briz_device_id_v1';
 
 export type PlanId = 'monthly' | 'yearly' | 'lifetime';
 export type BoundCard = { last4: string; type: string };
-export type SubStatus = { premium: boolean; until: number; plan: PlanId | null; card?: BoundCard | null; autopay?: boolean };
+export type SubStatus = { premium: boolean; until: number; plan: PlanId | 'trial' | null; card?: BoundCard | null; autopay?: boolean; trialUsed?: boolean; account?: string | null };
 
 function uuidv4(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -38,6 +38,13 @@ async function postJson(path: string, body: Record<string, unknown>): Promise<an
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
   return j;
+}
+
+// Начать пробный период: 7 дней полного премиума бесплатно, без карты. Сервер
+// выдаёт один раз на устройство/аккаунт (повторно — no-op, вернёт trialUsed).
+export async function startTrial(): Promise<SubStatus> {
+  const deviceId = await getDeviceId();
+  return postJson('/trial/start', { deviceId });
 }
 
 // Создать платёж → вернуть ссылку оплаты ЮKassa и id платежа.

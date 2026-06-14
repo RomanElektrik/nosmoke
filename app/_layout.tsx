@@ -8,7 +8,7 @@ import { useTheme } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
 import { computeInsights } from '../lib/insights';
 import * as Notifications from 'expo-notifications';
-import { rescheduleAll, scheduleCravingNudge } from '../lib/notifications';
+import { rescheduleAll, scheduleCravingNudge, scheduleTrialEndReminder } from '../lib/notifications';
 import { currentLang } from '../lib/i18n';
 import { TourProvider } from '../components/Tour';
 import { fetchSub } from '../lib/billing';
@@ -76,8 +76,15 @@ export default function Root() {
         if (sub) await update((prev) => ({
           ...prev,
           premiumUntil: sub.premium ? sub.until : 0,
+          premiumPlan: sub.premium ? (sub.plan ?? null) : null,
+          trialUsed: sub.trialUsed ?? prev.trialUsed,
           boundCard: sub.autopay ? (sub.card ?? prev.boundCard) : (prev.boundCard === undefined ? undefined : prev.boundCard),
         }));
+        // Напоминание о конце триала ставим ПОСЛЕ rescheduleAll (её cancelAll выше
+        // иначе сотрёт его). Только если сейчас активен именно пробный период.
+        if (sub && sub.premium && sub.plan === 'trial') {
+          await scheduleTrialEndReminder(sub.until, currentLang());
+        }
       } catch {}
       setReady(true);
     });

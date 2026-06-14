@@ -191,6 +191,8 @@ export type AppState = {
   identityLog?: string[];                      // localDateKey[] of identity affirmations — never punishes
   tourV1Done?: boolean;                        // first-run in-app guided tour seen
   premiumUntil?: number;                       // ms — server-validated ЮKassa subscription expiry
+  premiumPlan?: string | null;                 // 'trial' | 'monthly' | 'yearly' | 'lifetime' — для отличия триала
+  trialUsed?: boolean;                          // пробный период уже брался (кнопку «попробовать» не показываем)
   boundCard?: { last4: string; type: string } | null; // saved card for auto-renewal; null = explicitly unbound
 };
 

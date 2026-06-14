@@ -217,6 +217,28 @@ export async function scheduleWeeklyReflection(locale: 'ru' | 'en') {
   }
 }
 
+// Напоминание за сутки до конца пробного периода → мягкий paywall. Фикс-id, чтобы
+// перепланирование заменяло, а не плодило. Ставить после rescheduleAll (её
+// cancelAll иначе сотрёт это напоминание).
+export async function scheduleTrialEndReminder(untilMs: number, locale: 'ru' | 'en') {
+  const id = 'trial-end';
+  try { await Notifications.cancelScheduledNotificationAsync(id); } catch {}
+  const fire = untilMs - 86400_000;
+  if (fire <= Date.now()) return;
+  const t: T = (ru, en) => (locale === 'ru' ? ru : en);
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier: id,
+      content: {
+        title: t('Пробный период заканчивается завтра', 'Your free trial ends tomorrow'),
+        body: t('Оформи Премиум, чтобы не потерять безлимит ИИ, аудио и аналитику.', 'Subscribe to keep unlimited AI, audio and analytics.'),
+        data: { url: '/paywall' },
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(fire) },
+    });
+  } catch {}
+}
+
 // Единая точка перепланирования ВСЕХ напоминаний. scheduleQuitProgram внутри
 // делает cancelAll — поэтому медикаментозные дозы, недельную рефлексию и опрос
 // самочувствия НУЖНО ставить заново после неё. Этот хелпер вызывают _layout (при

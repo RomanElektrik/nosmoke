@@ -220,8 +220,23 @@ function PremiumCard() {
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
   // Авто-продление обещаем только когда реально привязана карта.
   const realCard = !!(state.boundCard && state.boundCard.last4);
+  const onTrial = premium && state.premiumPlan === 'trial';
+  const daysLeft = Math.max(0, Math.ceil((until - Date.now()) / 86400_000));
 
   function manage() {
+    if (onTrial) {
+      Alert.alert(
+        ru ? 'Пробный период' : 'Free trial',
+        (ru ? `Осталось ${daysLeft} дн. полного доступа.` : `${daysLeft} days of full access left.`) + '\n\n' +
+        (ru ? 'Автосписаний нет — после окончания доступ просто закроется. Оформи Премиум, чтобы продолжить без перерыва.'
+            : 'No auto-charges — access just ends afterwards. Subscribe to continue without a break.'),
+        [
+          { text: ru ? 'Закрыть' : 'Close' },
+          { text: ru ? 'Оформить Премиум' : 'Get Premium', onPress: () => router.push('/paywall' as any) },
+        ],
+      );
+      return;
+    }
     const head = lifetime ? (ru ? 'Доступ навсегда.' : 'Lifetime access.') : (ru ? `Активна до ${dateStr}.` : `Active until ${dateStr}.`);
     const note = lifetime
       ? (ru ? 'Разовая оплата — продлевать не нужно.' : 'One-time payment — nothing to renew.')
@@ -237,7 +252,8 @@ function PremiumCard() {
   }
 
   const sub = premium
-    ? (lifetime ? (ru ? 'Доступ навсегда · управление' : 'Lifetime · manage')
+    ? (onTrial ? (ru ? `Пробный период · осталось ${daysLeft} дн.` : `Free trial · ${daysLeft} days left`)
+       : lifetime ? (ru ? 'Доступ навсегда · управление' : 'Lifetime · manage')
        : realCard ? (ru ? `Продлевается · до ${dateStr} · управление` : `Renews · until ${dateStr} · manage`)
        : (ru ? `Активен до ${dateStr} · управление` : `Until ${dateStr} · manage`))
     : (ru ? 'Безлимит ИИ, все аудиопрактики, статьи и техники' : 'Unlimited AI, all audio, articles and techniques');
@@ -258,7 +274,7 @@ function PremiumCard() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
-            {premium ? (ru ? 'Премиум активен' : 'Premium active') : (ru ? 'Открой Премиум' : 'Unlock Premium')}
+            {premium ? (onTrial ? (ru ? 'Пробный Премиум' : 'Trial Premium') : (ru ? 'Премиум активен' : 'Premium active')) : (ru ? 'Открой Премиум' : 'Unlock Premium')}
           </Text>
           <Text style={{ color: t.textDim, fontSize: 12, marginTop: 2 }}>{sub}</Text>
         </View>

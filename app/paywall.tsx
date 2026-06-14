@@ -14,7 +14,8 @@ import { update, useAppState } from '../lib/storage';
 import { Icon, IconKey } from '../components/Icon';
 import { secondsClean } from '../lib/health';
 import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
-import { createPayment, confirmPayment, restorePurchase } from '../lib/billing';
+import { createPayment, confirmPayment, restorePurchase, startTrial } from '../lib/billing';
+import { scheduleTrialEndReminder } from '../lib/notifications';
 import { AppleSignInButton } from '../components/AppleSignInButton';
 
 type PlanId = 'monthly' | 'yearly' | 'lifetime';
@@ -92,6 +93,36 @@ export default function Paywall() {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
+  // Пробный период доступен, если ещё не премиум и триал ни разу не брался.
+  const eligibleForTrial = !premium && !state.trialUsed;
+
+  async function startFreeTrial() {
+    if (busy) return;
+    Haptics.selectionAsync();
+    setBusy(true);
+    try {
+      const st = await startTrial();
+      if (st.premium) {
+        await update((s) => ({ ...s, premiumUntil: st.until, premiumPlan: 'trial', trialUsed: true }));
+        try { await scheduleTrialEndReminder(st.until, lang); } catch {}
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          ru ? '7 дней Премиума открыто 🎉' : '7 days of Premium unlocked 🎉',
+          ru ? 'Пользуйся всем без ограничений. Напомним за день до конца — без автосписаний.'
+             : 'Enjoy everything with no limits. We\'ll remind you a day before it ends — no auto-charges.',
+          [{ text: 'OK', onPress: () => { if (router.canGoBack()) router.back(); } }],
+        );
+      } else {
+        await update((s) => ({ ...s, trialUsed: true }));
+        Alert.alert(ru ? 'Пробный уже использован' : 'Trial already used',
+          ru ? 'Оформи Премиум, чтобы продолжить.' : 'Subscribe to keep going.');
+      }
+    } catch (e: any) {
+      Alert.alert(ru ? 'Не получилось' : 'Something went wrong', String(e?.message || ''));
+    } finally {
+      setBusy(false);
+    }
+  }
   const pendingRef = useRef<string | null>(null);
   const confirmingRef = useRef(false);
   const notifiedRef = useRef(false);
@@ -389,23 +420,46 @@ export default function Paywall() {
         <LinearGradient colors={['transparent', t.bg]} locations={[0, 0.55]}
           style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 }} pointerEvents="none" />
         <View style={{ paddingHorizontal: spacing.lg, paddingBottom: insets.bottom + 8, gap: 6 }}>
-          <Pressable onPress={purchase} accessibilityRole="button" disabled={busy}
-            style={({ pressed }) => ({ opacity: pressed || busy ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
-            <LinearGradient colors={CTA_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={{
-                borderRadius: radius.xl, paddingVertical: 17, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10,
-                shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8,
-              }}>
-              {busy && <ActivityIndicator color="#fff" />}
-              <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.2 }}>
-                {busy
-                  ? (ru ? 'Открываю оплату…' : 'Opening payment…')
-                  : ru
-                    ? `Подключить за ${plan.ctaPriceRu} ${plan.ctaPeriodRu}`
-                    : `Get Premium — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}`}
-              </Text>
-            </LinearGradient>
-          </Pressable>
+          {eligibleForTrial ? (
+            <>
+              <Pressable onPress={startFreeTrial} accessibilityRole="button" disabled={busy}
+                style={({ pressed }) => ({ opacity: pressed || busy ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+                <LinearGradient colors={CTA_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={{
+                    borderRadius: radius.xl, paddingVertical: 17, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10,
+                    shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8,
+                  }}>
+                  {busy && <ActivityIndicator color="#fff" />}
+                  <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.2 }}>
+                    {busy ? (ru ? 'Открываю…' : 'Opening…') : (ru ? 'Попробовать 7 дней бесплатно' : 'Try 7 days free')}
+                  </Text>
+                </LinearGradient>
+              </Pressable>
+              <Pressable onPress={purchase} disabled={busy} hitSlop={8} style={{ alignItems: 'center', paddingVertical: 8 }}>
+                <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '600' }}>
+                  {ru ? `или подключить сразу — ${plan.ctaPriceRu} ${plan.ctaPeriodRu}` : `or subscribe now — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}`}
+                </Text>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable onPress={purchase} accessibilityRole="button" disabled={busy}
+              style={({ pressed }) => ({ opacity: pressed || busy ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+              <LinearGradient colors={CTA_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={{
+                  borderRadius: radius.xl, paddingVertical: 17, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10,
+                  shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8,
+                }}>
+                {busy && <ActivityIndicator color="#fff" />}
+                <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.2 }}>
+                  {busy
+                    ? (ru ? 'Открываю оплату…' : 'Opening payment…')
+                    : ru
+                      ? `Подключить за ${plan.ctaPriceRu} ${plan.ctaPeriodRu}`
+                      : `Get Premium — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}`}
+                </Text>
+              </LinearGradient>
+            </Pressable>
+          )}
           <Text style={{ color: t.textDim, fontSize: 10.5, textAlign: 'center', lineHeight: 14 }}>
             {selected === 'lifetime'
               ? (ru ? 'Разовый платёж · ' : 'One-time payment · ')

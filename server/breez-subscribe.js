@@ -22,6 +22,7 @@ const YK_URL = 'https://api.yookassa.ru/v3/payments';
 const STORE = path.join(__dirname, 'data', 'briz-subs.json');
 const RETURN_URL = process.env.BRIZ_RETURN_URL || 'https://breezapp.ru/pay-ok.html';
 const LIFETIME_UNTIL = 4102444800000; // 2100-01-01 — отображаемая «дата» для навсегда
+const TRIAL_DAYS = 7; // пробный период: полный премиум бесплатно, без карты
 
 const PLANS = {
   monthly:  { amount: 399,  days: 30,  title: 'Бриз Премиум — месяц' },
@@ -109,6 +110,7 @@ function statusOf(deviceId) {
     card: (s && s.paymentMethodId && s.card) ? s.card : null, // привязанная карта для автопродления
     autopay: !!(s && s.paymentMethodId),
     account: h.acct ? ((s && s.email) || h.key) : null, // вошёл ли в аккаунт и под кем
+    trialUsed: !!(s && s.trialUsed), // пробный период уже брался (чтобы не выдать повторно)
   };
 }
 
@@ -487,5 +489,34 @@ module.exports = function attach(app) {
     }
   });
 
-  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · /auth/apple · /auth/signout · GET /sub/:id · POST /webhook');
+  // Пробный период: 7 дней полного премиума БЕСПЛАТНО, без карты, один раз на
+  // устройство/аккаунт. Идемпотентно: если уже премиум или триал был — не выдаём
+  // и просто возвращаем текущий статус (trialUsed подскажет клиенту, что кнопку
+  // «попробовать» больше не показывать).
+  app.post('/api/briz/trial/start', (req, res) => {
+    try {
+      const { deviceId } = req.body || {};
+      if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
+      const now = Date.now();
+      const cur = getRec(deviceId);
+      const isPremium = !!(cur && (cur.lifetime || cur.paidUntil > now));
+      if (!isPremium && !(cur && cur.trialUsed)) {
+        putRec(deviceId, {
+          ...(cur || {}),
+          plan: 'trial',
+          lifetime: false,
+          paidUntil: now + TRIAL_DAYS * 86400_000,
+          trialUsed: true,
+          applied: (cur && cur.applied) || [],
+          updatedAt: now,
+        });
+        console.log('[briz] trial started:', deviceId.slice(0, 8) + '…');
+      }
+      res.json(statusOf(deviceId));
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · /auth/apple · /auth/signout · /trial/start · GET /sub/:id · POST /webhook');
 };
