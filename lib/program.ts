@@ -352,10 +352,10 @@ export function methodFocus(stepId: StepLevel | undefined, day: number, lang: 'r
       titleEn: 'Cytisine (Tabex)',
       lineRu: day <= 25
         ? `Курс цитизина — день ${day} из 25. Принимай строго по схеме.`
-        : 'Курс цитизина окончен — продолжай поведенческий блок и if-then.',
+        : 'Курс цитизина окончен — продолжай поведенческий блок: дыхание, наблюдение тяги, дневник.',
       lineEn: day <= 25
         ? `Cytisine course — day ${day} of 25. Take strictly per schedule.`
-        : 'Cytisine course done — keep the behavioural block and if-then.',
+        : 'Cytisine course done — keep the behavioural block: breathing, urge surfing, the journal.',
     };
   }
   if (stepId === 'L3_nrt_combo') {

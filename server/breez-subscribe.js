@@ -287,6 +287,9 @@ function linkDeviceToAccount(deviceId, acctId, email) {
   accounts[acctId] = acc;
   devLink[deviceId] = acctId;
   saveAcc();
+  // Аккаунт — единый источник: убираем продублированную запись устройства, иначе
+  // после выхода statusOf откатится на неё и покажет «призрачный» премиум.
+  if (subs[deviceId]) { delete subs[deviceId]; saveStore(subs); }
 }
 
 module.exports = function attach(app) {
@@ -410,7 +413,15 @@ module.exports = function attach(app) {
       };
       for (const k of Object.keys(subs)) scan(subs[k]);
       for (const k of Object.keys(accounts)) scan(accounts[k]);
-      if (best) { putRec(deviceId, { ...best, applied: [], updatedAt: now }); }
+      // Не понижаем уже имеющуюся подписку: применяем найденную по email только
+      // если она СТРОГО лучше текущей (дольше/lifetime). Иначе restore слабой
+      // подпиской затёр бы более сильную локальную.
+      if (best) {
+        const cur = getRec(deviceId);
+        const curUntil = cur ? (cur.lifetime ? Infinity : (cur.paidUntil || 0)) : 0;
+        const bestUntil = best.lifetime ? Infinity : (best.paidUntil || 0);
+        if (bestUntil > curUntil) putRec(deviceId, { ...best, applied: [], updatedAt: now });
+      }
       res.json(statusOf(deviceId));
     } catch (e) {
       res.status(500).json({ error: e.message });

@@ -4,6 +4,7 @@
 // Marlatt RP / Witkiewitz 2004 for relapse handling.
 
 import type { AppState, StepLevel, Profile } from './storage';
+import { blockingFlags, expectedMedForStep } from './medication';
 
 export type StepSpec = {
   id: StepLevel;
@@ -110,7 +111,13 @@ export function recommendStep(p: Profile): StepLevel {
   if (failedColdTurkey >= 1 && base === 1) base = 2;
   base = Math.min(base, 2); // hard cap — no Rx auto-recommendation
 
-  return STEPS[Math.max(0, Math.min(STEPS.length - 1, base - 1))].id;
+  const chosen = STEPS[Math.max(0, Math.min(STEPS.length - 1, base - 1))].id;
+  // SAFETY: не рекомендуем препарат, противопоказанный по флагам здоровья
+  // (напр. цитизин при болезнях сердца) — иначе человек упирается в
+  // заблокированный med-gate без альтернативы. Стартуем с поведенческой ступени.
+  const med = expectedMedForStep(chosen);
+  if (med && blockingFlags(med, p.healthFlags).length > 0) return 'L1_behavioral';
+  return chosen;
 }
 
 // 1-based day within the course when the user actually stops smoking.
@@ -129,6 +136,17 @@ export function preQuitGraceEnd(p?: Profile | null): number {
   if (!p?.currentStep) return 0;
   const start = p.stepEnteredAt ?? p.quitDate ?? 0;
   return start + (methodQuitDay(p.currentStep) - 1) * 86400_000;
+}
+
+// Эффективное начало ВОЗДЕРЖАНИЯ для денег/сигарет/вех здоровья. На L1 — дата
+// старта (quitDate). На фарме (L2–L5) — день отказа: до него человек курит по
+// схеме, поэтому «сэкономлено / не выкурено / тело восстанавливается» не должны
+// тикать раньше. Считать секунды как Math.max(0, secondsClean(этот_ms)).
+export function abstinenceStartMs(p?: Profile | null): number {
+  if (!p) return 0;
+  const q = p.quitDate ?? 0;
+  if (methodQuitDay(p.currentStep) <= 1) return q; // L1 — воздержание с quitDate
+  return preQuitGraceEnd(p) || q;
 }
 
 export function nextStep(current: StepLevel): StepLevel | null {
@@ -242,7 +260,7 @@ export function prepChecklist(stepId: StepLevel): PrepItem[] {
   ];
   if (stepId === 'L1_behavioral') {
     return [
-      { id: 'ifthen_3',    ru: 'Сделать 3 if-then плана для топ-триггеров', en: 'Make 3 if-then plans for top triggers' },
+      { id: 'plan_triggers', ru: 'Решить заранее, что сделаешь при каждом топ-триггере', en: 'Decide in advance what you will do at each top trigger' },
       { id: 'breathing_practice', ru: 'Один раз пройти cyclic sighing — чтобы знать, как', en: 'Do cyclic sighing once — so you know how' },
       ...common,
     ];

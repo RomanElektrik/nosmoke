@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { MILESTONES } from './health';
+import type { Profile } from './storage';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -214,6 +215,20 @@ export async function scheduleWeeklyReflection(locale: 'ru' | 'en') {
       });
     } catch {}
   }
+}
+
+// Единая точка перепланирования ВСЕХ напоминаний. scheduleQuitProgram внутри
+// делает cancelAll — поэтому медикаментозные дозы, недельную рефлексию и опрос
+// самочувствия НУЖНО ставить заново после неё. Этот хелпер вызывают _layout (при
+// запуске), restart() (новый старт после срыва) и transition (смена ступени),
+// чтобы планы не «терялись» до следующего холодного запуска.
+export async function rescheduleAll(p: Profile, locale: 'ru' | 'en') {
+  await scheduleQuitProgram(p.quitDate, locale, 8, p.checkInHour ?? 21);
+  if (p.medication && p.medicationStartedAt) {
+    await scheduleMedicationDoses(locale, p.medication, p.medicationStartedAt);
+  }
+  await scheduleWeeklyReflection(locale);
+  await scheduleSymptomReminder(locale);
 }
 
 // Weekly nudge to log the body-recovery survey, so the trend actually builds.

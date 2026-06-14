@@ -6,6 +6,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { getDeviceId, type SubStatus } from './billing';
+import { update } from './storage';
 
 const API = 'https://breezapp.ru/api/briz';
 const ACCT_KEY = 'briz_account_v1';
@@ -65,11 +66,16 @@ export async function signInWithApple(): Promise<AuthStatus> {
 export async function signOutAccount(): Promise<void> {
   try {
     const deviceId = await getDeviceId();
-    await fetch(`${API}/auth/signout`, {
+    const r = await fetch(`${API}/auth/signout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ deviceId }),
     });
+    // Применяем авторитетный статус сервера, чтобы премиум не «завис» до перезапуска.
+    const j = await r.json().catch(() => null);
+    if (j && typeof j.premium === 'boolean' && typeof j.until === 'number') {
+      await update((s) => ({ ...s, premiumUntil: j.premium ? j.until : 0 }));
+    }
   } catch {}
   await setStoredAccount(null);
 }

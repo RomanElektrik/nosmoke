@@ -236,7 +236,9 @@ export default function Paywall() {
               backgroundColor: t.accent + '22', borderWidth: 1, borderColor: t.accent + '55',
             }}>
               <Text style={{ color: t.accent, fontWeight: '800', fontSize: 12, letterSpacing: 0.5 }}>
-                {ru ? 'ПРЕМИУМ АКТИВЕН (DEV)' : 'PREMIUM ACTIVE (DEV)'}
+                {state.profile?.devPremium
+                  ? (ru ? 'ПРЕМИУМ АКТИВЕН (DEV)' : 'PREMIUM ACTIVE (DEV)')
+                  : (ru ? 'ПРЕМИУМ АКТИВЕН' : 'PREMIUM ACTIVE')}
               </Text>
             </View>
           )}

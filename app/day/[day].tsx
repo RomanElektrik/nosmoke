@@ -33,9 +33,13 @@ export default function DayDetail() {
 
   const isToday = day === todayN;
   const isPast = day < todayN;
-  const peak = day === 3;
   const quitDayN = methodQuitDay(stepId);
   const isQuitDay = quitDayN > 1 && day === quitDayN;
+  // На фарме (L2–L5) человек курит по схеме до дня отказа — «дни без сигарет»
+  // считаем от дня отказа, а не от старта курса. На L1 quitDayN=1 → день=день.
+  const abstinentDay = day - quitDayN + 1;
+  const preQuit = abstinentDay < 1;
+  const peak = abstinentDay === 3;
 
   const focus = ru ? d.focusRu : d.focusEn;
   const science = ru ? d.scienceRu : d.scienceEn;
@@ -44,13 +48,16 @@ export default function DayDetail() {
   const med = state.profile?.medication ? (ru ? (d.medRu ?? '') : (d.medEn ?? '')) : '';
 
   // Reassurance line, varies by phase of withdrawal.
-  const reassure = peak
+  const reassure = preQuit
+    ? (ru ? 'Сейчас ты ещё куришь — по схеме препарата, это нормально. Главное впереди: день отказа. Эти дни — про подготовку, а не про срыв.'
+          : 'You\'re still smoking now — per the medication schedule, and that\'s fine. The main day is ahead: your quit day. These days are about preparation, not slipping.')
+    : peak
     ? (ru ? 'Сегодня тяга может быть самой резкой — это пик. После него становится заметно легче. Так у большинства.'
           : 'Today the urge can be the sharpest — this is the peak. After it, it gets noticeably easier. That’s how it goes for most.')
-    : day <= 3
+    : abstinentDay <= 3
     ? (ru ? 'Первые дни — самые телесные. Накроет несколько раз, каждая волна пройдёт за пару минут. Это нормально и это проходит.'
           : 'The first days are the most physical. It’ll hit a few times; each wave passes in minutes. It’s normal, and it passes.')
-    : day <= 14
+    : abstinentDay <= 14
     ? (ru ? 'Острое позади. Сейчас работаем с привычками и триггерами — тяга реже и слабее. Ты на верном пути.'
           : 'The acute part is behind you. Now we work with habits and triggers — urges come less and weaker. You’re on track.')
     : (ru ? 'Это уже про поддержание. Внимательно к триггерам — и держись своей новой версии себя.'

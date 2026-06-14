@@ -15,6 +15,7 @@ import { useAppState, normalizeReasons, symptomTo10 } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
 import { secondsClean, MILESTONES, type Milestone } from '../../lib/health';
 import { moneySaved, cigsAvoided, pricePerCig, formatMoney, formatDuration, formatCigs } from '../../lib/money';
+import { abstinenceStartMs } from '../../lib/stepped';
 import { rewardProgress } from '../../lib/rewards';
 import { computeInsights, triggerName, worstDayLocalized } from '../../lib/insights';
 import { plural } from '../../lib/identity';
@@ -36,7 +37,9 @@ export default function Progress() {
   const p = state.profile;
   if (!p) return null;
 
-  const secs = secondsClean(p.quitDate);
+  // Деньги/сигареты/вехи здоровья считаем от ДНЯ ОТКАЗА: на фарме первые дни
+  // человек курит по схеме, поэтому до дня отказа эти цифры держим на нуле.
+  const secs = Math.max(0, secondsClean(abstinenceStartMs(p)));
   const saved = moneySaved(p, secs);
   const perDay = pricePerCig(p) * p.cigsPerDay;
   const rp = rewardProgress(saved, perDay);

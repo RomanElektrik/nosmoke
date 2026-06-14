@@ -13,11 +13,11 @@ import { moneySaved, cigsAvoided, formatMoneyLive, formatCigs } from '../../lib/
 import { identityHeadline, plural } from '../../lib/identity';
 import { Icon } from '../../components/Icon';
 import { programToday } from '../../lib/program';
-import { getStep, escalationSuggestion, prepChecklist } from '../../lib/stepped';
+import { getStep, escalationSuggestion, prepChecklist, abstinenceStartMs } from '../../lib/stepped';
 import { todayDoses, isDoseTaken, expectedMedForStep, MED_SAFETY } from '../../lib/medication';
 import { newlyUnlocked } from '../../lib/achievements';
 import { relapseStatus } from '../../lib/relapse';
-import { scheduleQuitProgram } from '../../lib/notifications';
+import { rescheduleAll } from '../../lib/notifications';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
 import { ARTICLES, ARTICLE_IMAGES } from '../../lib/articles';
 import { usePremium, FREE_ARTICLE_COUNT } from '../../lib/subscription';
@@ -122,7 +122,7 @@ export default function Home() {
             <SquareCard
               color={t.info} icon={<Icon.chat size={32} color={t.info} />}
               title={lang === 'ru' ? 'Помощник' : 'AI coach'}
-              onPress={() => router.push('/chat?mode=support' as any)} />
+              onPress={() => router.push('/(tabs)/coach' as any)} />
             <SquareCard
               color={t.warn} icon={<Icon.toolbox size={32} color={t.warn} />}
               title={tr('tabs.techniques')}
@@ -316,6 +316,9 @@ function LiveHero({ p, lang, localeStr }: { p: NonNullable<ReturnType<typeof use
     return () => clearInterval(id);
   }, []);
   const secs = secondsClean(p.quitDate, now);
+  // Деньги/сигареты считаем от ДНЯ ОТКАЗА: на фарме первые дни человек курит по
+  // схеме, поэтому до дня отказа эти цифры держим на нуле (а не врём «сэкономлено»).
+  const cleanSecs = Math.max(0, secondsClean(abstinenceStartMs(p), now));
   return (
     <>
       <BreathingDrop secs={secs} lang={lang} />
@@ -330,13 +333,13 @@ function LiveHero({ p, lang, localeStr }: { p: NonNullable<ReturnType<typeof use
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 4 }}>
         <Pressable onPress={() => router.push('/goal' as any)} style={{ alignItems: 'center', flex: 1, paddingVertical: 8 }}>
           <Text style={{ color: t.accent, fontSize: 26, fontWeight: '900', letterSpacing: -0.6 }}>
-            {formatMoneyLive(moneySaved(p, secs), p.currency, localeStr)}
+            {formatMoneyLive(moneySaved(p, cleanSecs), p.currency, localeStr)}
           </Text>
           <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4, fontWeight: '600' }}>{lang === 'ru' ? 'сэкономлено' : 'saved'}</Text>
         </Pressable>
         <View style={{ width: 1, height: 36, backgroundColor: t.border }} />
         <Pressable onPress={() => router.push('/journal')} style={{ alignItems: 'center', flex: 1, paddingVertical: 8 }}>
-          <Text style={{ color: t.warn, fontSize: 26, fontWeight: '900', letterSpacing: -0.6 }}>{formatCigs(cigsAvoided(p, secs))}</Text>
+          <Text style={{ color: t.warn, fontSize: 26, fontWeight: '900', letterSpacing: -0.6 }}>{formatCigs(cigsAvoided(p, cleanSecs))}</Text>
           <Text style={{ color: t.textDim, fontSize: 12, marginTop: 4, fontWeight: '600' }}>{lang === 'ru' ? 'не выкурено' : 'avoided'}</Text>
         </Pressable>
       </View>
@@ -720,7 +723,9 @@ function RelapseCard() {
         : hist;
       return { ...s, profile: { ...s.profile, quitDate: now, stepEnteredAt: now, methodHistory: archived, wantsToQuit: 'yes' as const } };
     });
-    try { await scheduleQuitProgram(now, lang, p!.wakeHour ?? 8, p!.checkInHour ?? 21); } catch {}
+    // rescheduleAll вместо scheduleQuitProgram: иначе cancelAll внутри сотрёт
+    // дозы лекарств/недельные/симптомы и не поставит заново до перезапуска.
+    try { await rescheduleAll({ ...p!, quitDate: now, stepEnteredAt: now }, lang); } catch {}
   }
 
   return (

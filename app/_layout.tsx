@@ -8,7 +8,7 @@ import { useTheme } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
 import { computeInsights } from '../lib/insights';
 import * as Notifications from 'expo-notifications';
-import { scheduleCravingNudge, scheduleQuitProgram, scheduleMedicationDoses, scheduleWeeklyReflection, scheduleSymptomReminder } from '../lib/notifications';
+import { rescheduleAll, scheduleCravingNudge } from '../lib/notifications';
 import { currentLang } from '../lib/i18n';
 import { TourProvider } from '../components/Tour';
 import { fetchSub } from '../lib/billing';
@@ -39,14 +39,19 @@ export default function Root() {
       }
       // «Почему я бросаю» starts from the onboarding answers — seed once if
       // the board is empty but motivations were given.
-      if (s.profile) {
+      // Сеем причины из мотиваций ОДИН раз. Флаг reasonsSeeded ставим всегда после
+      // первой попытки — иначе намеренно удалённые причины возвращались бы на
+      // каждом запуске (и всплывали в SOS в худший момент).
+      if (s.profile && !s.profile.reasonsSeeded) {
         const seeded = seedReasonsFromMotivations(s.profile);
-        if (seeded) {
-          await update((prev) => ({
-            ...prev,
-            profile: prev.profile ? { ...prev.profile, reasons: seeded } : prev.profile,
-          }));
-        }
+        await update((prev) => ({
+          ...prev,
+          profile: prev.profile ? {
+            ...prev.profile,
+            ...(seeded ? { reasons: seeded } : {}),
+            reasonsSeeded: true,
+          } : prev.profile,
+        }));
       }
       // Rebuild the full notification plan on every launch. This keeps
       // medication-dose reminders alive past the 7-day scheduling window
@@ -57,14 +62,9 @@ export default function Root() {
       try {
         if (s.profile?.onboardingComplete) {
           const lang = currentLang();
-          await scheduleQuitProgram(s.profile.quitDate, lang, 8, s.profile.checkInHour ?? 21);
-          if (s.profile.medication && s.profile.medicationStartedAt) {
-            await scheduleMedicationDoses(lang, s.profile.medication, s.profile.medicationStartedAt);
-          }
+          await rescheduleAll(s.profile, lang);
           const ins = computeInsights(s.cravings ?? []);
           await scheduleCravingNudge(ins.peakHourStart, lang);
-          await scheduleWeeklyReflection(lang);
-          await scheduleSymptomReminder(lang);
         }
       } catch {}
       // Refresh ЮKassa subscription status (server-validated). Only ever change

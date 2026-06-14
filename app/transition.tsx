@@ -21,7 +21,7 @@ import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
 import type { StepLevel } from '../lib/storage';
 import { STEPS, getStep, alternativesFor, prepChecklist, recommendStep, pharmaBlocked } from '../lib/stepped';
-import { scheduleQuitProgram } from '../lib/notifications';
+import { rescheduleAll } from '../lib/notifications';
 import { Icon } from '../components/Icon';
 
 type Phase = 'reality' | 'paused' | 'reflect' | 'choose' | 'date' | 'prep' | 'bridge' | 'commit' | 'done';
@@ -425,9 +425,11 @@ export default function Transition() {
         };
       });
 
-      // Reschedule notifications anchored to new quit date.
+      // Reschedule ALL notifications anchored to the new step start. rescheduleAll
+      // (вместо scheduleQuitProgram) — иначе cancelAll сотрёт дозы лекарств и
+      // недельные/симптом-напоминания и не поставит их заново до перезапуска.
       try {
-        await scheduleQuitProgram(startMs, lang, 8, p?.checkInHour ?? 21);
+        if (p) await rescheduleAll({ ...p, quitDate: startMs }, lang);
       } catch {}
 
       setPhase('done');

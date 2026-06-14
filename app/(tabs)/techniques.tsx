@@ -45,7 +45,7 @@ const BREATH_TECH = ['box_breath', 'cyclic_sigh'];
 // Short mood tag per audio session (shown as a pill on the card).
 const AUDIO_TAGS: Record<string, { ru: string; en: string }> = {
   calm_now:       { ru: 'ТЯГА',       en: 'CRAVING' },
-  surf:           { ru: 'ТЯГА',       en: 'CRAVING' },
+  surf_urge:      { ru: 'ТЯГА',       en: 'CRAVING' },
   release:        { ru: 'НАПРЯЖЕНИЕ', en: 'TENSION' },
   grounding:      { ru: 'ЗДЕСЬ',      en: 'PRESENT' },
   sleep:          { ru: 'СОН',        en: 'SLEEP' },

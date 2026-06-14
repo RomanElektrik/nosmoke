@@ -43,6 +43,7 @@ export type Profile = {
   goalPhoto?: string;      // optional photo uri for the goal avatar
   language?: 'ru' | 'en';
   onboardingComplete: boolean;
+  reasonsSeeded?: boolean;   // причины из мотиваций засеяны один раз (чтобы удалённые не возвращались)
   openrouterKey?: string;
   openrouterModel?: string;
   wakeHour?: number;            // 0-23, used for morning hot-zone push

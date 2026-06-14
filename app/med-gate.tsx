@@ -55,7 +55,9 @@ export default function MedGate() {
   const warning = lang === 'ru' ? info.warningRu : info.warningEn;
   const rxNote = lang === 'ru' ? info.rxNoteRu : info.rxNoteEn;
 
-  const canActivate = noContra && hasRx && blocked.length === 0;
+  // Возрастной gate ≥18 — фарма недоступна несовершеннолетним (CLAUDE.md, P0).
+  const underage = state.profile?.age != null && state.profile.age < 18;
+  const canActivate = noContra && hasRx && blocked.length === 0 && !underage;
 
   async function activate() {
     if (!canActivate || !med) return;
@@ -94,15 +96,15 @@ export default function MedGate() {
         </Text>
 
         {/* Hard block — user declared a contraindicated condition in onboarding */}
-        {blocked.length > 0 && (
+        {(blocked.length > 0 || underage) && (
           <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: '#FF453A1F', borderWidth: 1.5, borderColor: '#FF453A', gap: 8 }}>
             <Text style={{ color: '#FF453A', fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
               {lang === 'ru' ? 'Этот препарат тебе недоступен' : 'This medication is not available to you'}
             </Text>
             <Text style={{ color: t.text, fontSize: 14.5, lineHeight: 21 }}>
               {lang === 'ru'
-                ? `В анкете ты указал: ${blocked.map((f) => FLAG_LABELS[f].ru).join(', ')}. С таким состоянием начинать этот препарат через приложение нельзя — это вопрос только для очной консультации с врачом.`
-                : `You indicated: ${blocked.map((f) => FLAG_LABELS[f].en).join(', ')}. With this condition the app cannot help you start this medication — it is strictly a decision for an in-person doctor visit.`}
+                ? `В анкете ты указал: ${[...blocked.map((f) => FLAG_LABELS[f].ru), ...(underage ? ['возраст младше 18 лет'] : [])].join(', ')}. С таким состоянием начинать этот препарат через приложение нельзя — это вопрос только для очной консультации с врачом.`
+                : `You indicated: ${[...blocked.map((f) => FLAG_LABELS[f].en), ...(underage ? ['under 18'] : [])].join(', ')}. With this condition the app cannot help you start this medication — it is strictly a decision for an in-person doctor visit.`}
             </Text>
           </View>
         )}
