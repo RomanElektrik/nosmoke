@@ -54,28 +54,18 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
     });
   };
 
-  // ---------- DAY 1 — every 2.5h, anti-craving --------------
-  // Anchor to max(quitDate, now): with an evening onboarding all quitDate-based
-  // slots land in the past and day 1 — the riskiest day — gets zero support.
-  // Night slots (22:00–07:59 local) are skipped, the wave continues next morning.
-  const acuteStart = Math.max(quitDateMs, now);
-  for (let h = 1; h <= 24; h += 2.5) {
-    const slot = acuteStart + h * 3600_000;
-    const localHour = new Date(slot).getHours();
-    if (localHour >= 22 || localHour < 8) continue;
-    if (slot >= quitDateMs + 2 * 86400_000) break; // stay within the acute window
-    await schedule(slot,
-      t('Тяга — это волна. 4 минуты — и пройдёт.', 'A craving is a wave. 4 minutes — and it passes.'),
-      t('Открой SOS — 60 секунд дыхания. Просто попробуй.', 'Tap SOS — 60s breathing. Just try.'),
-      '/craving',
-    );
-  }
+  // ---------- DAY 1 --------------
+  // Анти-краш-пуши «Тяга — это волна / Открой SOS» каждые 2.5 ч УБРАНЫ:
+  // повторяющиеся напоминания о тяге сами её праймят и лишний раз напоминают о
+  // сигаретах (жалоба пользователя). Поддержка — через мягкие утренние пуши без
+  // слова «тяга». Сама кнопка SOS всегда под рукой в приложении.
+  void now;
 
-  // ---------- DAYS 2–14 — morning hot-zone --------------
+  // ---------- DAYS 2–14 — morning, encouraging (no craving priming) --------------
   for (let d = 1; d <= 13; d++) {
     await schedule(at(d, wakeHour, 5),
       t(`День ${d + 1} · утро`, `Day ${d + 1} · morning`),
-      t('Сделай дыхание перед чаем/кофе — это твоя зона риска.', 'Do the breath before tea/coffee — this is your risk window.'),
+      t('Доброе утро. Ещё один свободный день — и ты уже его начал.', 'Good morning. Another free day — and you\'ve already begun it.'),
     );
   }
 
@@ -190,24 +180,11 @@ export async function scheduleDailyCheckIn(locale: 'ru' | 'en', checkInHour: num
 // craving window (computed from their logged cravings). A fixed identifier so
 // re-scheduling on each app open replaces it instead of stacking duplicates.
 export async function scheduleCravingNudge(peakHourStart: number | null, locale: 'ru' | 'en') {
-  const id = 'craving-nudge';
-  try { await Notifications.cancelScheduledNotificationAsync(id); } catch {}
-  if (peakHourStart == null) return;
-  let hour = peakHourStart, minute = -10;
-  if (minute < 0) { minute += 60; hour = (hour + 23) % 24; }
-  const t: T = (ru, en) => (locale === 'ru' ? ru : en);
-  try {
-    await Notifications.scheduleNotificationAsync({
-      identifier: id,
-      content: {
-        title: t('Скоро твоё время тяги', 'Your craving window is near'),
-        body: t('Обычно сейчас тянет — и обычно ты держишься. Под рукой: холодная вода и пара вдохов.',
-                'You usually crave now — and usually you hold. Cold water and a few breaths help.'),
-        data: { route: '/craving' },
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
-    });
-  } catch {}
+  // Персональный пуш «Скоро твоё время тяги / обычно сейчас тянет» УБРАН: он
+  // напоминает о тяге и сигаретах (жалоба пользователя). Оставляем только отмену
+  // ранее запланированного, чтобы старые экземпляры не всплывали после апдейта.
+  void peakHourStart; void locale;
+  try { await Notifications.cancelScheduledNotificationAsync('craving-nudge'); } catch {}
 }
 
 // Sunday reflection: a weekly ritual that keeps the long-term relationship

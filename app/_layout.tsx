@@ -102,8 +102,12 @@ export default function Root() {
     if (!ready) return;
     const first = segments[0] as string | undefined;
     const inOnb = first === '(onboarding)';
+    // personality/depth-тесты физически лежат в (onboarding), но их открывают и
+    // ПОСЛЕ онбординга как самостоятельные экраны (задачи дня 2–3). Не выкидываем
+    // с них на главную — иначе тап по «Узнай тип зависимости» просто мигает домой.
+    const reusable = segments[1] === 'personality' || segments[1] === 'depth';
     if (!hasProfile && !inOnb) router.replace('/(onboarding)/welcome');
-    else if (hasProfile && inOnb) router.replace('/(tabs)');
+    else if (hasProfile && inOnb && !reusable) router.replace('/(tabs)');
   }, [ready, hasProfile, segments]);
 
   if (!ready) {
