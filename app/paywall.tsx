@@ -14,9 +14,11 @@ import { update, useAppState } from '../lib/storage';
 import { Icon, IconKey } from '../components/Icon';
 import { secondsClean } from '../lib/health';
 import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
+import { abstinenceStartMs } from '../lib/stepped';
 import { createPayment, confirmPayment, startTrial } from '../lib/billing';
 import { scheduleTrialEndReminder } from '../lib/notifications';
 import { AppleSignInButton } from '../components/AppleSignInButton';
+import { getStoredAccount } from '../lib/auth';
 
 type PlanId = 'monthly' | 'yearly' | 'lifetime';
 
@@ -95,6 +97,13 @@ export default function Paywall() {
   const [busy, setBusy] = useState(false);
   // Пробный период доступен, если ещё не премиум и триал ни разу не брался.
   const eligibleForTrial = !premium && !state.trialUsed;
+  // Уже вошёл в аккаунт → «Вход с Apple» на пейволле не показываем (не путаем).
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    getStoredAccount().then((a) => { if (alive) setSignedIn(!!a); });
+    return () => { alive = false; };
+  }, []);
 
   async function startFreeTrial() {
     if (busy) return;
@@ -174,7 +183,8 @@ export default function Paywall() {
   const p = state.profile;
   const localeStr = ru ? 'ru-RU' : 'en-US';
   const currency = p?.currency ?? 'RUB';
-  const saved = p ? moneySaved(p, secondsClean(p.quitDate)) : 0;
+  // От ДНЯ ОТКАЗА (как на главной/прогрессе): на фарме первые дни куришь по схеме.
+  const saved = p ? moneySaved(p, Math.max(0, secondsClean(abstinenceStartMs(p)))) : 0;
   const savedMin = currency === 'RUB' ? 500 : 5;
   const showSaved = saved >= savedMin;
   const yearlyAmount = ru ? 1990 : 29.99;
@@ -362,8 +372,8 @@ export default function Paywall() {
               keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
               style={{ backgroundColor: t.bgElev, color: t.text, paddingHorizontal: 14, paddingVertical: 13, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, fontSize: 14.5 }}
             />
-            {/* Восстановление — через «Вход с Apple» (в один тап, iOS) */}
-            <AppleSignInButton style={{ marginTop: 4 }} dark />
+            {/* Восстановление — через «Вход с Apple» (только если ещё не вошёл) */}
+            {!signedIn && <AppleSignInButton style={{ marginTop: 4 }} dark />}
           </View>
         )}
 

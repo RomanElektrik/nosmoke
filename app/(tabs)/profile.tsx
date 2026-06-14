@@ -128,7 +128,9 @@ function AccountCard() {
           <View style={{ flex: 1 }}>
             <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>{ru ? 'Вход выполнен' : 'Signed in'}</Text>
             <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }} numberOfLines={1}>
-              {acct.email || 'Apple ID'}
+              {acct.email && !acct.email.includes('privaterelay.appleid')
+                ? acct.email
+                : (ru ? 'Apple ID · скрытая почта' : 'Apple ID · hidden email')}
             </Text>
           </View>
           <Pressable
