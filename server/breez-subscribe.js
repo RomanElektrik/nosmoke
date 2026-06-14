@@ -260,7 +260,7 @@ async function verifyApple(idToken) {
   if (!ok) throw new Error('bad signature');
   if (payload.iss !== 'https://appleid.apple.com') throw new Error('bad iss');
   const auds = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-  if (!auds.includes(APPLE_AUD)) throw new Error('bad aud');
+  if (!auds.includes(APPLE_AUD)) throw new Error('bad aud: got=' + JSON.stringify(payload.aud) + ' want=' + APPLE_AUD);
   if (payload.exp && Date.now() / 1000 > payload.exp + 60) throw new Error('expired');
   if (!payload.sub) throw new Error('no sub');
   return { sub: String(payload.sub), email: payload.email || null };
@@ -454,7 +454,7 @@ module.exports = function attach(app) {
       if (!identityToken) return res.status(400).json({ error: 'no token' });
       let v;
       try { v = await verifyApple(identityToken); }
-      catch (e) { return res.status(401).json({ error: 'apple verify failed: ' + e.message }); }
+      catch (e) { console.warn('[briz] apple verify fail:', e.message); return res.status(401).json({ error: 'apple verify failed: ' + e.message }); }
       linkDeviceToAccount(deviceId, 'apple:' + v.sub, v.email || email || null);
       console.log('[briz] apple sign-in → apple:' + v.sub.slice(0, 8) + '…');
       res.json(statusOf(deviceId));
