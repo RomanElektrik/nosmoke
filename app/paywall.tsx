@@ -14,7 +14,7 @@ import { update, useAppState } from '../lib/storage';
 import { Icon, IconKey } from '../components/Icon';
 import { secondsClean } from '../lib/health';
 import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
-import { createPayment, confirmPayment, restorePurchase, startTrial } from '../lib/billing';
+import { createPayment, confirmPayment, startTrial } from '../lib/billing';
 import { scheduleTrialEndReminder } from '../lib/notifications';
 import { AppleSignInButton } from '../components/AppleSignInButton';
 
@@ -211,25 +211,6 @@ export default function Paywall() {
     }
   }
 
-  async function restore() {
-    const mail = email.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
-      Alert.alert(ru ? 'Нужен email' : 'Email needed',
-        ru ? 'Впиши в поле выше email, на который оформлял подписку.' : 'Enter the email used for the subscription in the field above.');
-      return;
-    }
-    setBusy(true);
-    try {
-      const res = await restorePurchase(mail);
-      const ok = await applyStatus(res.until);
-      Alert.alert(ok ? (ru ? 'Восстановлено 🎉' : 'Restored 🎉') : (ru ? 'Подписка не найдена' : 'No subscription found'),
-        ok ? (ru ? 'Премиум снова активен.' : 'Premium is active again.') : (ru ? 'На этом email активной подписки нет.' : 'No active subscription on that email.'));
-      if (ok) router.back();
-    } catch {
-      Alert.alert(ru ? 'Ошибка' : 'Error', ru ? 'Попробуй позже.' : 'Try again later.');
-    } finally { setBusy(false); }
-  }
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top', 'left', 'right']}>
       {/* Close — floating chip, below the notch and clearly tappable */}
@@ -376,18 +357,12 @@ export default function Paywall() {
           <View style={{ gap: 8 }}>
             <TextInput
               value={email} onChangeText={setEmail}
-              placeholder={ru ? 'Email для чека и восстановления (необязательно)' : 'Email for receipt & restore (optional)'}
+              placeholder={ru ? 'Email для чека (необязательно)' : 'Email for receipt (optional)'}
               placeholderTextColor={t.textDim}
               keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
               style={{ backgroundColor: t.bgElev, color: t.text, paddingHorizontal: 14, paddingVertical: 13, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, fontSize: 14.5 }}
             />
-            <Pressable onPress={restore} hitSlop={8} style={{ alignSelf: 'center', paddingVertical: 4 }}>
-              <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '600' }}>
-                {ru ? 'Восстановить покупку по email' : 'Restore purchase by email'}
-              </Text>
-            </Pressable>
-
-            {/* Вход через Apple — восстановление в один тап (iOS) */}
+            {/* Восстановление — через «Вход с Apple» (в один тап, iOS) */}
             <AppleSignInButton style={{ marginTop: 4 }} dark />
           </View>
         )}
