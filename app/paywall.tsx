@@ -117,7 +117,8 @@ export default function Paywall() {
     try {
       const st = await startTrial();
       if (st.premium) {
-        await update((s) => ({ ...s, premiumUntil: st.until, premiumPlan: 'trial', trialUsed: true }));
+        // Триал выдан (или уже идёт) — отражаем серверный статус целиком.
+        await update((s) => ({ ...s, premiumUntil: st.until, premiumPlan: st.plan ?? 'trial', trialUsed: true }));
         try { await scheduleTrialEndReminder(st.until, lang); } catch {}
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
@@ -126,10 +127,16 @@ export default function Paywall() {
              : 'Enjoy everything with no limits. We\'ll remind you a day before it ends — no auto-charges.',
           [{ text: 'OK', onPress: done }],
         );
-      } else {
+      } else if (st.trialUsed) {
+        // Сервер авторитетно говорит: пробный уже был использован ранее.
         await update((s) => ({ ...s, trialUsed: true }));
         Alert.alert(ru ? 'Пробный уже использован' : 'Trial already used',
           ru ? 'Оформи Премиум, чтобы продолжить.' : 'Subscribe to keep going.');
+      } else {
+        // Премиум не выдан И сервер НЕ считает триал использованным — это
+        // транзиентный сбой. НЕ жжём trialUsed, чтобы кнопка осталась.
+        Alert.alert(ru ? 'Не получилось включить пробный' : 'Could not start trial',
+          ru ? 'Похоже, сбой связи. Пробный остался — попробуй ещё раз.' : 'A connection hiccup. The trial is intact — try again.');
       }
     } catch (e: any) {
       Alert.alert(ru ? 'Не получилось' : 'Something went wrong', String(e?.message || ''));
