@@ -15,7 +15,7 @@ import { Icon, IconKey } from '../components/Icon';
 import { secondsClean } from '../lib/health';
 import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
 import { abstinenceStartMs } from '../lib/stepped';
-import { createPayment, confirmPayment, startTrial } from '../lib/billing';
+import { createPayment, confirmPayment, startTrialWithCard, type SubStatus } from '../lib/billing';
 import { scheduleTrialEndReminder } from '../lib/notifications';
 import { AppleSignInButton } from '../components/AppleSignInButton';
 import { getStoredAccount } from '../lib/auth';
@@ -100,8 +100,9 @@ export default function Paywall() {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
-  // Пробный период доступен, если ещё не премиум и триал ни разу не брался.
-  const eligibleForTrial = !premium && !state.trialUsed;
+  // Пробный доступен, если не премиум, триал не брался и выбран продлеваемый план
+  // (для lifetime триал-с-картой бессмыслен — нечего автопродлевать).
+  const eligibleForTrial = !premium && !state.trialUsed && selected !== 'lifetime';
   // Уже вошёл в аккаунт → «Вход с Apple» на пейволле не показываем (не путаем).
   const [signedIn, setSignedIn] = useState(false);
   useEffect(() => {
@@ -110,36 +111,22 @@ export default function Paywall() {
     return () => { alive = false; };
   }, []);
 
+  // Старт пробного С КАРТОЙ: сервер создаёт привязочный платёж 1 ₽ (вернётся),
+  // открываем браузер для ввода карты + 3DS. Премиум/trialUsed выставит хук
+  // подтверждения по возвращении — как обычная покупка. Сбой 3DS не жжёт триал.
   async function startFreeTrial() {
     if (busy) return;
     Haptics.selectionAsync();
     setBusy(true);
     try {
-      const st = await startTrial();
-      if (st.premium) {
-        // Триал выдан (или уже идёт) — отражаем серверный статус целиком.
-        await update((s) => ({ ...s, premiumUntil: st.until, premiumPlan: st.plan ?? 'trial', trialUsed: true }));
-        try { await scheduleTrialEndReminder(st.until, lang); } catch {}
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(
-          ru ? '7 дней Премиума открыто 🎉' : '7 days of Premium unlocked 🎉',
-          ru ? 'Пользуйся всем без ограничений. Напомним за день до конца — без автосписаний.'
-             : 'Enjoy everything with no limits. We\'ll remind you a day before it ends — no auto-charges.',
-          [{ text: 'OK', onPress: done }],
-        );
-      } else if (st.trialUsed) {
-        // Сервер авторитетно говорит: пробный уже был использован ранее.
-        await update((s) => ({ ...s, trialUsed: true }));
-        Alert.alert(ru ? 'Пробный уже использован' : 'Trial already used',
-          ru ? 'Оформи Премиум, чтобы продолжить.' : 'Subscribe to keep going.');
-      } else {
-        // Премиум не выдан И сервер НЕ считает триал использованным — это
-        // транзиентный сбой. НЕ жжём trialUsed, чтобы кнопка осталась.
-        Alert.alert(ru ? 'Не получилось включить пробный' : 'Could not start trial',
-          ru ? 'Похоже, сбой связи. Пробный остался — попробуй ещё раз.' : 'A connection hiccup. The trial is intact — try again.');
-      }
+      const renewPlan = selected === 'monthly' ? 'monthly' : 'yearly';
+      const { id, confirmation_url } = await startTrialWithCard(renewPlan, email.trim() || undefined);
+      pendingRef.current = id;            // подтвердится по возвращении в приложение
+      await Linking.openURL(confirmation_url);
     } catch (e: any) {
-      Alert.alert(ru ? 'Не получилось' : 'Something went wrong', String(e?.message || ''));
+      pendingRef.current = null;
+      Alert.alert(ru ? 'Не удалось начать пробный' : 'Could not start trial',
+        ru ? 'Попробуй ещё раз чуть позже.' : 'Please try again in a moment.');
     } finally {
       setBusy(false);
     }
@@ -148,17 +135,11 @@ export default function Paywall() {
   const confirmingRef = useRef(false);
   const notifiedRef = useRef(false);
 
-  async function applyStatus(until: number): Promise<boolean> {
-    const ok = until > Date.now();
-    if (ok) await update((s) => ({ ...s, premiumUntil: until }));
-    return ok;
-  }
-
-  // After the user pays in the external browser and returns to the app, verify
-  // the payment with our server and unlock premium. YooKassa status can lag
-  // after redirect, so we retry with backoff (~21s) and — crucially — keep the
-  // pending id on failure so a later foreground (or the launch fetchSub) still
-  // picks it up. The webhook also grants server-side as a backstop.
+  // After the user pays/binds in the external browser and returns to the app,
+  // verify with our server and unlock. YooKassa status can lag after redirect,
+  // so we retry with backoff (~21s) and keep the pending id on failure so a
+  // later foreground (or launch fetchSub) still picks it up. Webhook is backstop.
+  // Триал-привязка проходит ровно тем же путём (сервер начисляет в /confirm).
   useEffect(() => {
     const sub = AppState.addEventListener('change', async (st) => {
       if (st !== 'active' || !pendingRef.current || confirmingRef.current) return;
@@ -166,26 +147,40 @@ export default function Paywall() {
       const pid = pendingRef.current;
       setBusy(true);
       const delays = [1500, 2000, 3000, 4000, 5000, 6000];
-      let unlocked = false;
-      for (let i = 0; i <= delays.length && !unlocked; i++) {
+      let res: SubStatus | null = null;
+      for (let i = 0; i <= delays.length && !(res && res.until > Date.now()); i++) {
         try {
-          const res = await confirmPayment(pid);
-          if (await applyStatus(res.until)) unlocked = true;
+          const r = await confirmPayment(pid);
+          if (r.until > Date.now()) {
+            res = r;
+            await update((s) => ({ ...s, premiumUntil: r.until, premiumPlan: r.plan ?? null, trialUsed: r.trialUsed ?? s.trialUsed }));
+          }
         } catch {}
-        if (!unlocked && i < delays.length) await new Promise((r) => setTimeout(r, delays[i]));
+        if (!res && i < delays.length) await new Promise((r) => setTimeout(r, delays[i]));
       }
       setBusy(false);
       confirmingRef.current = false;
-      if (unlocked) {
+      if (res) {
         pendingRef.current = null;
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(ru ? 'Премиум активен 🎉' : 'Premium active 🎉', ru ? 'Спасибо! Все функции открыты.' : 'Thank you! Everything is unlocked.',
-          [{ text: 'OK', onPress: done }]);
+        if (res.plan === 'trial') {
+          try { await scheduleTrialEndReminder(res.until, lang); } catch {}
+          const amt = res.renewPlan === 'monthly' ? (ru ? '399 ₽' : '$5.99') : (ru ? '1990 ₽' : '$29.99');
+          const dateStr = new Date(res.until).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long' });
+          Alert.alert(
+            ru ? '7 дней бесплатно начались 🎉' : '7 free days started 🎉',
+            ru ? `Карта привязана, 1 ₽ вернётся. ${amt} спишется ${dateStr} — отменить можно в «Способ оплаты» до этой даты.`
+               : `Card saved, the ₽1 is refunded. ${amt} on ${dateStr} — cancel anytime in “Payment method”.`,
+            [{ text: 'OK', onPress: done }]);
+        } else {
+          Alert.alert(ru ? 'Премиум активен 🎉' : 'Premium active 🎉', ru ? 'Спасибо! Все функции открыты.' : 'Thank you! Everything is unlocked.',
+            [{ text: 'OK', onPress: done }]);
+        }
       } else if (!notifiedRef.current) {
         notifiedRef.current = true; // keep pendingRef for a later re-check
         Alert.alert(ru ? 'Проверяем оплату' : 'Confirming payment',
-          ru ? 'Если оплата прошла — Премиум включится в течение минуты. Можно закрыть и зайти позже.'
-             : 'If the payment went through, Premium activates within a minute. You can come back later.');
+          ru ? 'Если всё прошло — доступ включится в течение минуты. Можно закрыть и зайти позже.'
+             : 'If it went through, access activates within a minute. You can come back later.');
       }
     });
     return () => sub.remove();
@@ -443,13 +438,13 @@ export default function Paywall() {
                   }}>
                   {busy && <ActivityIndicator color="#fff" />}
                   <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.2 }}>
-                    {busy ? (ru ? 'Открываю…' : 'Opening…') : (ru ? 'Попробовать 7 дней бесплатно' : 'Try 7 days free')}
+                    {busy ? (ru ? 'Открываю…' : 'Opening…') : (ru ? 'Начать 7 дней бесплатно' : 'Start 7 days free')}
                   </Text>
                 </LinearGradient>
               </Pressable>
-              <Pressable onPress={purchase} disabled={busy} hitSlop={8} style={{ alignItems: 'center', paddingVertical: 8 }}>
+              <Pressable onPress={purchase} disabled={busy} hitSlop={8} style={{ alignItems: 'center', paddingVertical: 6 }}>
                 <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '600' }}>
-                  {ru ? `или подключить сразу — ${plan.ctaPriceRu} ${plan.ctaPeriodRu}` : `or subscribe now — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}`}
+                  {ru ? 'или оплатить сразу, без пробного' : 'or pay now, skip the trial'}
                 </Text>
               </Pressable>
             </>
@@ -475,7 +470,11 @@ export default function Paywall() {
           <Text style={{ color: t.textDim, fontSize: 10.5, textAlign: 'center', lineHeight: 14 }}>
             {selected === 'lifetime'
               ? (ru ? 'Разовый платёж · ' : 'One-time payment · ')
-              : (ru ? 'Продлевается автоматически, отменить в «Способ оплаты» · ' : 'Auto-renews, cancel in “Payment method” · ')}
+              : eligibleForTrial
+                ? (ru
+                    ? `Привяжем карту (спишем и сразу вернём 1 ₽). После 7 дней — ${plan.ctaPriceRu} ${plan.ctaPeriodRu}, продлевается автоматически, отменить в «Способ оплаты» · `
+                    : `We save your card (₽1 charged then refunded). After 7 days — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}, auto-renews, cancel in “Payment method” · `)
+                : (ru ? 'Продлевается автоматически, отменить в «Способ оплаты» · ' : 'Auto-renews, cancel in “Payment method” · ')}
             <Text style={{ color: t.info }} onPress={() => Linking.openURL(TERMS_URL)}>
               {ru ? 'Условия' : 'Terms'}
             </Text>

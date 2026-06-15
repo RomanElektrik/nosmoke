@@ -10,7 +10,7 @@ const DEVICE_KEY = 'briz_device_id_v1';
 
 export type PlanId = 'monthly' | 'yearly' | 'lifetime';
 export type BoundCard = { last4: string; type: string };
-export type SubStatus = { premium: boolean; until: number; plan: PlanId | 'trial' | null; card?: BoundCard | null; autopay?: boolean; trialUsed?: boolean; account?: string | null };
+export type SubStatus = { premium: boolean; until: number; plan: PlanId | 'trial' | null; card?: BoundCard | null; autopay?: boolean; trialUsed?: boolean; trialActive?: boolean; renewPlan?: PlanId | null; account?: string | null };
 
 function uuidv4(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -40,8 +40,20 @@ async function postJson(path: string, body: Record<string, unknown>): Promise<an
   return j;
 }
 
-// Начать пробный период: 7 дней полного премиума бесплатно, без карты. Сервер
-// выдаёт один раз на устройство/аккаунт (повторно — no-op, вернёт trialUsed).
+// Начать пробный период С ПРИВЯЗКОЙ КАРТЫ (основной путь): сервер создаёт
+// привязочный платёж на 1 ₽ (сразу возвращается), карта сохраняется для
+// списания после 7 дней. Возвращает ссылку оплаты — дальше как обычная покупка:
+// открываем браузер, после 3DS подтверждаем через confirmPayment(). plan — что
+// спишется ПОСЛЕ триала (monthly/yearly).
+export async function startTrialWithCard(plan: 'monthly' | 'yearly', email?: string): Promise<{ id: string; confirmation_url: string }> {
+  const deviceId = await getDeviceId();
+  const j = await postJson('/trial/bind', { deviceId, plan, email });
+  if (!j.confirmation_url) throw new Error('no confirmation url');
+  return { id: j.id, confirmation_url: j.confirmation_url };
+}
+
+// Legacy: пробный без карты (старый путь, новый клиент использует
+// startTrialWithCard). Оставлен на один релиз для совместимости.
 export async function startTrial(): Promise<SubStatus> {
   const deviceId = await getDeviceId();
   return postJson('/trial/start', { deviceId });

@@ -22,7 +22,8 @@ const YK_URL = 'https://api.yookassa.ru/v3/payments';
 const STORE = path.join(__dirname, 'data', 'briz-subs.json');
 const RETURN_URL = process.env.BRIZ_RETURN_URL || 'https://breezapp.ru/pay-ok.html';
 const LIFETIME_UNTIL = 4102444800000; // 2100-01-01 — отображаемая «дата» для навсегда
-const TRIAL_DAYS = 7; // пробный период: полный премиум бесплатно, без карты
+const TRIAL_DAYS = 7; // пробный период: полный премиум бесплатно
+const TRIAL_BIND_AMOUNT = 1; // ₽ — привязка карты под триал; сразу возвращается (триал бесплатный)
 
 const PLANS = {
   monthly:  { amount: 399,  days: 30,  title: 'Бриз Премиум — месяц' },
@@ -111,6 +112,8 @@ function statusOf(deviceId) {
     autopay: !!(s && s.paymentMethodId),
     account: h.acct ? ((s && s.email) || h.key) : null, // вошёл ли в аккаунт и под кем
     trialUsed: !!(s && s.trialUsed), // пробный период уже брался (чтобы не выдать повторно)
+    trialActive: !!(s && s.plan === 'trial'), // сейчас идёт пробный с привязанной картой
+    renewPlan: (s && s.renewPlan) || null, // что спишется после триала (monthly/yearly)
   };
 }
 
@@ -181,6 +184,53 @@ async function ykCreate({ amount, description, deviceId, plan, email }) {
   return json;
 }
 
+// Привязка карты под бесплатный триал: платёж на TRIAL_BIND_AMOUNT (1 ₽) с
+// сохранением способа (save_payment_method) и форсированной картой — СБП для
+// рекуррента ненадёжен, плюс так обходим падение привязки через СБП-банк.
+// 1 ₽ возвращается сразу после подтверждения (applyTrialBind → ykRefund).
+// renewPlan кладём в metadata — это что спишется ПОСЛЕ 7 дней (не сейчас).
+async function ykBindTrial({ deviceId, renewPlan, email }) {
+  const validEmail = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined;
+  const body = {
+    amount: { value: TRIAL_BIND_AMOUNT.toFixed(2), currency: 'RUB' },
+    capture: true,
+    save_payment_method: true,
+    payment_method_data: { type: 'bank_card' }, // только карта — без СБП
+    confirmation: { type: 'redirect', return_url: RETURN_URL + '?d=' + encodeURIComponent(deviceId) },
+    description: 'Бриз — привязка карты для пробного периода',
+    metadata: { kind: 'briz-trial-bind', deviceId, renewPlan, email: validEmail || '' },
+  };
+  if (validEmail) {
+    body.receipt = {
+      customer: { email: validEmail },
+      items: [{ description: 'Привязка карты', quantity: '1.00', amount: { value: TRIAL_BIND_AMOUNT.toFixed(2), currency: 'RUB' }, vat_code: 1, payment_mode: 'full_payment', payment_subject: 'service' }],
+    };
+  }
+  const r = await fetch(YK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotence-Key': crypto.randomUUID(), 'Authorization': basicAuth() },
+    body: JSON.stringify(body),
+  });
+  const text = await r.text();
+  let json = null; try { json = JSON.parse(text); } catch {}
+  if (!r.ok) { const e = new Error('YK bind: ' + String((json && json.description) || text).slice(0, 300)); e.status = r.status; throw e; }
+  return json;
+}
+
+// Возврат платежа (для 1 ₽ привязки триала). Идемпотентность по ключу.
+async function ykRefund(paymentId, amount) {
+  const body = { payment_id: paymentId, amount: { value: Number(amount).toFixed(2), currency: 'RUB' } };
+  const r = await fetch('https://api.yookassa.ru/v3/refunds', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotence-Key': 'trial-refund-' + paymentId, 'Authorization': basicAuth() },
+    body: JSON.stringify(body),
+  });
+  const text = await r.text();
+  let json = null; try { json = JSON.parse(text); } catch {}
+  if (!r.ok) { const e = new Error('YK refund: ' + String((json && json.description) || text).slice(0, 200)); e.status = r.status; throw e; }
+  return json;
+}
+
 // Hardened symmetrically with ykCreate.
 async function ykGet(id) {
   const r = await fetch(`${YK_URL}/${id}`, { headers: { 'Authorization': basicAuth() } });
@@ -216,6 +266,53 @@ function applyPayment(pay, expectDevice) {
   return true;
 }
 
+// Применить ПРИВЯЗКУ КАРТЫ под триал (kind='briz-trial-bind'). Выдаёт 7 дней
+// премиума, сохраняет карту для списания после триала, и СРАЗУ возвращает 1 ₽.
+// Идемпотентно по pay.id. Если карта не сохранилась — триал НЕ выдаём (нечем
+// списывать потом) и 1 ₽ всё равно возвращаем. async — делает рефанд.
+async function applyTrialBind(pay, expectDevice) {
+  const m = pay && pay.metadata;
+  if (!pay || pay.status !== 'succeeded' || !pay.paid) return false;
+  if (!m || m.kind !== 'briz-trial-bind' || !PLANS[m.renewPlan]) return false;
+  if (!isDevice(m.deviceId)) return false;
+  if (expectDevice && m.deviceId !== expectDevice) return false;
+  const cur = getRec(m.deviceId);
+  // Уже применён этот платёж — выходим (без повторного начисления/рефанда).
+  if (cur && Array.isArray(cur.applied) && cur.applied.includes(pay.id)) return true;
+  const pm = pay.payment_method;
+  const amount = parseFloat((pay.amount && pay.amount.value) || TRIAL_BIND_AMOUNT);
+  // Карта обязана сохраниться — иначе после триала нечем списывать.
+  if (!pm || !pm.saved || !pm.id) {
+    try { await ykRefund(pay.id, amount); } catch {}
+    return false;
+  }
+  const method = savedMethodOf(pm);
+  const now = Date.now();
+  putRec(m.deviceId, {
+    ...(cur || {}),
+    plan: 'trial',
+    lifetime: false,
+    paidUntil: now + TRIAL_DAYS * 86400_000,
+    trialUsed: true,
+    renewPlan: m.renewPlan,                 // что спишется ПОСЛЕ триала
+    paymentMethodId: pm.id,
+    card: method,
+    email: m.email || (cur && cur.email) || undefined,
+    bindPaymentId: pay.id,
+    // lastPaymentId НЕ ставим на привязку — иначе reverify увидит возврат 1 ₽
+    // и снимет премиум. Для идемпотентности достаточно applied[].
+    applied: [...((cur && cur.applied) || []), pay.id].slice(-50),
+    trialChargeDone: false,
+    lastRenewAt: 0,
+    updatedAt: now,
+  });
+  // Возвращаем 1 ₽ привязки — триал честно бесплатный. Идемпотентно по ключу.
+  try { await ykRefund(pay.id, amount); }
+  catch (e) { console.error('[briz] trial refund:', e.message); }
+  console.log('[briz] trial bound:', m.deviceId.slice(0, 8) + '… →', m.renewPlan);
+  return true;
+}
+
 // Id платежа для перепроверки/возврата: новое поле, иначе — последний из applied
 // (бэк-совместимость со старыми записями до появления lastPaymentId).
 function lastPaymentOf(s) {
@@ -237,6 +334,9 @@ function refundedValue(pay) {
 // 10 мин/устройство, ошибки сети глушим (премиум не трогаем).
 async function reverify(deviceId) {
   const s = getRec(deviceId);
+  // Триал: единственный платёж — привязочный 1 ₽, который мы САМИ вернули.
+  // Не проверяем его на возврат, иначе снимем честный премиум триала.
+  if (s && s.plan === 'trial') return;
   const pid = lastPaymentOf(s);
   if (!s || !pid) return;
   if (!(s.lifetime || s.paidUntil > Date.now())) return; // не премиум — нечего проверять
@@ -359,6 +459,31 @@ async function renewSweep() {
   ];
   for (const { store, key, rec } of items) {
     if (!rec || rec.lifetime || !rec.paymentMethodId) continue;
+
+    // Триал с привязанной картой: в МОМЕНТ конца триала списываем ПОЛНУЮ цену
+    // renewPlan (не за сутки до — это был бы день 6), затем переводим запись в
+    // реальный план. Идемпотентность списания — по periodStamp=paidUntil.
+    if (rec.plan === 'trial' && !rec.trialChargeDone) {
+      const rp = PLANS[rec.renewPlan];
+      if (!rp || rp.lifetime || !rp.days) continue;
+      if (now < rec.paidUntil) continue;                     // триал ещё идёт
+      if (now > rec.paidUntil + 5 * 86400_000) continue;     // поздно — пусть лапсится
+      if (rec.lastRenewAt && now - rec.lastRenewAt < 12 * 3600_000) continue; // троттл
+      rec.lastRenewAt = now;
+      if (store === 'subs') dSubs = true; else dAcc = true;
+      try {
+        const pay = await ykChargeSaved(rec.paymentMethodId, rp.amount, rp.title, key, rec.renewPlan, rec.email, rec.paidUntil);
+        if (pay && pay.status === 'succeeded' && pay.paid) {
+          const card = savedMethodOf(pay.payment_method) || rec.card;
+          rec.plan = rec.renewPlan;       // триал → реальный план
+          rec.trialChargeDone = true;
+          extendRecord(rec, rec.renewPlan, pay.id, card);
+          console.log('[briz] trial→paid:', key.slice(0, 8) + '…', rec.renewPlan);
+        }
+      } catch (e) { console.error('[briz] trial charge fail:', key.slice(0, 8) + '…', e.message); }
+      continue;
+    }
+
     const p = PLANS[rec.plan];
     if (!p || p.lifetime || !p.days) continue;
     if (now < rec.paidUntil - 86400_000) continue;        // рано — продлеваем за сутки до конца
@@ -446,6 +571,7 @@ module.exports = function attach(app) {
       try { pay = await ykGet(String(paymentId).replace(/[^a-zA-Z0-9-]/g, '')); }
       catch (e) { return res.status(503).json({ error: 'yk unavailable' }); } // ретраибл для клиента
       applyPayment(pay, deviceId);
+      try { await applyTrialBind(pay, deviceId); } catch (e) { console.error('[briz] trial bind confirm:', e.message); }
       res.json(statusOf(deviceId));
     } catch (e) {
       console.error('[briz] confirm:', e.message);
@@ -469,6 +595,7 @@ module.exports = function attach(app) {
         try {
           const pay = await ykGet(String(obj.id).replace(/[^a-zA-Z0-9-]/g, ''));
           if (applyPayment(pay, null)) console.log('[briz] webhook grant:', pay.metadata.deviceId, pay.metadata.plan);
+          else if (await applyTrialBind(pay, null)) console.log('[briz] webhook trial bound:', pay.metadata.deviceId);
         } catch (e) { console.error('[briz] webhook verify:', e.message); }
       } else if (event === 'refund.succeeded' && obj.payment_id) {
         try {
@@ -576,10 +703,32 @@ module.exports = function attach(app) {
     }
   });
 
-  // Пробный период: 7 дней полного премиума БЕСПЛАТНО, без карты, один раз на
-  // устройство/аккаунт. Идемпотентно: если уже премиум или триал был — не выдаём
-  // и просто возвращаем текущий статус (trialUsed подскажет клиенту, что кнопку
-  // «попробовать» больше не показывать).
+  // Пробный период С ПРИВЯЗКОЙ КАРТЫ (основной путь): создаём привязочный платёж
+  // на 1 ₽ с сохранением карты. Премиум и trialUsed выставляются НЕ здесь, а
+  // только после подтверждённой привязки (applyTrialBind в /confirm и webhook) —
+  // чтобы сбой 3DS не сжёг единственную попытку триала. plan = что спишется
+  // ПОСЛЕ 7 дней (monthly/yearly). 1 ₽ возвращается сразу при подтверждении.
+  app.post('/api/briz/trial/bind', async (req, res) => {
+    try {
+      if (!SHOP_ID || !SECRET_KEY) return res.status(503).json({ error: 'not configured' });
+      const { deviceId, plan, email } = req.body || {};
+      if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
+      const renewPlan = (plan === 'monthly' || plan === 'yearly') ? plan : 'yearly';
+      const now = Date.now();
+      const cur = getRec(deviceId);
+      const isPremium = !!(cur && (cur.lifetime || cur.paidUntil > now));
+      // Идемпотентность: уже премиум или триал брался — не создаём платёж.
+      if (isPremium || (cur && cur.trialUsed)) return res.json(statusOf(deviceId));
+      const payment = await ykBindTrial({ deviceId, renewPlan, email });
+      res.json({ id: payment.id, status: payment.status, confirmation_url: payment?.confirmation?.confirmation_url || null });
+    } catch (e) {
+      console.error('[briz] trial/bind:', e.message);
+      res.status(e.status || 500).json({ error: e.message });
+    }
+  });
+
+  // Пробный период БЕЗ карты (legacy-фолбэк для старых билдов). Новый клиент
+  // использует /trial/bind. Идемпотентно по trialUsed.
   app.post('/api/briz/trial/start', (req, res) => {
     try {
       const { deviceId } = req.body || {};
@@ -605,5 +754,5 @@ module.exports = function attach(app) {
     }
   });
 
-  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · /auth/apple · /auth/signout · /trial/start · GET /sub/:id · POST /webhook · авто-продление: вкл (рекуррент)');
+  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · /auth/apple · /auth/signout · /trial/bind · /trial/start · GET /sub/:id · POST /webhook · авто-продление: вкл (рекуррент)');
 };
