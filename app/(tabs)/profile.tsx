@@ -220,8 +220,8 @@ function PremiumCard() {
   const until = state.premiumUntil ?? 0;
   const lifetime = until > Date.now() + 40 * 365 * 86400_000;
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
-  // Авто-продление обещаем только когда реально привязана карта.
-  const realCard = !!(state.boundCard && state.boundCard.last4);
+  // Авто-продление обещаем, когда привязан способ оплаты (карта / СБП / SberPay).
+  const realCard = !!(state.boundCard && state.boundCard.type);
   const onTrial = premium && state.premiumPlan === 'trial';
   const daysLeft = Math.max(0, Math.ceil((until - Date.now()) / 86400_000));
 

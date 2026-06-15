@@ -29,14 +29,16 @@ export default function PaymentMethod() {
   const lifetime = until > Date.now() + 40 * 365 * 86400_000;
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
   // Реальная привязанная карта (для автопродления). Образцов больше не показываем.
-  const realCard = !!(state.boundCard && state.boundCard.last4) ? state.boundCard! : null;
+  // Привязанный способ автопродления — карта (с last4) или СБП/SberPay (только тип).
+  const bound = (state.boundCard && state.boundCard.type) ? state.boundCard : null;
+  const hasCard = !!(bound && bound.last4);
 
   function confirmUnbind() {
     Haptics.selectionAsync();
     Alert.alert(
-      ru ? 'Отвязать карту?' : 'Remove card?',
-      ru ? 'Автопродление больше не будет списывать с этой карты. Доступ сохранится до конца оплаченного периода.'
-         : 'Auto-renewal will no longer charge this card. Access stays until the paid period ends.',
+      hasCard ? (ru ? 'Отвязать карту?' : 'Remove card?') : (ru ? 'Отвязать способ оплаты?' : 'Remove payment method?'),
+      ru ? 'Автопродление больше не будет списывать. Доступ сохранится до конца оплаченного периода.'
+         : 'Auto-renewal will stop charging. Access stays until the paid period ends.',
       [
         { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
         { text: ru ? 'Отвязать' : 'Remove', style: 'destructive', onPress: doUnbind },
@@ -114,8 +116,8 @@ export default function PaymentMethod() {
           </Pressable>
         )}
 
-        {/* Привязанная карта — только если реально есть */}
-        {realCard && (
+        {/* Привязанный способ автопродления — карта или СБП/SberPay */}
+        {bound && (
           <>
             <View style={{
               padding: 16, borderRadius: radius.lg, backgroundColor: t.card,
@@ -126,7 +128,7 @@ export default function PaymentMethod() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
-                  {realCard.type} •••• {realCard.last4}
+                  {bound.type}{bound.last4 ? ` •••• ${bound.last4}` : ''}
                 </Text>
                 <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>
                   {ru ? 'Привязана для автопродления' : 'Saved for auto-renewal'}
@@ -142,14 +144,14 @@ export default function PaymentMethod() {
               {busy && <ActivityIndicator color={t.danger} />}
               <Icon.cross size={18} color={t.danger} />
               <Text style={{ color: t.danger, fontSize: 16, fontWeight: '700' }}>
-                {ru ? 'Отвязать карту' : 'Remove card'}
+                {hasCard ? (ru ? 'Отвязать карту' : 'Remove card') : (ru ? 'Отвязать способ оплаты' : 'Remove payment method')}
               </Text>
             </Pressable>
           </>
         )}
 
-        {/* Премиум есть, но карта не привязана (разовая оплата за период) */}
-        {premium && !realCard && !lifetime && (
+        {/* Премиум есть, но способ не привязан (разовая оплата за период) */}
+        {premium && !bound && !lifetime && (
           <View style={{ padding: 14, borderRadius: radius.lg, backgroundColor: t.card, borderWidth: 1, borderColor: t.border }}>
             <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 19 }}>
               {ru ? 'Оплата разовая за период — карта не привязана, автосписаний нет.'

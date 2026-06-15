@@ -190,6 +190,19 @@ async function ykGet(id) {
   return json;
 }
 
+// Универсальный «сохранённый способ» из платежа — карта / СБП / SberPay / ЮMoney.
+// Для карты есть last4; для СБП/SberPay — только понятное имя. paymentMethodId
+// (для автосписания) одинаков для всех; UI показывает то, что есть.
+function savedMethodOf(pm) {
+  if (!pm || !pm.saved) return null;
+  if (pm.card) return { last4: pm.card.last4 || '', type: pm.card.card_type || 'Карта' };
+  const ty = pm.type === 'sbp' ? 'СБП'
+    : pm.type === 'sber_pay' ? 'SberPay'
+    : pm.type === 'yoo_money' ? 'ЮMoney'
+    : (pm.title || 'Способ оплаты');
+  return { last4: '', type: ty };
+}
+
 // Применить платёж к устройству, только если он реально оплачен и его метаданные совпадают.
 function applyPayment(pay, expectDevice) {
   const m = pay && pay.metadata;
@@ -198,8 +211,8 @@ function applyPayment(pay, expectDevice) {
   if (!isDevice(m.deviceId)) return false;
   if (expectDevice && m.deviceId !== expectDevice) return false;
   const pm = pay.payment_method;
-  const card = pm && pm.card ? { last4: pm.card.last4 || '', type: pm.card.card_type || pm.title || 'card' } : null;
-  grant(m.deviceId, m.plan, pay.id, pm && pm.saved ? pm.id : null, m.email || undefined, pm && pm.saved ? card : null);
+  const method = savedMethodOf(pm);
+  grant(m.deviceId, m.plan, pay.id, pm && pm.saved ? pm.id : null, m.email || undefined, method);
   return true;
 }
 
@@ -356,8 +369,7 @@ async function renewSweep() {
     try {
       const pay = await ykChargeSaved(rec.paymentMethodId, p.amount, p.title, key, rec.plan, rec.email, rec.paidUntil);
       if (pay && pay.status === 'succeeded' && pay.paid) {
-        const pm = pay.payment_method;
-        const card = (pm && pm.card) ? { last4: pm.card.last4 || '', type: pm.card.card_type || pm.title || 'card' } : rec.card;
+        const card = savedMethodOf(pay.payment_method) || rec.card;
         extendRecord(rec, rec.plan, pay.id, card);
         console.log('[briz] renewed:', key.slice(0, 8) + '…', rec.plan);
       }
