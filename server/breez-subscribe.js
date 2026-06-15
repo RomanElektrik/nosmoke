@@ -157,7 +157,7 @@ async function ykCreate({ amount, description, deviceId, plan, email }) {
     capture: true,
     description,
     confirmation: { type: 'redirect', return_url: RETURN_URL + '?d=' + encodeURIComponent(deviceId) },
-    save_payment_method: false, // ВРЕМЕННО: рекуррент магазина ещё не включён ЮKassa; вернуть plan!=='lifetime' после активации
+    save_payment_method: plan !== 'lifetime', // рекуррент включён ЮKassa (магазин 1382668) — карта сохраняется для автопродления (кроме «навсегда»)
     metadata: { kind: 'briz-sub', deviceId, plan, email: validEmail || '' },
   };
   if (validEmail) {
@@ -294,6 +294,81 @@ function linkDeviceToAccount(deviceId, acctId, email) {
   if (subs[deviceId]) { delete subs[deviceId]; saveStore(subs); }
 }
 
+// ── Автопродление (рекуррент) ───────────────────────────────────────────────
+// Списываем сохранённую карту (payment_method_id) перед концом периода. Платёж
+// merchant-initiated: без 3DS и подтверждения. Идемпотентность по периоду —
+// один платёж на одно продление. Записи (subs + accounts) проходим ежечасно.
+async function ykChargeSaved(pmId, amount, description, ownerKey, plan, email, periodStamp) {
+  const validEmail = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined;
+  const body = {
+    amount: { value: amount.toFixed(2), currency: 'RUB' },
+    capture: true,
+    payment_method_id: pmId,
+    description,
+    metadata: { kind: 'briz-sub-renew', owner: ownerKey, plan },
+  };
+  if (validEmail) {
+    body.receipt = {
+      customer: { email: validEmail },
+      items: [{ description: description.slice(0, 128), quantity: '1.00', amount: { value: amount.toFixed(2), currency: 'RUB' }, vat_code: 1, payment_mode: 'full_payment', payment_subject: 'service' }],
+    };
+  }
+  const r = await fetch(YK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotence-Key': 'renew-' + ownerKey + '-' + periodStamp, 'Authorization': basicAuth() },
+    body: JSON.stringify(body),
+  });
+  const text = await r.text();
+  let json = null; try { json = JSON.parse(text); } catch {}
+  if (!r.ok) { const e = new Error('YK charge: ' + String((json && json.description) || text).slice(0, 200)); e.status = r.status; throw e; }
+  return json;
+}
+
+// Продлить запись после успешного списания.
+function extendRecord(rec, plan, paymentId, card) {
+  const p = PLANS[plan]; if (!p) return;
+  const now = Date.now();
+  rec.paidUntil = (rec.paidUntil > now ? rec.paidUntil : now) + p.days * 86400_000;
+  rec.lastPaymentId = paymentId || rec.lastPaymentId;
+  if (card) rec.card = card;
+  rec.applied = (paymentId ? [...(rec.applied || []), paymentId] : (rec.applied || [])).slice(-50);
+  rec.lastRenewAt = now;
+  rec.updatedAt = now;
+}
+
+async function renewSweep() {
+  if (!SHOP_ID || !SECRET_KEY) return;
+  const now = Date.now();
+  let dSubs = false, dAcc = false;
+  const items = [
+    ...Object.keys(subs).map((k) => ({ store: 'subs', key: k, rec: subs[k] })),
+    ...Object.keys(accounts).map((k) => ({ store: 'acc', key: k, rec: accounts[k] })),
+  ];
+  for (const { store, key, rec } of items) {
+    if (!rec || rec.lifetime || !rec.paymentMethodId) continue;
+    const p = PLANS[rec.plan];
+    if (!p || p.lifetime || !p.days) continue;
+    if (now < rec.paidUntil - 86400_000) continue;        // рано — продлеваем за сутки до конца
+    if (now > rec.paidUntil + 5 * 86400_000) continue;    // поздно — пусть лапсится, не списываем
+    if (rec.lastRenewAt && now - rec.lastRenewAt < 12 * 3600_000) continue; // троттл попыток
+    rec.lastRenewAt = now;
+    if (store === 'subs') dSubs = true; else dAcc = true;
+    try {
+      const pay = await ykChargeSaved(rec.paymentMethodId, p.amount, p.title, key, rec.plan, rec.email, rec.paidUntil);
+      if (pay && pay.status === 'succeeded' && pay.paid) {
+        const pm = pay.payment_method;
+        const card = (pm && pm.card) ? { last4: pm.card.last4 || '', type: pm.card.card_type || pm.title || 'card' } : rec.card;
+        extendRecord(rec, rec.plan, pay.id, card);
+        console.log('[briz] renewed:', key.slice(0, 8) + '…', rec.plan);
+      }
+    } catch (e) { console.error('[briz] renew fail:', key.slice(0, 8) + '…', e.message); }
+  }
+  if (dSubs) saveStore(subs);
+  if (dAcc) saveAcc();
+}
+setInterval(() => { renewSweep().catch(() => {}); }, 60 * 60 * 1000); // ежечасно
+setTimeout(() => { renewSweep().catch(() => {}); }, 8000); // и вскоре после старта
+
 module.exports = function attach(app) {
   if (!SHOP_ID || !SECRET_KEY) console.warn('[briz] YOOKASSA keys missing — /api/briz/* вернёт 503');
 
@@ -328,7 +403,7 @@ module.exports = function attach(app) {
         capture: true,
         payment_token: paymentToken,
         description: P.title,
-        save_payment_method: false, // ВРЕМЕННО: рекуррент магазина ещё не включён ЮKassa; вернуть plan!=='lifetime' после активации
+        save_payment_method: plan !== 'lifetime', // рекуррент включён ЮKassa (магазин 1382668) — карта сохраняется для автопродления (кроме «навсегда»)
         metadata: { kind: 'briz-sub', deviceId, plan, email: validEmail || '' },
       };
       if (validEmail) {
@@ -518,5 +593,5 @@ module.exports = function attach(app) {
     }
   });
 
-  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · /auth/apple · /auth/signout · /trial/start · GET /sub/:id · POST /webhook');
+  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · /auth/apple · /auth/signout · /trial/start · GET /sub/:id · POST /webhook · авто-продление: вкл (рекуррент)');
 };

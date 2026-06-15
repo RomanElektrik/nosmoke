@@ -448,7 +448,7 @@ export default function Paywall() {
           <Text style={{ color: t.textDim, fontSize: 10.5, textAlign: 'center', lineHeight: 14 }}>
             {selected === 'lifetime'
               ? (ru ? 'Разовый платёж · ' : 'One-time payment · ')
-              : (ru ? 'Оплата за период · ' : 'Payment per period · ')}
+              : (ru ? 'Продлевается автоматически, отменить в «Способ оплаты» · ' : 'Auto-renews, cancel in “Payment method” · ')}
             <Text style={{ color: t.info }} onPress={() => Linking.openURL(TERMS_URL)}>
               {ru ? 'Условия' : 'Terms'}
             </Text>
