@@ -262,7 +262,7 @@ export default function Paywall() {
         <Text style={{ color: t.text, fontSize: 21, lineHeight: 23, fontWeight: '600' }}>×</Text>
       </Pressable>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: 8, paddingBottom: 150, gap: 18 }}
+      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: 8, paddingBottom: 220, gap: 18 }}
         showsVerticalScrollIndicator={false}>
         {/* ── Hero ── */}
         <View style={{ alignItems: 'center', gap: 10 }}>
@@ -427,12 +427,11 @@ export default function Paywall() {
         </View>}
       </ScrollView>
 
-      {/* ── Floating CTA — hovers over the scrolling content, soft fade behind ── */}
+      {/* ── Sticky CTA — solid bar pinned to the bottom, short fade above it so
+            scrolling content dissolves cleanly instead of bleeding through ── */}
       <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-        {/* Soft fade so the button reads against whatever scrolls under it */}
-        <LinearGradient colors={['transparent', t.bg]} locations={[0, 0.55]}
-          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 }} pointerEvents="none" />
-        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: insets.bottom + 8, gap: 6 }}>
+        <LinearGradient colors={['transparent', t.bg]} style={{ height: 28 }} pointerEvents="none" />
+        <View style={{ backgroundColor: t.bg, paddingHorizontal: spacing.lg, paddingTop: 4, paddingBottom: insets.bottom + 8, gap: 6 }}>
           {eligibleForTrial ? (
             <>
               <Pressable onPress={startFreeTrial} accessibilityRole="button" disabled={busy}
