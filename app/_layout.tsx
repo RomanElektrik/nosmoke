@@ -103,19 +103,31 @@ export default function Root() {
     return () => sub.remove();
   }, []);
 
-  const hasProfile = !!state.profile?.onboardingComplete;
+  // «Профиль создан» (прошёл квиз) ≠ «онбординг завершён» (вышел с paywall).
+  // Между ними — экран плана и оффер; в этом промежутке профиль уже есть,
+  // но completed ещё false.
+  const startedProfile = !!state.profile;
+  const completed = !!state.profile?.onboardingComplete;
 
   useEffect(() => {
     if (!ready) return;
     const first = segments[0] as string | undefined;
     const inOnb = first === '(onboarding)';
+    const onPaywall = first === 'paywall';
     // personality/depth-тесты физически лежат в (onboarding), но их открывают и
     // ПОСЛЕ онбординга как самостоятельные экраны (задачи дня 2–3). Не выкидываем
     // с них на главную — иначе тап по «Узнай тип зависимости» просто мигает домой.
     const reusable = segments[1] === 'personality' || segments[1] === 'depth';
-    if (!hasProfile && !inOnb) router.replace('/(onboarding)/welcome');
-    else if (hasProfile && inOnb && !reusable) router.replace('/(tabs)');
-  }, [ready, hasProfile, segments]);
+    if (!startedProfile && !inOnb) {
+      router.replace('/(onboarding)/welcome');
+    } else if (startedProfile && !completed && !inOnb && !onPaywall) {
+      // Профиль собран, но онбординг не закрыт (оффер не пройден) — возобновляем
+      // воронку на paywall. Покрывает выгрузку приложения прямо на оффере.
+      router.replace('/paywall?onb=1' as any);
+    } else if (completed && inOnb && !reusable) {
+      router.replace('/(tabs)');
+    }
+  }, [ready, startedProfile, completed, segments]);
 
   if (!ready) {
     return (

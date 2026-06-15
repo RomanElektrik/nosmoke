@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, Alert, Linking, AppState, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, spacing, radius } from '../lib/theme';
@@ -85,6 +85,11 @@ const CTA_GRADIENT = ['#1DB85A', '#0A84FF'] as const;
 export default function Paywall() {
   const t = useTheme();
   const router = useRouter();
+  // onb=1 — paywall показан в конце онбординга (после экрана плана). В этом
+  // режиме нет «назад» (план уже заменён): закрытие, триал и оплата ведут
+  // ВПЕРЁД в приложение. Skip = честный переход на бесплатную версию.
+  const { onb } = useLocalSearchParams<{ onb?: string }>();
+  const fromOnb = onb === '1';
   const lang = currentLang();
   const ru = lang === 'ru';
   const [state] = useAppState();
@@ -119,7 +124,7 @@ export default function Paywall() {
           ru ? '7 дней Премиума открыто 🎉' : '7 days of Premium unlocked 🎉',
           ru ? 'Пользуйся всем без ограничений. Напомним за день до конца — без автосписаний.'
              : 'Enjoy everything with no limits. We\'ll remind you a day before it ends — no auto-charges.',
-          [{ text: 'OK', onPress: () => { if (router.canGoBack()) router.back(); } }],
+          [{ text: 'OK', onPress: done }],
         );
       } else {
         await update((s) => ({ ...s, trialUsed: true }));
@@ -168,7 +173,7 @@ export default function Paywall() {
         pendingRef.current = null;
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(ru ? 'Премиум активен 🎉' : 'Premium active 🎉', ru ? 'Спасибо! Все функции открыты.' : 'Thank you! Everything is unlocked.',
-          [{ text: 'OK', onPress: () => router.back() }]);
+          [{ text: 'OK', onPress: done }]);
       } else if (!notifiedRef.current) {
         notifiedRef.current = true; // keep pendingRef for a later re-check
         Alert.alert(ru ? 'Проверяем оплату' : 'Confirming payment',
@@ -194,6 +199,22 @@ export default function Paywall() {
     ru
       ? (n % 10 === 1 && n % 100 !== 11 ? 'неделю' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'недели' : 'недель'))
       : (n === 1 ? 'week' : 'weeks');
+
+  // Куда уходить при закрытии/после успеха. В онбординге — вперёд в приложение
+  // (назад идти некуда, план уже заменён); иначе — назад туда, откуда пришли.
+  async function done() {
+    if (fromOnb) {
+      // Выход из онбординг-воронки — здесь и завершаем онбординг (флаг ставился
+      // не на плане, чтобы гард не проскочил оффер). Платил или нет — неважно:
+      // free-уровень полноценный.
+      await update((s) => ({
+        ...s,
+        profile: s.profile ? { ...s.profile, onboardingComplete: true } : s.profile,
+      }));
+      router.replace('/(tabs)');
+    } else if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)');
+  }
 
   async function devToggle() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -224,7 +245,7 @@ export default function Paywall() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top', 'left', 'right']}>
       {/* Close — floating chip, below the notch and clearly tappable */}
-      <Pressable onPress={() => router.back()} hitSlop={14}
+      <Pressable onPress={done} hitSlop={14}
         style={{
           position: 'absolute', top: insets.top + 6, right: spacing.lg, zIndex: 10,
           width: 34, height: 34, borderRadius: 17,
@@ -457,6 +478,15 @@ export default function Paywall() {
               {ru ? 'Политика' : 'Privacy'}
             </Text>
           </Text>
+          {/* В онбординге даём явно уйти на бесплатную версию — без тёмных
+              паттернов: счётчик, SOS и безопасность доступны и без подписки. */}
+          {fromOnb && !premium && (
+            <Pressable onPress={done} hitSlop={8} style={{ alignItems: 'center', paddingTop: 2, paddingBottom: 2 }}>
+              <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '600' }}>
+                {ru ? 'Продолжить с бесплатной версией' : 'Continue with the free version'}
+              </Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </SafeAreaView>

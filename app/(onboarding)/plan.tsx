@@ -35,7 +35,8 @@ export default function Plan() {
       profile: s.profile ? {
         ...s.profile,
         quitDate: now,
-        onboardingComplete: true,
+        // onboardingComplete НЕ ставим здесь — иначе гард мгновенно уведёт на
+        // /(tabs) до показа оффера. Флаг выставит paywall при выходе (done()).
         currentStep: recommended,
         stepEnteredAt: now,
         identityStatement: identityStatement.trim() || undefined,
@@ -44,7 +45,9 @@ export default function Plan() {
       } : s.profile,
     }));
     await scheduleQuitProgram(now, lang, 8, p.checkInHour ?? 21);
-    router.replace('/(tabs)');
+    // Ага-момент показан → оффер. onb=1 переводит paywall в режим воронки:
+    // закрытие/триал/оплата ведут вперёд в приложение, а не назад на план.
+    router.replace('/paywall?onb=1' as any);
   }
 
   if (!p) return null;
