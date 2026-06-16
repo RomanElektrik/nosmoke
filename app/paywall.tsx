@@ -153,7 +153,15 @@ export default function Paywall() {
           const r = await confirmPayment(pid);
           if (r.until > Date.now()) {
             res = r;
-            await update((s) => ({ ...s, premiumUntil: r.until, premiumPlan: r.plan ?? null, trialUsed: r.trialUsed ?? s.trialUsed }));
+            await update((s) => ({
+              ...s,
+              premiumUntil: r.until,
+              premiumPlan: r.plan ?? null,
+              trialUsed: r.trialUsed ?? s.trialUsed,
+              // Сразу показываем привязанный способ в «Способ оплаты» — не ждём
+              // перезапуска. Если автопродление включено и карта пришла.
+              boundCard: r.autopay && r.card ? r.card : s.boundCard,
+            }));
           }
         } catch {}
         if (!res && i < delays.length) await new Promise((r) => setTimeout(r, delays[i]));
