@@ -3,7 +3,7 @@
 // can test premium-gated features without making a purchase.
 
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, Alert, Linking, AppState, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, Linking, AppState, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -98,7 +98,7 @@ export default function Paywall() {
   const premium = !!state.profile?.devPremium || (!!state.premiumUntil && state.premiumUntil > Date.now());
   const plan = PLANS.find((pl) => pl.id === selected)!;
   const insets = useSafeAreaInsets();
-  const [email, setEmail] = useState('');
+  const [email] = useState('');  // поле ввода убрано; email можно подтянуть из аккаунта позже
   const [busy, setBusy] = useState(false);
   // Пробный доступен, если не премиум, триал не брался и выбран продлеваемый план
   // (для lifetime триал-с-картой бессмыслен — нечего автопродлевать).
@@ -407,19 +407,9 @@ export default function Paywall() {
           </View>
         )}
 
-        {/* Email — for the receipt (чек) and restoring on another device */}
-        {!premium && (
-          <View style={{ gap: 8 }}>
-            <TextInput
-              value={email} onChangeText={setEmail}
-              placeholder={ru ? 'Email для чека (необязательно)' : 'Email for receipt (optional)'}
-              placeholderTextColor={t.textDim}
-              keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
-              style={{ backgroundColor: t.bgElev, color: t.text, paddingHorizontal: 14, paddingVertical: 13, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, fontSize: 14.5 }}
-            />
-            {/* Восстановление — через «Вход с Apple» (только если ещё не вошёл) */}
-            {!signedIn && <AppleSignInButton style={{ marginTop: 4 }} dark />}
-          </View>
+        {/* Восстановление — через «Вход с Apple» (только если ещё не вошёл) */}
+        {!premium && !signedIn && (
+          <AppleSignInButton style={{ marginTop: 4 }} dark />
         )}
 
         {/* Dev mode toggle — dev builds only, never in TestFlight/production */}
