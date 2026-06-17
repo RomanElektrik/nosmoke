@@ -251,6 +251,13 @@ export default function ChatScreen() {
           </Pressable>
         </View>
 
+        {/* Видимый мед-дисклеймер (wellness-правило: на каждом экране, не в подвале) */}
+        <Text style={{ color: t.textDim, fontSize: 11, lineHeight: 15, paddingHorizontal: spacing.md, paddingBottom: 8, textAlign: 'center' }}>
+          {lang === 'ru'
+            ? 'Не медицинская консультация. При тяжёлом состоянии — к врачу или 112.'
+            : 'Not medical advice. In severe distress, call your local emergency line.'}
+        </Text>
+
         <ScrollView ref={scrollRef} contentContainerStyle={{ padding: spacing.md, gap: 10, paddingTop: 0 }}
           keyboardShouldPersistTaps="handled">
           {history.map((msg, i) => {

@@ -1,9 +1,9 @@
-// Paywall screen — UI complete, real IAP not wired yet.
-// "Включить (dev)" flips the local devPremium flag so the developer
-// can test premium-gated features without making a purchase.
+// Paywall screen. Реальная оплата подключена через ЮKassa (РФ: Apple IAP
+// недоступен, внешняя оплата разрешена ФАС). Триал — с привязкой карты (1 ₽
+// возвращается). DEV-блок «Включить (dev)» — только __DEV__, для теста гейтов.
 
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, Alert, Linking, AppState, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, Linking, AppState, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -95,10 +95,10 @@ export default function Paywall() {
   const [state] = useAppState();
   const [selected, setSelected] = useState<PlanId>('yearly');
   const features = ru ? FEATURES_RU : FEATURES_EN;
-  const premium = !!state.profile?.devPremium || (!!state.premiumUntil && state.premiumUntil > Date.now());
+  const premium = (__DEV__ && !!state.profile?.devPremium) || (!!state.premiumUntil && state.premiumUntil > Date.now());
   const plan = PLANS.find((pl) => pl.id === selected)!;
   const insets = useSafeAreaInsets();
-  const [email] = useState('');  // поле ввода убрано; email можно подтянуть из аккаунта позже
+  const [email, setEmail] = useState('');  // для фискального чека (54-ФЗ)
   const [busy, setBusy] = useState(false);
   // Пробный доступен, если не премиум, триал не брался и выбран продлеваемый план
   // (для lifetime триал-с-картой бессмыслен — нечего автопродлевать).
@@ -186,8 +186,8 @@ export default function Paywall() {
         pendingRef.current = null;
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         if (res.plan === 'trial') {
-          try { await scheduleTrialEndReminder(res.until, lang); } catch {}
           const amt = res.renewPlan === 'monthly' ? (ru ? '399 ₽' : '$5.99') : (ru ? '1990 ₽' : '$29.99');
+          try { await scheduleTrialEndReminder(res.until, lang, amt); } catch {}
           const dateStr = new Date(res.until).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long' });
           Alert.alert(
             ru ? '7 дней бесплатно начались 🎉' : '7 free days started 🎉',
@@ -407,9 +407,19 @@ export default function Paywall() {
           </View>
         )}
 
-        {/* Восстановление — через «Вход с Apple» (только если ещё не вошёл) */}
-        {!premium && !signedIn && (
-          <AppleSignInButton style={{ marginTop: 4 }} dark />
+        {/* Email — адрес доставки фискального чека (54-ФЗ). Чек уйдёт сюда, только
+            если к магазину ЮKassa подключена онлайн-касса. + восстановление по Apple. */}
+        {!premium && (
+          <View style={{ gap: 8 }}>
+            <TextInput
+              value={email} onChangeText={setEmail}
+              placeholder={ru ? 'Email для чека (необязательно)' : 'Email for receipt (optional)'}
+              placeholderTextColor={t.textDim}
+              keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
+              style={{ backgroundColor: t.bgElev, color: t.text, paddingHorizontal: 14, paddingVertical: 13, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, fontSize: 14.5 }}
+            />
+            {!signedIn && <AppleSignInButton style={{ marginTop: 4 }} dark />}
+          </View>
         )}
 
         {/* Dev mode toggle — dev builds only, never in TestFlight/production */}

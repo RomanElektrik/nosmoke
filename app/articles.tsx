@@ -20,7 +20,12 @@ export default function Articles() {
   // so an array-order slice could leave the top cards locked). Building the flat
   // display order guarantees the top 3 of the list are always free.
   const displayOrder = ORDER.flatMap((cat) => ARTICLES.filter((a) => a.category === cat));
-  const freeIds = new Set(displayOrder.slice(0, 3).map((a) => a.id));
+  const freeIds = new Set([
+    ...displayOrder.slice(0, 3).map((a) => a.id),
+    // 🔴 Безопасность лекарств — НИКОГДА не за деньги (wellness-правило проекта):
+    // противопоказания и «назначает только врач» должны быть доступны бесплатно.
+    ...ARTICLES.filter((a) => a.category === 'meds').map((a) => a.id),
+  ]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>

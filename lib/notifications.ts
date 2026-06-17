@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { MILESTONES } from './health';
+import { abstinenceStartMs } from './stepped';
 import type { Profile } from './storage';
 
 Notifications.setNotificationHandler({
@@ -37,10 +38,14 @@ type T = (ru: string, en: string) => string;
 // • Day 4–7: morning hot-zone + evening reflection.
 // • Day 8–14: morning + check-in.
 // • After day 14: occasional + milestones.
-export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en', wakeHour = 8, checkInHour = 21) {
+export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en', wakeHour = 8, checkInHour = 21, healthAnchorMs?: number) {
   await Notifications.cancelAllScheduledNotificationsAsync();
   const t: T = (ru, en) => (locale === 'ru' ? ru : en);
   const now = Date.now();
+  // Вехи здоровья считаем от ДНЯ ОТКАЗА ОТ НИКОТИНА (на фарме он сдвинут на
+  // grace-период титрования), а не от quitDate — иначе пуш «лёгкие восстановились»
+  // прилетал на 4–7 дней раньше, чем веха открывается на экране Прогресса.
+  const healthAnchor = healthAnchorMs ?? quitDateMs;
 
   // Якорим на ПОЛНОЧЬ дня отказа, а не на момент. Иначе «утро» считалось от
   // времени, когда человек бросил: бросил в 09:08 → at(1,8) = +1д +8ч = 17:08,
@@ -114,7 +119,7 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
 
   // ---------- HEALTH milestones (first 6 only) --------------
   for (const m of MILESTONES.slice(0, 6)) {
-    await schedule(quitDateMs + m.at * 1000,
+    await schedule(healthAnchor + m.at * 1000,
       t('Веха достигнута', 'Milestone reached'),
       t('В разделе «Здоровье» — новое восстановление.', 'In Health — a new recovery just unlocked.'),
       '/(tabs)/progress',
@@ -224,19 +229,23 @@ export async function scheduleWeeklyReflection(locale: 'ru' | 'en') {
 // Напоминание за сутки до конца пробного периода → мягкий paywall. Фикс-id, чтобы
 // перепланирование заменяло, а не плодило. Ставить после rescheduleAll (её
 // cancelAll иначе сотрёт это напоминание).
-export async function scheduleTrialEndReminder(untilMs: number, locale: 'ru' | 'en') {
+export async function scheduleTrialEndReminder(untilMs: number, locale: 'ru' | 'en', renewAmount?: string) {
   const id = 'trial-end';
   try { await Notifications.cancelScheduledNotificationAsync(id); } catch {}
   const fire = untilMs - 86400_000;
   if (fire <= Date.now()) return;
   const t: T = (ru, en) => (locale === 'ru' ? ru : en);
+  const amt = renewAmount ? ` ${renewAmount}` : '';
   try {
     await Notifications.scheduleNotificationAsync({
       identifier: id,
       content: {
-        title: t('Пробный период заканчивается завтра', 'Your free trial ends tomorrow'),
-        body: t('Оформи Премиум, чтобы не потерять безлимит ИИ, аудио и аналитику.', 'Subscribe to keep unlimited AI, audio and analytics.'),
-        data: { url: '/paywall' },
+        // Триал с привязкой карты → продлится АВТОМАТИЧЕСКИ. Честно говорим про
+        // списание и куда нажать, чтобы отменить (не «оформи» — это dark pattern).
+        title: t('Пробный заканчивается завтра', 'Your free trial ends tomorrow'),
+        body: t(`Завтра спишется${amt} и Премиум продлится. Не хочешь продолжать — отмени в «Способ оплаты» сегодня.`,
+                `Tomorrow${amt} will be charged and Premium continues. To stop it, cancel in “Payment method” today.`),
+        data: { url: '/payment-method' },
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(fire) },
     });
@@ -249,7 +258,7 @@ export async function scheduleTrialEndReminder(untilMs: number, locale: 'ru' | '
 // запуске), restart() (новый старт после срыва) и transition (смена ступени),
 // чтобы планы не «терялись» до следующего холодного запуска.
 export async function rescheduleAll(p: Profile, locale: 'ru' | 'en') {
-  await scheduleQuitProgram(p.quitDate, locale, 8, p.checkInHour ?? 21);
+  await scheduleQuitProgram(p.quitDate, locale, 8, p.checkInHour ?? 21, abstinenceStartMs(p));
   if (p.medication && p.medicationStartedAt) {
     await scheduleMedicationDoses(locale, p.medication, p.medicationStartedAt);
   }

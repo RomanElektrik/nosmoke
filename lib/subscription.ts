@@ -1,7 +1,6 @@
-// Subscription / Premium gating — local-only for now.
-// A dev toggle in Profile flips `devPremium` so the developer can test
-// both states without real IAP. When the real RevenueCat layer is wired,
-// `usePremium()` will combine the dev flag with the real entitlement.
+// Subscription / Premium gating. Реальная оплата подключена через ЮKassa
+// (lib/billing.ts + серверный рекуррент). `devPremium` — dev-only тоггл из
+// профиля для теста заблокированных фич; в проде он не выставляется и не читается.
 
 import { useAppState } from './storage';
 
@@ -19,10 +18,12 @@ export const FREE_ARTICLE_COUNT = 3;
 /** First N audio practices (by PRACTICES order) are free; the rest are premium. */
 export const FREE_PRACTICE_COUNT = 3;
 
-/** Only cold-turkey is free; tapering & pharmacotherapy steps are premium. */
-export function isStepPremium(stepId: string | undefined): boolean {
-  if (!stepId) return false;
-  return stepId !== 'L1_behavioral';
+/** 🔴 Ступени (в т.ч. фарма — цитизин/бупропион/варениклин) и вся безопасность
+ *  ВСЕГДА бесплатны — wellness-правило: нельзя брать деньги за доступ к
+ *  информации о препаратах. Функция оставлена возвращающей false, чтобы случайное
+ *  «гейтнуть по аналогии» не запёрло мед-блок за paywall. */
+export function isStepPremium(_stepId: string | undefined): boolean {
+  return false;
 }
 
 export function isTechniquePremium(techId: string, tags?: readonly string[]): boolean {
@@ -33,7 +34,9 @@ export function isTechniquePremium(techId: string, tags?: readonly string[]): bo
  *  server-validated ЮKassa subscription that hasn't expired. */
 export function usePremium(): boolean {
   const [state] = useAppState();
-  if (state.profile?.devPremium) return true;
+  // devPremium — только в dev-сборке. На чтении тоже гейтим __DEV__, чтобы
+  // случайно persist'нутый флаг не дал вечный премиум в проде (один bundleId).
+  if (__DEV__ && state.profile?.devPremium) return true;
   return !!state.premiumUntil && state.premiumUntil > Date.now();
 }
 

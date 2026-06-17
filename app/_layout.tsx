@@ -78,12 +78,16 @@ export default function Root() {
           premiumUntil: sub.premium ? sub.until : 0,
           premiumPlan: sub.premium ? (sub.plan ?? null) : null,
           trialUsed: sub.trialUsed ?? prev.trialUsed,
-          boundCard: sub.autopay ? (sub.card ?? prev.boundCard) : (prev.boundCard === undefined ? undefined : prev.boundCard),
+          // autopay=false (метод не сохранён / отвязали на другом устройстве) →
+          // чистим карту, иначе «Способ оплаты» показывал бы призрак.
+          boundCard: sub.autopay ? (sub.card ?? prev.boundCard) : null,
         }));
         // Напоминание о конце триала ставим ПОСЛЕ rescheduleAll (её cancelAll выше
         // иначе сотрёт его). Только если сейчас активен именно пробный период.
         if (sub && sub.premium && sub.plan === 'trial') {
-          await scheduleTrialEndReminder(sub.until, currentLang());
+          const ruL = currentLang() === 'ru';
+          const amt = sub.renewPlan === 'monthly' ? (ruL ? '399 ₽' : '$5.99') : (ruL ? '1990 ₽' : '$29.99');
+          await scheduleTrialEndReminder(sub.until, currentLang(), amt);
         }
       } catch {}
       setReady(true);
