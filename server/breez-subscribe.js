@@ -29,8 +29,11 @@ const PLANS = {
   monthly:  { amount: 399,  days: 30,  title: 'Бриз Премиум — месяц' },
   yearly:   { amount: 1990, days: 365, title: 'Бриз Премиум — год' },
   lifetime: { amount: 3990, days: 0,   title: 'Бриз Премиум — навсегда', lifetime: true },
-  test:     { amount: 10,   days: 1,   title: 'Бриз — проверка оплаты' }, // ВРЕМЕННЫЙ, убрать перед релизом
 };
+// Белый список оплачиваемых планов — публичный API не должен принимать
+// служебные ключи (раньше утекал тестовый план 10 ₽).
+const PAY_PLANS = ['monthly', 'yearly', 'lifetime'];
+const RECUR_PLANS = ['monthly', 'yearly']; // только эти сохраняют способ для автопродления
 
 const isDevice = (d) => typeof d === 'string' && /^[0-9a-fA-F-]{8,64}$/.test(d);
 
@@ -153,6 +156,21 @@ function revoke(deviceId) {
   putRec(deviceId, s);
 }
 
+// Снять премиум по ВЛАДЕЛЬЦУ записи (ownerKey из metadata.owner рекуррентного
+// платежа). Для продлений deviceId в metadata нет — есть owner (ключ store:
+// deviceId или accountId). Используется webhook'ом возврата.
+function revokeByOwner(ownerKey) {
+  const rec = accounts[ownerKey] || subs[ownerKey];
+  if (!rec) return false;
+  rec.paidUntil = Date.now() - 1000;
+  rec.lifetime = false;
+  rec.paymentMethodId = null;
+  rec.card = null;
+  rec.updatedAt = Date.now();
+  if (accounts[ownerKey]) saveAcc(); else saveStore(subs);
+  return true;
+}
+
 async function ykCreate({ amount, description, deviceId, plan, email }) {
   const validEmail = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined;
   const body = {
@@ -160,7 +178,7 @@ async function ykCreate({ amount, description, deviceId, plan, email }) {
     capture: true,
     description,
     confirmation: { type: 'redirect', return_url: RETURN_URL + '?d=' + encodeURIComponent(deviceId) },
-    save_payment_method: plan !== 'lifetime', // рекуррент включён ЮKassa (магазин 1382668) — карта сохраняется для автопродления (кроме «навсегда»)
+    save_payment_method: RECUR_PLANS.includes(plan), // сохраняем способ только для продлеваемых планов (monthly/yearly)
     metadata: { kind: 'briz-sub', deviceId, plan, email: validEmail || '' },
   };
   if (validEmail) {
@@ -472,7 +490,7 @@ async function renewSweep() {
       if (now > rec.paidUntil + 5 * 86400_000) continue;     // поздно — пусть лапсится
       if (rec.lastRenewAt && now - rec.lastRenewAt < 12 * 3600_000) continue; // троттл
       rec.lastRenewAt = now;
-      if (store === 'subs') dSubs = true; else dAcc = true;
+      if (store === 'subs') { dSubs = true; saveStore(subs); } else { dAcc = true; saveAcc(); } // фиксируем троттл ДО списания
       try {
         const pay = await ykChargeSaved(rec.paymentMethodId, rp.amount, rp.title, key, rec.renewPlan, rec.email, rec.paidUntil);
         if (pay && pay.status === 'succeeded' && pay.paid) {
@@ -492,7 +510,7 @@ async function renewSweep() {
     if (now > rec.paidUntil + 5 * 86400_000) continue;    // поздно — пусть лапсится, не списываем
     if (rec.lastRenewAt && now - rec.lastRenewAt < 12 * 3600_000) continue; // троттл попыток
     rec.lastRenewAt = now;
-    if (store === 'subs') dSubs = true; else dAcc = true;
+    if (store === 'subs') { dSubs = true; saveStore(subs); } else { dAcc = true; saveAcc(); } // фиксируем троттл ДО списания
     try {
       const pay = await ykChargeSaved(rec.paymentMethodId, p.amount, p.title, key, rec.plan, rec.email, rec.paidUntil);
       if (pay && pay.status === 'succeeded' && pay.paid) {
@@ -516,7 +534,7 @@ module.exports = function attach(app) {
       if (!SHOP_ID || !SECRET_KEY) return res.status(503).json({ error: 'not configured' });
       const { deviceId, plan, email } = req.body || {};
       if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
-      const P = PLANS[plan]; if (!P) return res.status(400).json({ error: 'bad plan' });
+      const P = PAY_PLANS.includes(plan) ? PLANS[plan] : null; if (!P) return res.status(400).json({ error: 'bad plan' });
       const payment = await ykCreate({ amount: P.amount, description: P.title, deviceId, plan, email });
       res.json({ id: payment.id, status: payment.status, confirmation_url: payment?.confirmation?.confirmation_url || null });
     } catch (e) {
@@ -534,7 +552,7 @@ module.exports = function attach(app) {
       if (!SHOP_ID || !SECRET_KEY) return res.status(503).json({ error: 'not configured' });
       const { deviceId, plan, paymentToken, email } = req.body || {};
       if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
-      const P = PLANS[plan]; if (!P) return res.status(400).json({ error: 'bad plan' });
+      const P = PAY_PLANS.includes(plan) ? PLANS[plan] : null; if (!P) return res.status(400).json({ error: 'bad plan' });
       if (!paymentToken || typeof paymentToken !== 'string') return res.status(400).json({ error: 'bad token' });
       const validEmail = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined;
       const body = {
@@ -542,7 +560,7 @@ module.exports = function attach(app) {
         capture: true,
         payment_token: paymentToken,
         description: P.title,
-        save_payment_method: plan !== 'lifetime', // рекуррент включён ЮKassa (магазин 1382668) — карта сохраняется для автопродления (кроме «навсегда»)
+        save_payment_method: RECUR_PLANS.includes(plan), // сохраняем способ только для продлеваемых планов (monthly/yearly)
         metadata: { kind: 'briz-sub', deviceId, plan, email: validEmail || '' },
       };
       if (validEmail) {
@@ -605,8 +623,12 @@ module.exports = function attach(app) {
           const m = pay && pay.metadata;
           if (m && m.kind === 'briz-sub' && isDevice(m.deviceId)) {
             revoke(m.deviceId);
-            console.log('[briz] webhook refund → revoke:', m.deviceId);
+            console.log('[briz] webhook refund → revoke device:', m.deviceId);
+          } else if (m && m.kind === 'briz-sub-renew' && m.owner) {
+            // Возврат за ПРОДЛЕНИЕ (deviceId нет, есть owner) — снимаем по владельцу.
+            if (revokeByOwner(m.owner)) console.log('[briz] webhook refund → revoke owner:', m.owner.slice(0, 8) + '…');
           }
+          // briz-trial-bind (1 ₽ привязки) НЕ ревокаем — это наш собственный возврат.
         } catch (e) { console.error('[briz] webhook refund verify:', e.message); }
       }
       res.status(200).send('OK');
