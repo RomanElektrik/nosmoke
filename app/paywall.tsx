@@ -191,8 +191,8 @@ export default function Paywall() {
           const dateStr = new Date(res.until).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long' });
           Alert.alert(
             ru ? '7 дней бесплатно начались 🎉' : '7 free days started 🎉',
-            ru ? `Карта привязана, 1 ₽ вернётся. ${amt} спишется ${dateStr} — отменить можно в «Способ оплаты» до этой даты.`
-               : `Card saved, the ₽1 is refunded. ${amt} on ${dateStr} — cancel anytime in “Payment method”.`,
+            ru ? `Способ оплаты привязан, 1 ₽ вернётся. ${amt} спишется ${dateStr} — отменить можно в «Способ оплаты» до этой даты.`
+               : `Payment method saved, the ₽1 is refunded. ${amt} on ${dateStr} — cancel anytime in “Payment method”.`,
             [{ text: 'OK', onPress: done }]);
         } else {
           Alert.alert(ru ? 'Премиум активен 🎉' : 'Premium active 🎉', ru ? 'Спасибо! Все функции открыты.' : 'Thank you! Everything is unlocked.',
@@ -494,8 +494,8 @@ export default function Paywall() {
               ? (ru ? 'Разовый платёж · ' : 'One-time payment · ')
               : eligibleForTrial
                 ? (ru
-                    ? `Привяжем карту (спишем и сразу вернём 1 ₽). После 7 дней — ${plan.ctaPriceRu} ${plan.ctaPeriodRu}, продлевается автоматически, отменить в «Способ оплаты» · `
-                    : `We save your card (₽1 charged then refunded). After 7 days — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}, auto-renews, cancel in “Payment method” · `)
+                    ? `Привяжем способ оплаты (спишем и сразу вернём 1 ₽). После 7 дней — ${plan.ctaPriceRu} ${plan.ctaPeriodRu}, продлевается автоматически, отменить в «Способ оплаты» · `
+                    : `We save your payment method (₽1 charged then refunded). After 7 days — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}, auto-renews, cancel in “Payment method” · `)
                 : (ru ? 'Продлевается автоматически, отменить в «Способ оплаты» · ' : 'Auto-renews, cancel in “Payment method” · ')}
             <Text style={{ color: t.info }} onPress={() => Linking.openURL(TERMS_URL)}>
               {ru ? 'Условия' : 'Terms'}

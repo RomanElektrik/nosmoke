@@ -195,7 +195,9 @@ async function ykBindTrial({ deviceId, renewPlan, email }) {
     amount: { value: TRIAL_BIND_AMOUNT.toFixed(2), currency: 'RUB' },
     capture: true,
     save_payment_method: true,
-    payment_method_data: { type: 'bank_card' }, // только карта — без СБП
+    // Все методы (карта/СБП/SberPay) — пользователь выбирает на странице ЮKassa.
+    // Если у метода нет сохранения для рекуррента (СБП-автоплатёж не активирован),
+    // applyTrialBind вернёт 1 ₽ и не выдаст «висячий» триал без возможности списать.
     confirmation: { type: 'redirect', return_url: RETURN_URL + '?d=' + encodeURIComponent(deviceId) },
     description: 'Бриз — привязка карты для пробного периода',
     metadata: { kind: 'briz-trial-bind', deviceId, renewPlan, email: validEmail || '' },
