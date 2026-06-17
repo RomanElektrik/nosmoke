@@ -120,9 +120,23 @@ export default function Paywall() {
     setBusy(true);
     try {
       const renewPlan = selected === 'monthly' ? 'monthly' : 'yearly';
-      const { id, confirmation_url } = await startTrialWithCard(renewPlan, email.trim() || undefined);
-      pendingRef.current = id;            // подтвердится по возвращении в приложение
-      await Linking.openURL(confirmation_url);
+      const r = await startTrialWithCard(renewPlan, email.trim() || undefined);
+      if (r.confirmation_url) {
+        pendingRef.current = r.id ?? null;   // подтвердится по возвращении в приложение
+        await Linking.openURL(r.confirmation_url);
+      } else if (r.premium) {
+        // Сервер отказал: уже есть активная подписка. Синхронизируем статус.
+        await update((s) => ({ ...s, premiumUntil: r.until, premiumPlan: r.plan ?? s.premiumPlan, trialUsed: r.trialUsed ?? s.trialUsed }));
+        Alert.alert(ru ? 'У тебя уже есть Премиум' : 'You already have Premium',
+          ru ? 'Подписка активна — пробный не нужен.' : 'Your subscription is active — no trial needed.');
+      } else if (r.trialUsed) {
+        await update((s) => ({ ...s, trialUsed: true }));
+        Alert.alert(ru ? 'Пробный уже использован' : 'Trial already used',
+          ru ? 'Оформи Премиум, чтобы продолжить.' : 'Subscribe to keep going.');
+      } else {
+        Alert.alert(ru ? 'Не удалось начать пробный' : 'Could not start trial',
+          ru ? 'Попробуй ещё раз чуть позже.' : 'Please try again in a moment.');
+      }
     } catch (e: any) {
       pendingRef.current = null;
       Alert.alert(ru ? 'Не удалось начать пробный' : 'Could not start trial',

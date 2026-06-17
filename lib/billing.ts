@@ -45,11 +45,11 @@ async function postJson(path: string, body: Record<string, unknown>): Promise<an
 // списания после 7 дней. Возвращает ссылку оплаты — дальше как обычная покупка:
 // открываем браузер, после 3DS подтверждаем через confirmPayment(). plan — что
 // спишется ПОСЛЕ триала (monthly/yearly).
-export async function startTrialWithCard(plan: 'monthly' | 'yearly', email?: string): Promise<{ id: string; confirmation_url: string }> {
+export async function startTrialWithCard(plan: 'monthly' | 'yearly', email?: string): Promise<{ id?: string; confirmation_url?: string } & SubStatus> {
   const deviceId = await getDeviceId();
-  const j = await postJson('/trial/bind', { deviceId, plan, email });
-  if (!j.confirmation_url) throw new Error('no confirmation url');
-  return { id: j.id, confirmation_url: j.confirmation_url };
+  // Может вернуть ссылку (нужно открыть браузер) ИЛИ статус без ссылки, если
+  // сервер отказал по идемпотентности (уже премиум / триал использован).
+  return postJson('/trial/bind', { deviceId, plan, email });
 }
 
 // Legacy: пробный без карты (старый путь, новый клиент использует
