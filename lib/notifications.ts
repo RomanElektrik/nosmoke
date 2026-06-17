@@ -42,8 +42,12 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
   const t: T = (ru, en) => (locale === 'ru' ? ru : en);
   const now = Date.now();
 
+  // Якорим на ПОЛНОЧЬ дня отказа, а не на момент. Иначе «утро» считалось от
+  // времени, когда человек бросил: бросил в 09:08 → at(1,8) = +1д +8ч = 17:08,
+  // и «Доброе утро» прилетало вечером. (РФ без переходов на летнее время.)
+  const dayBase = (() => { const d = new Date(quitDateMs); d.setHours(0, 0, 0, 0); return d.getTime(); })();
   const at = (dayOffset: number, hour: number, minute = 0) =>
-    quitDateMs + dayOffset * 86400_000 + hour * 3600_000 + minute * 60_000;
+    dayBase + dayOffset * 86400_000 + hour * 3600_000 + minute * 60_000;
 
   // `url` rides in the payload — the response listener in app/_layout.tsx
   // routes there, so a push lands the user in the right tool, not on Home.

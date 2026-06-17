@@ -94,11 +94,15 @@ export function playTrack(source: number | string, opts: { rate?: number; id?: s
   try {
     const player = createAudioPlayer(typeof source === 'number' ? source : { uri: source });
     active = player;
+    let started = false;
     try { player.volume = 1.0; } catch {}
     applyRate(player, rate);
     const sub = player.addListener('playbackStatusUpdate', (st: any) => {
       if (my !== epoch) { try { sub?.remove?.(); } catch {} try { player.pause?.(); } catch {} try { player.remove?.(); } catch {} return; }
       if (st?.error) console.warn('[audio] track error', st.error);
+      // Играем по событию «загружено», а не сразу: при быстрой смене трека
+      // (перелистывание практик) play() до загрузки был no-op → тишина.
+      if (st?.isLoaded && !started) { started = true; applyRate(player, rate); try { player.play(); } catch {} }
       // Authoritative position/duration come from the status event, not from
       // reading player.currentTime directly (that stays stale/0 on device).
       trackStat = {
