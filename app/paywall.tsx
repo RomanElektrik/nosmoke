@@ -111,7 +111,7 @@ export default function Paywall() {
     return () => { alive = false; };
   }, []);
 
-  // Старт пробного С КАРТОЙ: сервер создаёт привязочный платёж 1 ₽ (вернётся),
+  // Старт пробного «7 дней за 1 ₽»: сервер создаёт платёж 1 ₽ (цена пробного, НЕ возвращается),
   // открываем браузер для ввода карты + 3DS. Премиум/trialUsed выставит хук
   // подтверждения по возвращении — как обычная покупка. Сбой 3DS не жжёт триал.
   async function startFreeTrial() {
@@ -190,9 +190,9 @@ export default function Paywall() {
           try { await scheduleTrialEndReminder(res.until, lang, amt); } catch {}
           const dateStr = new Date(res.until).toLocaleDateString(ru ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long' });
           Alert.alert(
-            ru ? '7 дней бесплатно начались 🎉' : '7 free days started 🎉',
-            ru ? `Способ оплаты привязан, 1 ₽ вернётся. ${amt} спишется ${dateStr} — отменить можно в «Способ оплаты» до этой даты.`
-               : `Payment method saved, the ₽1 is refunded. ${amt} on ${dateStr} — cancel anytime in “Payment method”.`,
+            ru ? '7 дней за 1 ₽ начались 🎉' : '7 days for ₽1 started 🎉',
+            ru ? `Готово. ${amt} спишется ${dateStr} — отменить можно в «Способ оплаты» до этой даты.`
+               : `Done. ${amt} on ${dateStr} — cancel anytime in “Payment method”.`,
             [{ text: 'OK', onPress: done }]);
         } else {
           Alert.alert(ru ? 'Премиум активен 🎉' : 'Premium active 🎉', ru ? 'Спасибо! Все функции открыты.' : 'Thank you! Everything is unlocked.',
@@ -460,7 +460,7 @@ export default function Paywall() {
                   }}>
                   {busy && <ActivityIndicator color="#fff" />}
                   <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.2 }}>
-                    {busy ? (ru ? 'Открываю…' : 'Opening…') : (ru ? 'Начать 7 дней бесплатно' : 'Start 7 days free')}
+                    {busy ? (ru ? 'Открываю…' : 'Opening…') : (ru ? 'Попробовать 7 дней за 1 ₽' : 'Try 7 days for ₽1')}
                   </Text>
                 </LinearGradient>
               </Pressable>
@@ -494,8 +494,8 @@ export default function Paywall() {
               ? (ru ? 'Разовый платёж · ' : 'One-time payment · ')
               : eligibleForTrial
                 ? (ru
-                    ? `Привяжем способ оплаты (спишем и сразу вернём 1 ₽). После 7 дней — ${plan.ctaPriceRu} ${plan.ctaPeriodRu}, продлевается автоматически, отменить в «Способ оплаты» · `
-                    : `We save your payment method (₽1 charged then refunded). After 7 days — ${plan.ctaPriceEn} ${plan.ctaPeriodEn}, auto-renews, cancel in “Payment method” · `)
+                    ? `7 дней за 1 ₽. После — ${plan.ctaPriceRu} ${plan.ctaPeriodRu}, продлевается автоматически, отменить в «Способ оплаты» · `
+                    : `7 days for ₽1. Then ${plan.ctaPriceEn} ${plan.ctaPeriodEn}, auto-renews, cancel in “Payment method” · `)
                 : (ru ? 'Продлевается автоматически, отменить в «Способ оплаты» · ' : 'Auto-renews, cancel in “Payment method” · ')}
             <Text style={{ color: t.info }} onPress={() => Linking.openURL(TERMS_URL)}>
               {ru ? 'Условия' : 'Terms'}

@@ -242,7 +242,7 @@ export async function scheduleTrialEndReminder(untilMs: number, locale: 'ru' | '
       content: {
         // Триал с привязкой карты → продлится АВТОМАТИЧЕСКИ. Честно говорим про
         // списание и куда нажать, чтобы отменить (не «оформи» — это dark pattern).
-        title: t('Пробный заканчивается завтра', 'Your free trial ends tomorrow'),
+        title: t('Пробный заканчивается завтра', 'Your trial ends tomorrow'),
         body: t(`Завтра спишется${amt} и Премиум продлится. Не хочешь продолжать — отмени в «Способ оплаты» сегодня.`,
                 `Tomorrow${amt} will be charged and Premium continues. To stop it, cancel in “Payment method” today.`),
         data: { url: '/payment-method' },

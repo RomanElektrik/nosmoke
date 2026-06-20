@@ -287,9 +287,10 @@ function applyPayment(pay, expectDevice) {
 }
 
 // Применить ПРИВЯЗКУ КАРТЫ под триал (kind='briz-trial-bind'). Выдаёт 7 дней
-// премиума, сохраняет карту для списания после триала, и СРАЗУ возвращает 1 ₽.
-// Идемпотентно по pay.id. Если карта не сохранилась — триал НЕ выдаём (нечем
-// списывать потом) и 1 ₽ всё равно возвращаем. async — делает рефанд.
+// премиума на 7 дней. Модель «7 дней за 1 ₽»: 1 ₽ — это цена пробного, НЕ
+// возвращаем (так нет возни с лимитами/правами на возврат). Если способ
+// сохранился — после 7 дней спишется полная цена renewPlan; если нет — триал
+// просто закончится. Идемпотентно по pay.id.
 async function applyTrialBind(pay, expectDevice) {
   const m = pay && pay.metadata;
   if (!pay || pay.status !== 'succeeded' || !pay.paid) return false;
@@ -297,16 +298,11 @@ async function applyTrialBind(pay, expectDevice) {
   if (!isDevice(m.deviceId)) return false;
   if (expectDevice && m.deviceId !== expectDevice) return false;
   const cur = getRec(m.deviceId);
-  // Уже применён этот платёж — выходим (без повторного начисления/рефанда).
+  // Уже применён этот платёж — выходим (без повторного начисления).
   if (cur && Array.isArray(cur.applied) && cur.applied.includes(pay.id)) return true;
   const pm = pay.payment_method;
-  const amount = parseFloat((pay.amount && pay.amount.value) || TRIAL_BIND_AMOUNT);
-  // Карта обязана сохраниться — иначе после триала нечем списывать.
-  if (!pm || !pm.saved || !pm.id) {
-    try { await ykRefund(pay.id, amount); } catch {}
-    return false;
-  }
-  const method = savedMethodOf(pm);
+  const saved = !!(pm && pm.saved && pm.id);
+  const method = saved ? savedMethodOf(pm) : ((cur && cur.card) || null);
   const now = Date.now();
   putRec(m.deviceId, {
     ...(cur || {}),
@@ -315,21 +311,16 @@ async function applyTrialBind(pay, expectDevice) {
     paidUntil: now + TRIAL_DAYS * 86400_000,
     trialUsed: true,
     renewPlan: m.renewPlan,                 // что спишется ПОСЛЕ триала
-    paymentMethodId: pm.id,
+    paymentMethodId: saved ? pm.id : ((cur && cur.paymentMethodId) || null),
     card: method,
     email: m.email || (cur && cur.email) || undefined,
     bindPaymentId: pay.id,
-    // lastPaymentId НЕ ставим на привязку — иначе reverify увидит возврат 1 ₽
-    // и снимет премиум. Для идемпотентности достаточно applied[].
     applied: [...((cur && cur.applied) || []), pay.id].slice(-50),
     trialChargeDone: false,
     lastRenewAt: 0,
     updatedAt: now,
   });
-  // Возвращаем 1 ₽ привязки — триал честно бесплатный. Идемпотентно по ключу.
-  try { await ykRefund(pay.id, amount); }
-  catch (e) { console.error('[briz] trial refund:', e.message); }
-  console.log('[briz] trial bound:', m.deviceId.slice(0, 8) + '… →', m.renewPlan);
+  console.log('[briz] trial 1₽:', m.deviceId.slice(0, 8) + '… →', m.renewPlan, saved ? '+card' : '(no recur)');
   return true;
 }
 
