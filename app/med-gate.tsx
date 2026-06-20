@@ -63,14 +63,17 @@ export default function MedGate() {
     if (!canActivate || !med) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const startMs = Date.now();
-    await update((s) => ({
-      ...s,
-      profile: s.profile ? { ...s.profile, medication: med, medicationStartedAt: startMs } : s.profile,
-    }));
+    try {
+      await update((s) => ({
+        ...s,
+        profile: s.profile ? { ...s.profile, medication: med, medicationStartedAt: startMs } : s.profile,
+      }));
+    } catch {}
     try {
       const { scheduleMedicationDoses } = await import('../lib/notifications');
       await scheduleMedicationDoses(lang, med, startMs);
     } catch {}
+    // Переход — всегда, даже если сохранение/планировщик упали (не залипаем).
     (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
   }
 

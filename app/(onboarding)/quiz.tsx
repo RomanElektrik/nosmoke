@@ -92,7 +92,8 @@ export default function Quiz() {
       age: Number(age) || undefined,
       healthFlags,
     };
-    await update((s) => ({ ...s, profile }));
+    // Переход на план — всегда, даже если запись профиля сорвалась (не залипаем).
+    try { await update((s) => ({ ...s, profile })); } catch {}
     // Straight to the plan: the personality test and the past-attempts deep
     // dive moved to day 2–3 tasks — 11 extra screens killed onboarding.
     router.replace('/(onboarding)/plan');
