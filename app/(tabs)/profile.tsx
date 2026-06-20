@@ -16,20 +16,6 @@ import { getStoredAccount, signOutAccount, type Account } from '../../lib/auth';
 
 const PRIVACY_URL = 'https://breezapp.ru/privacy-policy.html';
 const TERMS_URL = 'https://breezapp.ru/terms.html';
-const SUPPORT_EMAIL = 'istrelkov829@gmail.com';
-
-// Запрос возврата — письмом на поддержку (вручную), как в App Store / Netflix.
-// Не самообслуживание: подписку нельзя отменить «в один тап» с возвратом денег.
-async function contactSupportRefund(ru: boolean) {
-  const id = await getDeviceId().catch(() => '');
-  const subject = encodeURIComponent(ru ? 'Бриз — запрос на возврат' : 'Breeze — refund request');
-  const body = encodeURIComponent(
-    (ru
-      ? 'Здравствуйте! Прошу рассмотреть возврат за подписку Премиум.\n\nПричина: \n'
-      : 'Hi! Please consider a refund for my Premium subscription.\n\nReason: \n') + `\nID: ${id}`,
-  );
-  Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`);
-}
 
 export default function Profile() {
   const t = useTheme();
@@ -247,7 +233,6 @@ function PremiumCard() {
     Alert.alert(ru ? 'Подписка Премиум' : 'Premium subscription', head + '\n\n' + note, [
       { text: ru ? 'Закрыть' : 'Close' },
       ...(realCard ? [{ text: ru ? 'Способ оплаты' : 'Payment method', onPress: () => router.push('/payment-method' as any) }] : []),
-      { text: ru ? 'Запросить возврат' : 'Request a refund', onPress: () => contactSupportRefund(ru) },
     ]);
   }
 

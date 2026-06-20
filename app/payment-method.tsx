@@ -4,7 +4,7 @@
 // вручную. Если возврат одобрят — премиум снимется сам при проверке статуса.
 
 import { useState } from 'react';
-import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -13,9 +13,7 @@ import { currentLang } from '../lib/i18n';
 import { update, useAppState } from '../lib/storage';
 import { usePremium } from '../lib/subscription';
 import { Icon } from '../components/Icon';
-import { unbindCard, getDeviceId } from '../lib/billing';
-
-const SUPPORT = 'istrelkov829@gmail.com';
+import { unbindCard } from '../lib/billing';
 
 export default function PaymentMethod() {
   const t = useTheme();
@@ -56,17 +54,6 @@ export default function PaymentMethod() {
       ru ? 'Автосписаний по этой карте больше не будет.' : 'No more automatic charges on this card.');
   }
 
-  async function requestRefund() {
-    Haptics.selectionAsync();
-    const id = await getDeviceId().catch(() => '');
-    const subject = encodeURIComponent(ru ? 'Бриз — запрос на возврат' : 'Breeze — refund request');
-    const body = encodeURIComponent(
-      (ru
-        ? 'Здравствуйте! Прошу рассмотреть возврат за подписку Премиум.\n\nПричина: \n'
-        : 'Hi! Please consider a refund for my Premium subscription.\n\nReason: \n') + `\nID: ${id}`,
-    );
-    Linking.openURL(`mailto:${SUPPORT}?subject=${subject}&body=${body}`);
-  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
@@ -160,24 +147,10 @@ export default function PaymentMethod() {
           </View>
         )}
 
-        {/* Запрос возврата — письмом на поддержку (вручную) */}
-        {premium && (
-          <Pressable onPress={requestRefund}
-            style={{
-              padding: 16, borderRadius: radius.lg, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 10,
-              backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
-            }}>
-            <Icon.feather size={18} color={t.textDim} />
-            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>
-              {ru ? 'Запросить возврат' : 'Request a refund'}
-            </Text>
-          </Pressable>
-        )}
-
         <Text style={{ color: t.textDim, fontSize: 12, lineHeight: 18, paddingHorizontal: 2 }}>
           {ru
-            ? `Отмена подписки не возвращает деньги за уже оплаченный период — доступ просто сохранится до его конца. Возврат рассматривается по запросу на ${SUPPORT} в соответствии с законом. Если возврат одобрят — Премиум отключится автоматически.`
-            : `Cancelling does not refund the already-paid period — access simply stays until it ends. Refunds are reviewed on request at ${SUPPORT} as required by law. If a refund is approved, Premium turns off automatically.`}
+            ? 'Отмена подписки не возвращает деньги за уже оплаченный период — доступ сохранится до его конца. Порядок возврата — в Условиях использования.'
+            : 'Cancelling does not refund the already-paid period — access stays until it ends. Refund terms are described in the Terms of Use.'}
         </Text>
       </ScrollView>
     </SafeAreaView>
