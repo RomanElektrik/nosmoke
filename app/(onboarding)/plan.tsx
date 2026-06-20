@@ -27,24 +27,29 @@ export default function Plan() {
   async function start() {
     if (!p) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await requestPermissions();
     const now = Date.now();
     const taperTargetDate = isTaper ? now + taperWeeks * 7 * 86400_000 : undefined;
-    await update((s) => ({
-      ...s,
-      profile: s.profile ? {
-        ...s.profile,
-        quitDate: now,
-        // onboardingComplete НЕ ставим здесь — иначе гард мгновенно уведёт на
-        // /(tabs) до показа оффера. Флаг выставит paywall при выходе (done()).
-        currentStep: recommended,
-        stepEnteredAt: now,
-        identityStatement: identityStatement.trim() || undefined,
-        taperWeeks: isTaper ? taperWeeks : undefined,
-        taperTargetDate,
-      } : s.profile,
-    }));
-    await scheduleQuitProgram(now, lang, 8, p.checkInHour ?? 21);
+    // Сохраняем профиль (это важно), а побочки — права на пуши и планировщик —
+    // НЕ должны блокировать переход: раньше их падение/зависание обрывало await
+    // и кнопка «не нажималась» (навигация не доходила). Теперь переход — всегда.
+    try {
+      await update((s) => ({
+        ...s,
+        profile: s.profile ? {
+          ...s.profile,
+          quitDate: now,
+          // onboardingComplete НЕ ставим здесь — иначе гард мгновенно уведёт на
+          // /(tabs) до показа оффера. Флаг выставит paywall при выходе (done()).
+          currentStep: recommended,
+          stepEnteredAt: now,
+          identityStatement: identityStatement.trim() || undefined,
+          taperWeeks: isTaper ? taperWeeks : undefined,
+          taperTargetDate,
+        } : s.profile,
+      }));
+    } catch {}
+    requestPermissions().catch(() => {});                 // fire-and-forget, не блокирует
+    scheduleQuitProgram(now, lang, 8, p.checkInHour ?? 21).catch(() => {});
     // Ага-момент показан → оффер. onb=1 переводит paywall в режим воронки:
     // закрытие/триал/оплата ведут вперёд в приложение, а не назад на план.
     router.replace('/paywall?onb=1' as any);
