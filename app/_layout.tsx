@@ -116,6 +116,9 @@ export default function Root() {
   useEffect(() => {
     if (!ready) return;
     const first = segments[0] as string | undefined;
+    // Роут '/' (app/index.tsx) сам решает начальный маршрут декларативно —
+    // не вмешиваемся императивным replace, иначе гонка и залипший экран.
+    if (!first) return;
     const inOnb = first === '(onboarding)';
     const onPaywall = first === 'paywall';
     // personality/depth-тесты физически лежат в (onboarding), но их открывают и
@@ -157,6 +160,7 @@ export default function Root() {
           fullScreenGestureEnabled: false,
         }}
       >
+        <Stack.Screen name="index" />
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="craving" options={{ animation: 'slide_from_bottom', gestureDirection: 'vertical' }} />
