@@ -103,8 +103,8 @@ export default function Quiz() {
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Progress */}
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, gap: 8 }}>
-        <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '700', letterSpacing: 0.5 }}>
-          {tt(`Шаг ${idx + 1} из ${STEPS.length}`, `Step ${idx + 1} of ${STEPS.length}`)}
+        <Text style={{ color: t.accent, fontSize: 12, fontWeight: '800', letterSpacing: 1 }}>
+          {tt(`ШАГ ${idx + 1} ИЗ ${STEPS.length}`, `STEP ${idx + 1} OF ${STEPS.length}`)}
         </Text>
         <View style={{ height: 6, borderRadius: 6, backgroundColor: t.border, overflow: 'hidden' }}>
           <View style={{ width: `${((idx + 1) / STEPS.length) * 100}%`, height: '100%', backgroundColor: t.accent, borderRadius: 6 }} />
