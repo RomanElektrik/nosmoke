@@ -280,7 +280,10 @@ export default function Paywall() {
       </Pressable>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: 8, paddingBottom: 220, gap: 18 }}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        automaticallyAdjustKeyboardInsets   // поднимает поле email над клавиатурой
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive">
         {/* ── Hero ── */}
         <View style={{ alignItems: 'center', gap: 10 }}>
           <LinearGradient colors={BRAND_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
