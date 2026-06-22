@@ -57,11 +57,16 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
   // `url` rides in the payload — the response listener in app/_layout.tsx
   // routes there, so a push lands the user in the right tool, not on Home.
   const schedule = async (date: number, title: string, body: string, url?: string) => {
-    if (date <= now) return;
-    await Notifications.scheduleNotificationAsync({
-      content: { title, body, data: url ? { url } : undefined },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(date) },
-    });
+    // Кривую/прошедшую дату пропускаем. try/catch — чтобы один сбойный пуш НЕ
+    // ронял всю функцию: иначе после cancelAll выше юзер остался бы вообще без
+    // уведомлений (regression «не приходят вообще никакие»).
+    if (!Number.isFinite(date) || date <= now) return;
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: { title, body, data: url ? { url } : undefined },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(date) },
+      });
+    } catch {}
   };
 
   // ---------- DAY 1 --------------

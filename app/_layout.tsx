@@ -8,7 +8,7 @@ import { useTheme } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
 import { computeInsights } from '../lib/insights';
 import * as Notifications from 'expo-notifications';
-import { rescheduleAll, scheduleCravingNudge, scheduleTrialEndReminder } from '../lib/notifications';
+import { rescheduleAll, scheduleCravingNudge, scheduleTrialEndReminder, requestPermissions } from '../lib/notifications';
 import { currentLang } from '../lib/i18n';
 import { TourProvider } from '../components/Tour';
 import { fetchSub } from '../lib/billing';
@@ -62,6 +62,9 @@ export default function Root() {
       try {
         if (s.profile?.onboardingComplete) {
           const lang = currentLang();
+          // Гарантируем права на пуши ДО планирования — иначе scheduleNotificationAsync
+          // молча не регистрирует, и «не приходят вообще никакие».
+          try { await requestPermissions(); } catch {}
           await rescheduleAll(s.profile, lang);
           const ins = computeInsights(s.cravings ?? []);
           await scheduleCravingNudge(ins.peakHourStart, lang);
