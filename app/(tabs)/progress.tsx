@@ -63,22 +63,21 @@ export default function Progress() {
           const goalPct = hasGoal ? Math.min(1, saved / (p.goalAmount as number)) : 0;
           const goalDays = hasGoal && perDay > 0 ? Math.ceil(Math.max(0, (p.goalAmount as number) - saved) / perDay) : null;
           return (
-            <Pressable onPress={() => go('/goal')} style={({ pressed }) => ({ borderRadius: 28, overflow: 'hidden', opacity: pressed ? 0.96 : 1 })}>
-              {/* Static gradient — same card language as the rest of Progress
-                  (the animated iridescence was tried and rolled back). */}
-              <LinearGradient colors={['#34D39940', '#13171E', '#0F131A']} locations={[0, 0.6, 1]}
+            <Pressable onPress={() => go('/goal')} style={({ pressed }) => ({ borderRadius: 28, overflow: 'hidden', opacity: pressed ? 0.96 : 1, borderWidth: t.dark ? 0 : 1, borderColor: t.border })}>
+              {/* Тема-зависимая карта «Накоплено» (была хардкод-тёмной с белым текстом). */}
+              <LinearGradient colors={(t.dark ? ['#34D39940', '#13171E', '#0F131A'] : ['#34C75922', '#FFFFFF', '#F3F3F7']) as [string, string, string]} locations={[0, 0.6, 1]}
                 start={{ x: 0.1, y: 0 }} end={{ x: 1, y: 1 }}
                 style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
               <View style={{ padding: 22, gap: 18 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View>
-                    <Text style={{ color: '#FFFFFFCC', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.4 }}>{ru ? 'Накоплено' : 'Saved'}</Text>
-                    <Text style={{ color: '#fff', fontSize: 44, fontWeight: '900', letterSpacing: -1.8, marginTop: 4 }}>
+                    <Text style={{ color: t.dark ? '#FFFFFFCC' : t.textDim, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.4 }}>{ru ? 'Накоплено' : 'Saved'}</Text>
+                    <Text style={{ color: t.text, fontSize: 44, fontWeight: '900', letterSpacing: -1.8, marginTop: 4 }}>
                       {formatMoney(Math.round(saved), p.currency, ru ? 'ru-RU' : 'en-US')}
                     </Text>
                   </View>
                   {/* avatar in a ring */}
-                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF2E', borderWidth: 2, borderColor: '#FFFFFF66', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: t.dark ? '#FFFFFF2E' : '#00000010', borderWidth: 2, borderColor: t.dark ? '#FFFFFF66' : '#0000001A', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                     {p.goalPhoto
                       ? <Image source={{ uri: p.goalPhoto }} style={{ width: '100%', height: '100%' }} />
                       : <Text style={{ fontSize: 32 }}>{p.goalEmoji ?? '🐷'}</Text>}
@@ -86,14 +85,14 @@ export default function Progress() {
                 </View>
 
                 {hasGoal ? (
-                  <View style={{ backgroundColor: '#00000026', borderRadius: 18, padding: 14, gap: 9 }}>
-                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }} numberOfLines={1}>
+                  <View style={{ backgroundColor: t.dark ? '#00000026' : '#0000000A', borderRadius: 18, padding: 14, gap: 9 }}>
+                    <Text style={{ color: t.text, fontSize: 15, fontWeight: '800' }} numberOfLines={1}>
                       {p.goalLabel} · {formatMoney(p.goalAmount as number, p.currency, ru ? 'ru-RU' : 'en-US')}
                     </Text>
-                    <View style={{ height: 10, borderRadius: 10, backgroundColor: '#FFFFFF2E', overflow: 'hidden' }}>
-                      <View style={{ width: `${Math.round(goalPct * 100)}%`, height: '100%', backgroundColor: '#fff', borderRadius: 10 }} />
+                    <View style={{ height: 10, borderRadius: 10, backgroundColor: t.dark ? '#FFFFFF2E' : '#00000012', overflow: 'hidden' }}>
+                      <View style={{ width: `${Math.round(goalPct * 100)}%`, height: '100%', backgroundColor: t.dark ? '#fff' : t.accent, borderRadius: 10 }} />
                     </View>
-                    <Text style={{ color: '#FFFFFFE8', fontSize: 13.5, fontWeight: '700' }}>
+                    <Text style={{ color: t.dark ? '#FFFFFFE8' : t.textDim, fontSize: 13.5, fontWeight: '700' }}>
                       {Math.round(goalPct * 100)}%
                       {goalPct >= 1
                         ? (ru ? ' — цель достигнута! 🎉' : ' — goal reached! 🎉')
@@ -101,22 +100,22 @@ export default function Progress() {
                     </Text>
                   </View>
                 ) : (
-                  <View style={{ backgroundColor: '#00000026', borderRadius: 18, padding: 14, gap: 9 }}>
-                    <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>
+                  <View style={{ backgroundColor: t.dark ? '#00000026' : '#0000000A', borderRadius: 18, padding: 14, gap: 9 }}>
+                    <Text style={{ color: t.text, fontSize: 14, fontWeight: '700' }}>
                       {ru ? `${formatCigs(cigsAvoided(p, secs))} сигарет не выкурено` : `${formatCigs(cigsAvoided(p, secs))} cigarettes avoided`}
                     </Text>
                     {rp.next && (
                       <>
-                        <View style={{ height: 10, borderRadius: 10, backgroundColor: '#FFFFFF2E', overflow: 'hidden' }}>
-                          <View style={{ width: `${Math.round(rp.pct * 100)}%`, height: '100%', backgroundColor: '#fff', borderRadius: 10 }} />
+                        <View style={{ height: 10, borderRadius: 10, backgroundColor: t.dark ? '#FFFFFF2E' : '#00000012', overflow: 'hidden' }}>
+                          <View style={{ width: `${Math.round(rp.pct * 100)}%`, height: '100%', backgroundColor: t.dark ? '#fff' : t.accent, borderRadius: 10 }} />
                         </View>
-                        <Text style={{ color: '#FFFFFFE8', fontSize: 13.5, fontWeight: '700' }}>
+                        <Text style={{ color: t.dark ? '#FFFFFFE8' : t.textDim, fontSize: 13.5, fontWeight: '700' }}>
                           {rp.next.emoji} {ru ? `До «${rp.next.ru}»` : `To "${rp.next.en}"`}
                           {rp.daysToNext != null ? (ru ? ` — ещё ${rp.daysToNext} ${plural(rp.daysToNext, ['день', 'дня', 'дней'])}` : ` — ${rp.daysToNext} more days`) : ''}
                         </Text>
                       </>
                     )}
-                    <Text style={{ color: '#FFFFFFC8', fontSize: 12.5 }}>{ru ? '＋ Задай свою цель и аватар' : '＋ Set your own goal & avatar'}</Text>
+                    <Text style={{ color: t.dark ? '#FFFFFFC8' : t.textDim, fontSize: 12.5 }}>{ru ? '＋ Задай свою цель и аватар' : '＋ Set your own goal & avatar'}</Text>
                   </View>
                 )}
               </View>
@@ -151,7 +150,7 @@ export default function Progress() {
                   const prev = prevLog ? symptomTo10(prevLog, prevLog[a.k]) : null;
                   const delta = prev != null ? cur - prev : 0;
                   return (
-                    <View key={a.k} style={{ flex: 1, backgroundColor: '#00000033', borderRadius: 14, padding: 12, gap: 3 }}>
+                    <View key={a.k} style={{ flex: 1, backgroundColor: t.dark ? '#00000033' : '#00000008', borderRadius: 14, padding: 12, gap: 3 }}>
                       <Text style={{ color: t.textDim, fontSize: 11.5, fontWeight: '700' }} numberOfLines={1}>{ru ? a.ru : a.en}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
                         <Text style={{ color: a.color, fontSize: 20, fontWeight: '900' }}>{cur}</Text>
@@ -200,8 +199,8 @@ export default function Progress() {
               )}
             </>
           )}
-          <Pressable onPress={() => go('/insights')} style={({ pressed }) => ({ paddingVertical: 11, borderRadius: radius.md, backgroundColor: '#FFFFFF12', alignItems: 'center', opacity: pressed ? 0.8 : 1 })}>
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{ins.total < 3 ? (ru ? 'Открыть' : 'Open') : (ru ? 'Подробнее' : 'See more')}</Text>
+          <Pressable onPress={() => go('/insights')} style={({ pressed }) => ({ paddingVertical: 11, borderRadius: radius.md, backgroundColor: t.dark ? '#FFFFFF12' : '#00000010', alignItems: 'center', opacity: pressed ? 0.8 : 1 })}>
+            <Text style={{ color: t.text, fontWeight: '700', fontSize: 14 }}>{ins.total < 3 ? (ru ? 'Открыть' : 'Open') : (ru ? 'Подробнее' : 'See more')}</Text>
           </Pressable>
         </Card>
 
@@ -220,8 +219,8 @@ export default function Progress() {
               </View>
             ))
           )}
-          <Pressable onPress={() => go('/reasons')} style={({ pressed }) => ({ paddingVertical: 11, borderRadius: radius.md, backgroundColor: '#FFFFFF12', alignItems: 'center', opacity: pressed ? 0.8 : 1 })}>
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{reasons.length === 0 ? (ru ? 'Добавить причины' : 'Add reasons') : (ru ? 'Редактировать' : 'Edit')}</Text>
+          <Pressable onPress={() => go('/reasons')} style={({ pressed }) => ({ paddingVertical: 11, borderRadius: radius.md, backgroundColor: t.dark ? '#FFFFFF12' : '#00000010', alignItems: 'center', opacity: pressed ? 0.8 : 1 })}>
+            <Text style={{ color: t.text, fontWeight: '700', fontSize: 14 }}>{reasons.length === 0 ? (ru ? 'Добавить причины' : 'Add reasons') : (ru ? 'Редактировать' : 'Edit')}</Text>
           </Pressable>
         </Card>
 
@@ -238,7 +237,7 @@ export default function Progress() {
                 style={({ pressed }) => ({
                   flexDirection: 'row', alignItems: 'center', gap: 12,
                   paddingVertical: 8, paddingHorizontal: 10, marginHorizontal: -10, borderRadius: 14,
-                  backgroundColor: pressed ? '#FFFFFF0E' : 'transparent',
+                  backgroundColor: pressed ? (t.dark ? '#FFFFFF0E' : '#00000010') : 'transparent',
                 })}>
                 <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: m.color + (done ? '26' : '14'), alignItems: 'center', justifyContent: 'center' }}>
                   <I size={19} color={done ? m.color : t.textDim} />
@@ -285,7 +284,7 @@ export default function Progress() {
                 <Text style={{ color: t.textDim, fontSize: 12, marginTop: 8 }}>{tr('health.source', { src: m.source })}</Text>
                 <Pressable onPress={hideMilestone}
                   style={{ marginTop: 16, padding: 16, borderRadius: radius.xl, backgroundColor: t.accent, alignItems: 'center' }}>
-                  <Text style={{ color: '#fff', fontWeight: '600' }}>{ru ? 'Готово' : 'Done'}</Text>
+                  <Text style={{ color: t.text, fontWeight: '600' }}>{ru ? 'Готово' : 'Done'}</Text>
                 </Pressable>
               </ScrollView>
             </SafeAreaView>
@@ -298,21 +297,26 @@ export default function Progress() {
 
 // Premium section shell — dark card tinted in `color` + a glowing corner orb.
 function Card({ color, gid, onPress, children }: { color: string; gid: string; onPress?: () => void; children: React.ReactNode }) {
+  const t = useTheme();
+  // Тема-зависимо: тёмная — премиум-тёмная карта; светлая — светлая с лёгким
+  // цветным тинтом (иначе t.text внутри = тёмный текст на тёмной карте = невидим).
+  const grad = (t.dark ? [color + '2B', '#13171E', '#0F131A'] : [color + '14', '#FFFFFF', '#F3F3F7']) as [string, string, string];
+  const wrap = { borderRadius: 26, overflow: 'hidden' as const, borderWidth: t.dark ? 0 : 1, borderColor: t.border };
   const body = (
     <>
-      <LinearGradient colors={[color + '2B', '#13171E', '#0F131A']} locations={[0, 0.6, 1]} start={{ x: 0.1, y: 0 }} end={{ x: 1, y: 1 }}
+      <LinearGradient colors={grad} locations={[0, 0.6, 1]} start={{ x: 0.1, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
       <View style={{ padding: 18, gap: 14 }}>{children}</View>
     </>
   );
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => ({ borderRadius: 26, overflow: 'hidden', opacity: pressed ? 0.93 : 1 })}>
+      <Pressable onPress={onPress} style={({ pressed }) => ({ ...wrap, opacity: pressed ? 0.93 : 1 })}>
         {body}
       </Pressable>
     );
   }
-  return <View style={{ borderRadius: 26, overflow: 'hidden' }}>{body}</View>;
+  return <View style={wrap}>{body}</View>;
 }
 
 function Stat({ t, color, value, label }: any) {
