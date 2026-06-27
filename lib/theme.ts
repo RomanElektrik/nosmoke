@@ -29,11 +29,12 @@ export const palette = {
   },
 };
 
-export type Theme = typeof palette.light;
+export type Theme = typeof palette.light & { dark: boolean };
 
 export function useTheme(): Theme {
   const scheme = useColorScheme();
-  return scheme === 'dark' ? palette.dark : palette.light;
+  const dark = scheme === 'dark';
+  return { ...(dark ? palette.dark : palette.light), dark };
 }
 
 export const radius = { sm: 10, md: 14, lg: 20, xl: 26 };
