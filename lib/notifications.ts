@@ -240,17 +240,16 @@ export async function scheduleTrialEndReminder(untilMs: number, locale: 'ru' | '
   const fire = untilMs - 86400_000;
   if (fire <= Date.now()) return;
   const t: T = (ru, en) => (locale === 'ru' ? ru : en);
-  const amt = renewAmount ? ` ${renewAmount}` : '';
+  void renewAmount; // модель «навсегда»: автосписания нет — триал просто бесплатный
   try {
     await Notifications.scheduleNotificationAsync({
       identifier: id,
       content: {
-        // Триал с привязкой карты → продлится АВТОМАТИЧЕСКИ. Честно говорим про
-        // списание и куда нажать, чтобы отменить (не «оформи» — это dark pattern).
+        // Триал БЕЗ карты → ничего не спишется. Мягко зовём открыть «навсегда».
         title: t('Пробный заканчивается завтра', 'Your trial ends tomorrow'),
-        body: t(`Завтра спишется${amt} и Премиум продлится. Не хочешь продолжать — отмени в «Способ оплаты» сегодня.`,
-                `Tomorrow${amt} will be charged and Premium continues. To stop it, cancel in “Payment method” today.`),
-        data: { url: '/payment-method' },
+        body: t('Завтра 7 бесплатных дней закончатся. Открой Премиум навсегда за 990 ₽, чтобы не потерять доступ.',
+                'Tomorrow your 7 free days end. Unlock Premium forever for $14.99 to keep access.'),
+        data: { url: '/paywall' },
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(fire) },
     });

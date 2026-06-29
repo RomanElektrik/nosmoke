@@ -28,7 +28,7 @@ const TRIAL_BIND_AMOUNT = 1; // ₽ — привязка карты под тр�
 const PLANS = {
   monthly:  { amount: 399,  days: 30,  title: 'Бриз Премиум — месяц' },
   yearly:   { amount: 1990, days: 365, title: 'Бриз Премиум — год' },
-  lifetime: { amount: 3990, days: 0,   title: 'Бриз Премиум — навсегда', lifetime: true },
+  lifetime: { amount: 990,  days: 0,   title: 'Бриз Премиум — навсегда', lifetime: true },
 };
 // Белый список оплачиваемых планов — публичный API не должен принимать
 // служебные ключи (раньше утекал тестовый план 10 ₽).
