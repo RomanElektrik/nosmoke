@@ -201,12 +201,14 @@ export type AppState = {
 
 // Настройки читалки книги — персистятся, применяются ко всем главам.
 export type ReaderPrefs = {
-  size: number;                       // индекс размера шрифта 0..4 (по умолчанию 1)
-  font: 'system' | 'serif' | 'rounded';
+  size: number;                       // индекс размера шрифта 0..4
+  lineHeight: number;                 // индекс межстрочья 0..2
+  font: 'system' | 'lora' | 'merriweather' | 'georgia';
   paper: 'auto' | 'sepia';            // 'auto' = тема устройства, 'sepia' = тёплый «бумажный» режим
 };
 
-export const DEFAULT_READER_PREFS: ReaderPrefs = { size: 1, font: 'system', paper: 'auto' };
+// По умолчанию — книжный вид: тёплая бумага + Lora.
+export const DEFAULT_READER_PREFS: ReaderPrefs = { size: 1, lineHeight: 1, font: 'lora', paper: 'sepia' };
 
 // Messenger-style chat threads. Each thread has a persona (coach character)
 // and keeps its own history; `mode` survives for legacy deep-links.

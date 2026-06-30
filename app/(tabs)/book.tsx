@@ -12,7 +12,7 @@ import { currentLang } from '../../lib/i18n';
 import { Icon } from '../../components/Icon';
 import { useAppState } from '../../lib/storage';
 import { usePremium } from '../../lib/subscription';
-import { CHAPTERS, BOOK_META, TOTAL_CHAPTERS, type BookChapter } from '../../lib/book';
+import { CHAPTERS, BOOK_META, BOOK_PARTS, TOTAL_CHAPTERS, type BookChapter } from '../../lib/book';
 
 function snippetFor(ch: BookChapter, q: string): string | null {
   const fields = [ch.titleRu, ch.leadRu, ...ch.bodyRu.map((b) => b.text)];
@@ -73,7 +73,7 @@ export default function BookTab() {
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', letterSpacing: -0.2, flex: 1 }} numberOfLines={2}>
-              {ru ? ch.titleRu : ch.titleEn}
+              {ru ? ch.titleRu : (ch.titleEn ?? ch.titleRu)}
             </Text>
             {marked && <Icon.star size={15} color={ch.color} />}
             {read && <Icon.check size={16} color={t.accent} />}
@@ -85,7 +85,7 @@ export default function BookTab() {
             )}
           </View>
           <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 3, lineHeight: 18 }} numberOfLines={2}>
-            {snip ?? (ru ? ch.leadRu : ch.leadEn)}
+            {snip ?? (ru ? ch.leadRu : (ch.leadEn ?? ch.leadRu))}
           </Text>
           <Text style={{ color: ch.color, fontSize: 11, fontWeight: '700', marginTop: 5 }}>
             {ch.number === 0 ? (ru ? 'Вступление' : 'Intro') : `${ru ? 'Глава' : 'Ch.'} ${ch.number}`} · {ch.readMin} {ru ? 'мин' : 'min'}
@@ -182,11 +182,18 @@ export default function BookTab() {
                     {ru ? 'Пока нет закладок. Открой главу и нажми ☆ вверху, чтобы сохранить.' : 'No bookmarks yet. Open a chapter and tap ☆ to save it.'}
                   </Text>
                 </View>
-              ) : (
+              ) : onlyBookmarks ? (
                 <View style={{ gap: 10 }}>
-                  {visible.map((ch, i) => (
-                    <Animated.View key={ch.id} entering={FadeInDown.delay(Math.min(i, 8) * 40).duration(260)}>
-                      <Row ch={ch} />
+                  {visible.map((ch) => <Row key={ch.id} ch={ch} />)}
+                </View>
+              ) : (
+                <View style={{ gap: 18 }}>
+                  {BOOK_PARTS.map((part, pi) => (
+                    <Animated.View key={part} entering={FadeInDown.delay(Math.min(pi, 5) * 50).duration(280)} style={{ gap: 10 }}>
+                      <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginLeft: 4 }}>
+                        {part}
+                      </Text>
+                      {CHAPTERS.filter((c) => c.part === part).map((ch) => <Row key={ch.id} ch={ch} />)}
                     </Animated.View>
                   ))}
                 </View>
