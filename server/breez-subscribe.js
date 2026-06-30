@@ -461,6 +461,10 @@ function extendRecord(rec, plan, paymentId, card) {
 }
 
 async function renewSweep() {
+  return; // 🔴 АВТОПРОДЛЕНИЕ ОТКЛЮЧЕНО: модель перешла на разовый «Навсегда» (lifetime-only).
+          // Рекуррента больше нет — ни одной попытки списания по сохранённой карте.
+          // Старые monthly/yearly доживают оплаченный период и лапсятся (премиум не снимаем).
+  // eslint-disable-next-line no-unreachable
   if (!SHOP_ID || !SECRET_KEY) return;
   const now = Date.now();
   let dSubs = false, dAcc = false;
@@ -514,8 +518,9 @@ async function renewSweep() {
   if (dSubs) saveStore(subs);
   if (dAcc) saveAcc();
 }
-setInterval(() => { renewSweep().catch(() => {}); }, 60 * 60 * 1000); // ежечасно
-setTimeout(() => { renewSweep().catch(() => {}); }, 8000); // и вскоре после старта
+// 🔴 Планировщики автопродления ОТКЛЮЧЕНЫ (lifetime-only). Раньше:
+// setInterval(() => { renewSweep().catch(() => {}); }, 60 * 60 * 1000); // ежечасно
+// setTimeout(() => { renewSweep().catch(() => {}); }, 8000); // и вскоре после старта
 
 module.exports = function attach(app) {
   if (!SHOP_ID || !SECRET_KEY) console.warn('[briz] YOOKASSA keys missing — /api/briz/* вернёт 503');
@@ -769,5 +774,5 @@ module.exports = function attach(app) {
     }
   });
 
-  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · /auth/apple · /auth/signout · /trial/bind · /trial/start · GET /sub/:id · POST /webhook · авто-продление: вкл (рекуррент)');
+  console.log('[briz] mounted: POST /api/briz/pay/create · /confirm · /restore · /unbind · /auth/apple · /auth/signout · /trial/bind · /trial/start · GET /sub/:id · POST /webhook · авто-продление: ОТКЛ (lifetime-only)');
 };
