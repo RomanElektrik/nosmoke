@@ -127,12 +127,11 @@ export default function Home() {
               color={t.warn} icon={<Icon.toolbox size={32} color={t.warn} />}
               title={tr('tabs.techniques')}
               onPress={() => router.push('/(tabs)/techniques')} />
-            {/* «Письмо себе» — капсула времени: пишется в сильный день,
-                читается в слабый (SOS показывает её в момент тяги). */}
+            {/* Книга «Выдох» — оригинальная книга о том, как устроена тяга. */}
             <SquareCard
-              color="#FFD60A" icon={<Icon.letter size={32} color="#FFD60A" />}
-              title={lang === 'ru' ? 'Письмо себе' : 'My letter'}
-              onPress={() => router.push('/letter' as any)} />
+              color="#64D2FF" icon={<Icon.book size={32} color="#64D2FF" />}
+              title={lang === 'ru' ? 'Книга' : 'Book'}
+              onPress={() => router.push('/(tabs)/book' as any)} />
           </View>
         </View>
         </TourAnchor>

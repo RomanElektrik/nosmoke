@@ -12,7 +12,9 @@ import { currentLang } from '../../lib/i18n';
 import { Icon } from '../../components/Icon';
 import { useAppState, DEFAULT_READER_PREFS, type ReaderPrefs } from '../../lib/storage';
 import { usePremium } from '../../lib/subscription';
-import { getChapter, chapterBody, nextChapter, TOTAL_CHAPTERS } from '../../lib/book';
+import { Directions, Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
+import { getChapter, chapterBody, nextChapter, TOTAL_CHAPTERS, CHAPTERS } from '../../lib/book';
 
 const SIZE_SCALE = [0.9, 1.0, 1.13, 1.28, 1.45];
 const FONT_FAMILY: Record<ReaderPrefs['font'], string | undefined> = {
@@ -123,8 +125,24 @@ export default function ChapterScreen() {
     Haptics.selectionAsync();
     if (!next) { back(); return; }
     const nextLocked = !next.free && !premium;
-    router.push((nextLocked ? '/paywall' : `/chapter/${next.id}`) as any);
+    router.replace((nextLocked ? '/paywall' : `/chapter/${next.id}`) as any);
   };
+
+  // Предыдущая глава — для свайпа вправо и кнопки «назад по главам».
+  const cur = CHAPTERS.findIndex((c) => c.id === ch.id);
+  const prev = cur > 0 ? CHAPTERS[cur - 1] : null;
+  const goPrev = () => {
+    if (!prev) return;
+    Haptics.selectionAsync();
+    const prevLocked = !prev.free && !premium;
+    router.replace((prevLocked ? '/paywall' : `/chapter/${prev.id}`) as any);
+  };
+
+  // Свайп листает главы как страницы: ← следующая, → предыдущая.
+  const swipe = Gesture.Race(
+    Gesture.Fling().direction(Directions.LEFT).onEnd(() => runOnJS(goNext)()),
+    Gesture.Fling().direction(Directions.RIGHT).onEnd(() => runOnJS(goPrev)()),
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: rp.bg }}>
@@ -142,6 +160,7 @@ export default function ChapterScreen() {
         </Pressable>
       </View>
 
+      <GestureDetector gesture={swipe}>
       <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
         <LinearGradient colors={[ch.color + '34', ch.color + '0A']}
           style={{ width: '100%', height: 180, alignItems: 'center', justifyContent: 'center' }}>
@@ -178,15 +197,26 @@ export default function ChapterScreen() {
             </Text>
           </View>
 
-          {/* Next */}
-          <Pressable onPress={goNext}
-            style={{ marginTop: 14, backgroundColor: ch.color, borderRadius: radius.lg, paddingVertical: 16, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>
-              {next
-                ? (ru ? 'Следующая глава →' : 'Next chapter →')
-                : (ru ? '🎉 Ты прошёл книгу — к оглавлению' : '🎉 You finished — back to contents')}
-            </Text>
-          </Pressable>
+          {/* Навигация по главам — кнопки + свайп */}
+          <View style={{ marginTop: 14, flexDirection: 'row', gap: 10 }}>
+            {prev && (
+              <Pressable onPress={goPrev}
+                style={{ paddingHorizontal: 18, borderRadius: radius.lg, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: rp.card, borderWidth: 1, borderColor: rp.border }}>
+                <Text style={{ color: rp.text, fontSize: 16, fontWeight: '800' }}>←</Text>
+              </Pressable>
+            )}
+            <Pressable onPress={goNext}
+              style={{ flex: 1, backgroundColor: ch.color, borderRadius: radius.lg, paddingVertical: 16, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>
+                {next
+                  ? (ru ? 'Следующая глава →' : 'Next chapter →')
+                  : (ru ? '🎉 Ты прошёл книгу — к оглавлению' : '🎉 You finished — back to contents')}
+              </Text>
+            </Pressable>
+          </View>
+          <Text style={{ color: rp.dim, fontSize: 11, textAlign: 'center', marginTop: 4 }}>
+            {ru ? 'Листай свайпом, как страницы' : 'Swipe to turn pages'}
+          </Text>
 
           <Text style={{ color: rp.dim, fontSize: 12, lineHeight: 18, marginTop: 6, textAlign: 'center' }}>
             {ru
@@ -195,6 +225,7 @@ export default function ChapterScreen() {
           </Text>
         </View>
       </ScrollView>
+      </GestureDetector>
 
       <ReaderSettings
         visible={showSettings}
