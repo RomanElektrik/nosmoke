@@ -8,6 +8,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Eas
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, currentLang } from '../../lib/i18n';
 import { useAppState, update } from '../../lib/storage';
+import { continueChapterId } from '../../lib/book';
 import { secondsClean } from '../../lib/health';
 import { moneySaved, cigsAvoided, formatMoneyLive, formatCigs } from '../../lib/money';
 import { identityHeadline, plural } from '../../lib/identity';
@@ -131,7 +132,7 @@ export default function Home() {
             <SquareCard
               color="#64D2FF" icon={<Icon.book size={32} color="#64D2FF" />}
               title={lang === 'ru' ? 'Книга' : 'Book'}
-              onPress={() => router.push('/(tabs)/book' as any)} />
+              onPress={() => router.push(('/chapter/' + continueChapterId(state.bookProgress)) as any)} />
           </View>
         </View>
         </TourAnchor>

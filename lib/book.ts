@@ -216,3 +216,10 @@ export const BOOK_PARTS: string[] = CHAPTERS.reduce<string[]>((acc, c) => {
   if (!acc.includes(c.part)) acc.push(c.part);
   return acc;
 }, []);
+
+/** Глава, с которой продолжить: первая непрочитанная (или первая в книге). */
+export function continueChapterId(progress: Record<string, number> | undefined): string {
+  const p = progress ?? {};
+  const firstUnread = CHAPTERS.find((c) => !p[c.id]);
+  return (firstUnread ?? CHAPTERS[0]).id;
+}

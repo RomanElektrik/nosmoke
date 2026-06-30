@@ -1,28 +1,33 @@
-// Читалка книги «Выдох» — плавный пейджер: одна глава = одна страница,
-// перелистывается горизонтальным свайпом (FlatList pagingEnabled — без нативных
-// зависимостей, работает в Expo Go). Книжные шрифты (Lora/Merriweather), тёплая
-// «бумага», регулируемый размер и межстрочье — всё в readerPrefs. Открытая глава
-// помечается прочитанной (bookProgress, не обнуляем).
-import { useEffect, useRef, useState, memo } from 'react';
-import { View, Text, Pressable, Modal, Platform, FlatList, ScrollView, Dimensions } from 'react-native';
+// Читалка книги «Выдох». Заход = сразу текст текущей главы. Свайп листает главы
+// (react-native-pager-view, одна глава = одна страница). Тап по названию → модалка
+// оглавления; кнопка «Аа» → настройки чтения (размер/межстрочье/шрифт/тема).
+// Премиум-главы внутри пейджера показывают заглушку с кнопкой Paywall.
+// Виртуализация: тяжёлый текст рендерится только для страниц рядом с текущей (±1).
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, Pressable, ScrollView, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import PagerView from 'react-native-pager-view';
 import * as Haptics from 'expo-haptics';
 import { useFonts } from 'expo-font';
 import { Lora_400Regular, Lora_700Bold } from '@expo-google-fonts/lora';
 import { Merriweather_400Regular, Merriweather_700Bold } from '@expo-google-fonts/merriweather';
-import { useTheme, spacing, radius } from '../../lib/theme';
+import { useTheme, radius, spacing } from '../../lib/theme';
 import { currentLang } from '../../lib/i18n';
 import { Icon } from '../../components/Icon';
 import { useAppState, DEFAULT_READER_PREFS, type ReaderPrefs } from '../../lib/storage';
 import { usePremium } from '../../lib/subscription';
 import { chapterBody, CHAPTERS, TOTAL_CHAPTERS, type BookChapter } from '../../lib/book';
 
-const SIZE_PX = [16, 18, 20, 22, 25];
-const LH_MULT = [1.45, 1.62, 1.82];
-const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+// Темы читалки — отдельно от темы приложения.
+const READER_THEMES = {
+  light: { bg: '#FFFFFF', text: '#1A1A1A', dim: '#7A7A7A', card: '#F2F2EF', border: 'rgba(0,0,0,0.08)' },
+  sepia: { bg: '#EDE4D8', text: '#463A2C', dim: '#8A7960', card: '#E3D7C5', border: 'rgba(74,60,46,0.18)' },
+  dark:  { bg: '#15130F', text: '#E8E2D6', dim: '#9A8F7E', card: '#211D17', border: 'rgba(255,255,255,0.10)' },
+} as const;
+
 const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
 type Fam = { body: string | undefined; bold: string | undefined; faux: boolean };
 function resolveFont(font: ReaderPrefs['font'], loaded: boolean): Fam {
@@ -34,33 +39,28 @@ function resolveFont(font: ReaderPrefs['font'], loaded: boolean): Fam {
     default: return { body: undefined, bold: undefined, faux: true };
   }
 }
-type RP = { bg: string; text: string; dim: string; card: string; border: string };
-function readerPalette(paper: ReaderPrefs['paper'], t: ReturnType<typeof useTheme>): RP {
-  if (paper === 'sepia') return { bg: '#F4ECD8', text: '#3B3024', dim: '#7A6A52', card: '#EBE0C6', border: 'rgba(59,48,36,0.16)' };
-  return { bg: t.bg, text: t.text, dim: t.textDim, card: t.bgElev, border: t.border };
-}
 
-export default function ChapterScreen() {
+export default function ReaderScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const t = useTheme();
   const router = useRouter();
   const ru = currentLang() === 'ru';
   const premium = usePremium();
-  const { id } = useLocalSearchParams<{ id: string }>();
   const [state, setState] = useAppState();
-  const [showSettings, setShowSettings] = useState(false);
-  const listRef = useRef<FlatList<BookChapter>>(null);
-  const width = Dimensions.get('window').width;
-
+  const pagerRef = useRef<PagerView>(null);
   const [fontsLoaded] = useFonts({ Lora_400Regular, Lora_700Bold, Merriweather_400Regular, Merriweather_700Bold });
 
-  const startIdx = Math.max(0, CHAPTERS.findIndex((c) => c.id === (id ?? 'intro')));
-  const [current, setCurrent] = useState(startIdx);
+  const prefs: ReaderPrefs = { ...DEFAULT_READER_PREFS, ...(state.readerPrefs ?? {}) };
+  const RT = READER_THEMES[prefs.theme] ?? READER_THEMES.sepia;
+  const fam = resolveFont(prefs.font, fontsLoaded);
 
-  const prefs = state.readerPrefs ?? DEFAULT_READER_PREFS;
-  const rp = readerPalette(prefs.paper, t);
-  const cur = CHAPTERS[current] ?? CHAPTERS[0];
+  const startIndex = Math.max(0, CHAPTERS.findIndex((c) => c.id === (id ?? 'intro')));
+  const [page, setPage] = useState(startIndex);
+  const [showTOC, setShowTOC] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/book' as any));
+  const current = CHAPTERS[page] ?? CHAPTERS[0];
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any));
 
   const markRead = (ch: BookChapter | undefined) => {
     if (!ch || (!ch.free && !premium)) return;
@@ -70,176 +70,178 @@ export default function ChapterScreen() {
       return { ...s, bookProgress: { ...m, [ch.id]: Date.now() } };
     });
   };
+  useEffect(() => { markRead(CHAPTERS[startIndex]); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Помечаем стартовую главу прочитанной один раз.
-  useEffect(() => { markRead(CHAPTERS[startIdx]); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const onSettle = (x: number) => {
-    const i = clamp(Math.round(x / width), 0, CHAPTERS.length - 1);
-    if (i !== current) { setCurrent(i); Haptics.selectionAsync(); markRead(CHAPTERS[i]); }
-  };
-
-  const bookmarked = (state.bookmarks ?? []).includes(cur.id);
-  const toggleBookmark = () => {
+  const onPageSelected = (e: { nativeEvent: { position: number } }) => {
+    const i = e.nativeEvent.position;
+    setPage(i);
+    markRead(CHAPTERS[i]);
     Haptics.selectionAsync();
-    setState((s) => {
-      const set = new Set(s.bookmarks ?? []);
-      set.has(cur.id) ? set.delete(cur.id) : set.add(cur.id);
-      return { ...s, bookmarks: [...set] };
-    });
   };
 
-  const patch = (p: Partial<ReaderPrefs>) =>
-    setState((s) => ({ ...s, readerPrefs: { ...(s.readerPrefs ?? DEFAULT_READER_PREFS), ...p } }));
+  const goToChapter = (i: number) => {
+    setShowTOC(false);
+    setPage(i);
+    pagerRef.current?.setPageWithoutAnimation(i);
+    markRead(CHAPTERS[i]);
+  };
+
+  const setPref = (p: Partial<ReaderPrefs>) =>
+    setState((s) => ({ ...s, readerPrefs: { ...prefs, ...p } }));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: rp.bg }} edges={['top']}>
-      {/* Top bar */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 10, gap: 10 }}>
-        <Pressable onPress={back} hitSlop={12} style={{ flex: 1 }}>
-          <Text style={{ color: cur.color, fontSize: 17, fontWeight: '600' }}>← {ru ? 'Книга' : 'Book'}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: RT.bg }} edges={['top']}>
+      {/* ШАПКА */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, gap: 6 }}>
+        <Pressable onPress={back} hitSlop={10} style={{ padding: 6 }}>
+          <Text style={{ color: RT.text, fontSize: 26, fontWeight: '300', marginTop: -3 }}>‹</Text>
         </Pressable>
-        <Text style={{ color: rp.dim, fontSize: 12, fontWeight: '700' }}>
-          {cur.number === 0 ? (ru ? 'Вступление' : 'Intro') : `${cur.number} / ${TOTAL_CHAPTERS}`}
-        </Text>
-        <Pressable onPress={toggleBookmark} hitSlop={12} style={{ padding: 4 }}>
-          <Icon.star size={22} color={bookmarked ? cur.color : rp.dim} />
+        <Pressable onPress={() => { Haptics.selectionAsync(); setShowTOC(true); }}
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+          <Text numberOfLines={1} style={{ color: RT.text, fontSize: 14.5, fontWeight: '700', maxWidth: '86%' }}>
+            {current.number === 0 ? (ru ? 'Вступление' : 'Intro') : `${ru ? 'Глава' : 'Ch.'} ${current.number}`} · {ru ? current.titleRu : (current.titleEn ?? current.titleRu)}
+          </Text>
+          <Icon.chevronDown size={15} color={RT.dim} />
         </Pressable>
-        <Pressable onPress={() => { Haptics.selectionAsync(); setShowSettings(true); }} hitSlop={12} style={{ padding: 4, flexDirection: 'row', alignItems: 'flex-end', gap: 1 }}>
-          <Text style={{ color: rp.dim, fontSize: 13, fontWeight: '800' }}>А</Text>
-          <Text style={{ color: rp.dim, fontSize: 19, fontWeight: '800' }}>А</Text>
+        <Pressable onPress={() => { Haptics.selectionAsync(); setShowSettings(true); }} hitSlop={10}
+          style={{ padding: 6, flexDirection: 'row', alignItems: 'flex-end', gap: 1 }}>
+          <Text style={{ color: RT.text, fontSize: 13, fontWeight: '800' }}>А</Text>
+          <Text style={{ color: RT.text, fontSize: 18, fontWeight: '800' }}>А</Text>
         </Pressable>
       </View>
 
-      <FlatList
-        ref={listRef}
-        data={CHAPTERS}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        initialScrollIndex={startIdx}
-        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
-        onScrollToIndexFailed={(info) => { setTimeout(() => listRef.current?.scrollToOffset({ offset: info.index * width, animated: false }), 60); }}
-        keyExtractor={(c) => c.id}
-        onMomentumScrollEnd={(e) => onSettle(e.nativeEvent.contentOffset.x)}
-        renderItem={({ item }) => (
-          <ChapterPage
-            ch={item} width={width} prefs={prefs} fontsLoaded={fontsLoaded} rp={rp} ru={ru}
-            premium={premium} onPaywall={() => { Haptics.selectionAsync(); router.push('/paywall' as any); }}
-          />
-        )}
-      />
+      {/* ПЕЙДЖЕР — свайп листает главы */}
+      <PagerView ref={pagerRef} style={{ flex: 1 }} initialPage={startIndex} offscreenPageLimit={1} onPageSelected={onPageSelected}>
+        {CHAPTERS.map((ch, i) => {
+          const locked = !ch.free && !premium;
+          const heavy = Math.abs(i - page) <= 1; // виртуализация
+          return (
+            <View key={ch.id} style={{ flex: 1, backgroundColor: RT.bg }}>
+              {!heavy ? (
+                <View style={{ flex: 1 }} />
+              ) : locked ? (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 }}>
+                  <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: ch.color + '22', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon.star size={34} color={ch.color} />
+                  </View>
+                  <Text style={{ color: RT.text, fontSize: 20, fontWeight: '800', textAlign: 'center' }}>
+                    {ru ? 'Эта глава — в Премиуме' : 'Premium chapter'}
+                  </Text>
+                  <Text style={{ color: RT.dim, fontSize: 14.5, lineHeight: 21, textAlign: 'center' }}>
+                    {ru ? 'Вступление открыто всем. Все главы книги «Выдох» — в Премиуме.' : 'The intro is free. All chapters are Premium.'}
+                  </Text>
+                  <Pressable onPress={() => { Haptics.selectionAsync(); router.push('/paywall' as any); }}
+                    style={{ marginTop: 4, backgroundColor: ch.color, paddingHorizontal: 26, paddingVertical: 14, borderRadius: radius.lg }}>
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>{ru ? 'Открыть книгу' : 'Unlock'}</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <ChapterText ch={ch} ru={ru} RT={RT} fam={fam} fontSize={prefs.fontSize} lh={prefs.lineHeight} />
+              )}
+            </View>
+          );
+        })}
+      </PagerView>
 
-      <ReaderSettings
-        visible={showSettings}
-        onClose={() => setShowSettings(false)}
-        prefs={prefs}
-        accent={cur.color}
-        ru={ru}
-        t={t}
-        fontsLoaded={fontsLoaded}
-        onChange={patch}
+      <TOCModal
+        visible={showTOC} onClose={() => setShowTOC(false)} onPick={goToChapter}
+        page={page} premium={premium} progress={state.bookProgress ?? {}} ru={ru} t={t}
+      />
+      <SettingsModal
+        visible={showSettings} onClose={() => setShowSettings(false)}
+        prefs={prefs} setPref={setPref} fontsLoaded={fontsLoaded} ru={ru} t={t}
       />
     </SafeAreaView>
   );
 }
 
-// ── Одна страница-глава ────────────────────────────────────────────────────
-const ChapterPage = memo(function ChapterPage({
-  ch, width, prefs, fontsLoaded, rp, ru, premium, onPaywall,
-}: {
-  ch: BookChapter; width: number; prefs: ReaderPrefs; fontsLoaded: boolean;
-  rp: RP; ru: boolean; premium: boolean; onPaywall: () => void;
+// ── Текст главы ────────────────────────────────────────────────────────────
+type ReaderColors = { bg: string; text: string; dim: string; card: string; border: string };
+function ChapterText({ ch, ru, RT, fam, fontSize, lh }: {
+  ch: BookChapter; ru: boolean; RT: ReaderColors; fam: Fam; fontSize: number; lh: number;
 }) {
-  const locked = !ch.free && !premium;
-  const fam = resolveFont(prefs.font, fontsLoaded);
-  const body = SIZE_PX[clamp(prefs.size, 0, SIZE_PX.length - 1)];
-  const lh = Math.round(body * LH_MULT[clamp(prefs.lineHeight, 0, LH_MULT.length - 1)]);
-  const head = Math.round(body * 1.18);
-  const title = Math.round(body * 1.62);
-  const I = Icon[ch.icon];
-
-  if (locked) {
-    return (
-      <View style={{ width, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, gap: 16 }}>
-        <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: ch.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon.star size={34} color={ch.color} />
-        </View>
-        <Text style={{ color: rp.text, fontSize: 22, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4 }}>
-          {ru ? 'Эта глава — в Премиуме' : 'This chapter is Premium'}
-        </Text>
-        <Text style={{ color: rp.dim, fontSize: 15, lineHeight: 22, textAlign: 'center' }}>
-          {ru ? 'Вступление открыто для всех. Все главы книги «Выдох» — в Премиуме.' : 'The intro is free. All chapters of «Exhale» are Premium.'}
-        </Text>
-        <Pressable onPress={onPaywall} style={{ marginTop: 6, backgroundColor: ch.color, paddingHorizontal: 26, paddingVertical: 15, borderRadius: radius.lg }}>
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>{ru ? 'Открыть книгу' : 'Unlock the book'}</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
   const blocks = chapterBody(ch, ru);
   const meta = ch.number === 0
-    ? (ru ? 'ВСТУПЛЕНИЕ' : 'INTRO')
-    : `${ru ? 'ГЛАВА' : 'CHAPTER'} ${ch.number} · ${ru ? 'ИЗ' : 'OF'} ${TOTAL_CHAPTERS}`;
-
+    ? `${ch.part} · ${ru ? 'ВСТУПЛЕНИЕ' : 'INTRO'}`
+    : `${ch.part} · ${ru ? 'ГЛАВА' : 'CH.'} ${ch.number} / ${TOTAL_CHAPTERS} · ${ch.readMin} ${ru ? 'мин' : 'min'}`;
   return (
-    <View style={{ width }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 90 }} showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={[ch.color + '30', ch.color + '08']}
-          style={{ width: '100%', height: 168, alignItems: 'center', justifyContent: 'center' }}>
-          <I size={56} color={ch.color} />
-        </LinearGradient>
-
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: 16, gap: 14, maxWidth: 680, alignSelf: 'center', width: '100%' }}>
-          <Text style={{ color: ch.color, fontSize: 11, fontWeight: '800', letterSpacing: 1.2 }}>
-            {ch.part} · {meta} · {ch.readMin} {ru ? 'мин' : 'min'}
+    <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 10, paddingBottom: 96, maxWidth: 680, alignSelf: 'center', width: '100%' }} showsVerticalScrollIndicator={false}>
+      <Text style={{ color: ch.color, fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 10 }}>{meta}</Text>
+      <Text style={{ color: RT.text, fontFamily: fam.bold, fontWeight: fam.faux ? '800' : 'normal', fontSize: fontSize + 9, lineHeight: (fontSize + 9) * 1.18, letterSpacing: -0.5, marginBottom: 16 }}>
+        {ru ? ch.titleRu : (ch.titleEn ?? ch.titleRu)}
+      </Text>
+      {blocks.map((b, k) =>
+        b.type === 'h' ? (
+          <Text key={k} style={{ color: ch.color, fontFamily: fam.bold, fontWeight: fam.faux ? '800' : 'normal', fontSize: fontSize + 2, lineHeight: (fontSize + 2) * 1.3, marginTop: 18, marginBottom: 4 }}>
+            {b.text}
           </Text>
-          <Text style={{ color: rp.text, fontFamily: fam.bold, fontWeight: fam.faux ? '800' : 'normal', fontSize: title, letterSpacing: -0.5, lineHeight: Math.round(title * 1.18) }}>
-            {ru ? ch.titleRu : (ch.titleEn ?? ch.titleRu)}
+        ) : (
+          <Text key={k} style={{ color: RT.text, fontFamily: fam.body, fontSize, lineHeight: fontSize * lh, marginBottom: 15 }}>
+            {b.text}
           </Text>
-
-          {blocks.map((b, i) =>
-            b.type === 'h' ? (
-              <Text key={i} style={{ color: ch.color, fontFamily: fam.bold, fontWeight: fam.faux ? '800' : 'normal', fontSize: head, letterSpacing: -0.2, lineHeight: Math.round(head * 1.3), marginTop: 14 }}>
-                {b.text}
-              </Text>
-            ) : (
-              <Text key={i} style={{ color: rp.text, fontFamily: fam.body, fontSize: body, lineHeight: lh }}>
-                {b.text}
-              </Text>
-            ),
-          )}
-
-          {/* Главное */}
-          <View style={{ marginTop: 10, padding: 16, borderRadius: radius.lg, backgroundColor: ch.color + '14', borderWidth: 1, borderColor: ch.color + '3A' }}>
-            <Text style={{ color: ch.color, fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 6 }}>
-              {ru ? 'ГЛАВНОЕ' : 'KEY POINT'}
-            </Text>
-            <Text style={{ color: rp.text, fontFamily: fam.body, fontSize: Math.round(body * 0.95), lineHeight: Math.round(body * 1.4), fontWeight: fam.faux ? '600' : 'normal' }}>
-              {ru ? ch.takeawayRu : (ch.takeawayEn ?? ch.takeawayRu)}
-            </Text>
-          </View>
-
-          <Text style={{ color: rp.dim, fontSize: 11, textAlign: 'center', marginTop: 8 }}>
-            {ru ? 'Листай свайпом, как страницы →' : 'Swipe to turn pages →'}
-          </Text>
-          <Text style={{ color: rp.dim, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 2 }}>
-            {ru ? 'Книга «Выдох» — образовательная поддержка, не медицинская услуга.' : '«Exhale» is educational support, not a medical service.'}
-          </Text>
-        </View>
-      </ScrollView>
-    </View>
+        ),
+      )}
+      <View style={{ marginTop: 12, padding: 16, borderRadius: radius.lg, backgroundColor: ch.color + '16', borderWidth: 1, borderColor: ch.color + '3A' }}>
+        <Text style={{ color: ch.color, fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 6 }}>{ru ? 'ГЛАВНОЕ' : 'KEY POINT'}</Text>
+        <Text style={{ color: RT.text, fontFamily: fam.body, fontSize: fontSize - 1, lineHeight: (fontSize - 1) * 1.4, fontWeight: fam.faux ? '600' : 'normal' }}>
+          {ru ? ch.takeawayRu : (ch.takeawayEn ?? ch.takeawayRu)}
+        </Text>
+      </View>
+      <Text style={{ color: RT.dim, fontSize: 11, textAlign: 'center', marginTop: 14 }}>
+        {ru ? 'Свайп ← → листает главы' : 'Swipe ← → to turn pages'}
+      </Text>
+    </ScrollView>
   );
-});
+}
 
-// ── Настройки чтения ───────────────────────────────────────────────────────
-function ReaderSettings({
-  visible, onClose, prefs, onChange, accent, ru, t, fontsLoaded,
-}: {
+// ── Оглавление (модалка) ───────────────────────────────────────────────────
+function TOCModal({ visible, onClose, onPick, page, premium, progress, ru, t }: {
+  visible: boolean; onClose: () => void; onPick: (i: number) => void; page: number;
+  premium: boolean; progress: Record<string, number>; ru: boolean; t: ReturnType<typeof useTheme>;
+}) {
+  let lastPart = '';
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
+          <Text style={{ color: t.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.4 }}>{ru ? 'Оглавление' : 'Contents'}</Text>
+          <Pressable onPress={onClose} hitSlop={12}><Icon.close size={24} color={t.text} /></Pressable>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 40, gap: 8 }}>
+          {CHAPTERS.map((ch, i) => {
+            const locked = !ch.free && !premium;
+            const read = !!progress[ch.id];
+            const head = ch.part !== lastPart ? (lastPart = ch.part) : null;
+            return (
+              <View key={ch.id} style={{ gap: 8 }}>
+                {head && (
+                  <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginTop: i === 0 ? 0 : 10, marginLeft: 4 }}>{head}</Text>
+                )}
+                <Pressable onPress={() => onPick(i)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13, borderRadius: radius.lg,
+                    backgroundColor: i === page ? t.accent + '14' : t.bgElev, borderWidth: 1, borderColor: i === page ? t.accent : t.border }}>
+                  <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: ch.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: ch.color, fontWeight: '800', fontSize: 15 }}>{ch.number === 0 ? '•' : ch.number}</Text>
+                  </View>
+                  <Text style={{ flex: 1, color: t.text, fontSize: 15, fontWeight: '600' }} numberOfLines={2}>
+                    {ru ? ch.titleRu : (ch.titleEn ?? ch.titleRu)}
+                  </Text>
+                  {read && <Icon.check size={16} color={t.accent} />}
+                  {locked && <Icon.star size={14} color={t.warn} />}
+                </Pressable>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+// ── Настройки чтения (модалка снизу) ───────────────────────────────────────
+function SettingsModal({ visible, onClose, prefs, setPref, fontsLoaded, ru, t }: {
   visible: boolean; onClose: () => void; prefs: ReaderPrefs;
-  onChange: (p: Partial<ReaderPrefs>) => void; accent: string; ru: boolean;
-  t: ReturnType<typeof useTheme>; fontsLoaded: boolean;
+  setPref: (p: Partial<ReaderPrefs>) => void; fontsLoaded: boolean; ru: boolean; t: ReturnType<typeof useTheme>;
 }) {
   const FONTS: { key: ReaderPrefs['font']; label: string }[] = [
     { key: 'system', label: ru ? 'Системный' : 'System' },
@@ -247,59 +249,49 @@ function ReaderSettings({
     { key: 'merriweather', label: 'Merriweather' },
     { key: 'georgia', label: 'Georgia' },
   ];
-  const PAPERS: { key: ReaderPrefs['paper']; ru: string; en: string }[] = [
-    { key: 'sepia', ru: 'Бумага', en: 'Paper' },
-    { key: 'auto', ru: 'Как в системе', en: 'System' },
-  ];
-  const Stepper = ({ label, value, max, onMinus, onPlus }: { label: string; value: number; max: number; onMinus: () => void; onPlus: () => void }) => (
-    <View style={{ gap: 8 }}>
-      <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '800', letterSpacing: 1 }}>{label}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <Pressable onPress={() => { Haptics.selectionAsync(); onMinus(); }}
-          style={{ width: 52, height: 46, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border }}>
-          <Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>−</Text>
-        </Pressable>
-        <View style={{ flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-          {Array.from({ length: max + 1 }).map((_, i) => (
-            <View key={i} style={{ width: i === value ? 12 : 8, height: i === value ? 12 : 8, borderRadius: 6, backgroundColor: i <= value ? accent : t.border }} />
-          ))}
-        </View>
-        <Pressable onPress={() => { Haptics.selectionAsync(); onPlus(); }}
-          style={{ width: 52, height: 46, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border }}>
-          <Text style={{ color: t.text, fontSize: 22, fontWeight: '800' }}>+</Text>
-        </Pressable>
-      </View>
-    </View>
+  const THEMES: ReaderPrefs['theme'][] = ['light', 'sepia', 'dark'];
+  const Btn = ({ label, onPress }: { label: string; onPress: () => void }) => (
+    <Pressable onPress={() => { Haptics.selectionAsync(); onPress(); }}
+      style={{ width: 56, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border }}>
+      <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>{label}</Text>
+    </Pressable>
   );
-
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
-        <Pressable onPress={() => {}} style={{ backgroundColor: t.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, paddingBottom: 34, gap: 18 }}>
-          <View style={{ alignItems: 'center' }}>
-            <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: t.border }} />
-          </View>
+        <Pressable onPress={() => {}} style={{ backgroundColor: t.bg, padding: spacing.lg, paddingBottom: 34, borderTopLeftRadius: 24, borderTopRightRadius: 24, gap: 18 }}>
+          <View style={{ alignItems: 'center' }}><View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: t.border }} /></View>
           <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.4 }}>{ru ? 'Чтение' : 'Reading'}</Text>
 
-          <Stepper label={ru ? 'РАЗМЕР' : 'SIZE'} value={prefs.size} max={SIZE_PX.length - 1}
-            onMinus={() => onChange({ size: clamp(prefs.size - 1, 0, SIZE_PX.length - 1) })}
-            onPlus={() => onChange({ size: clamp(prefs.size + 1, 0, SIZE_PX.length - 1) })} />
+          {/* Размер */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>{ru ? 'РАЗМЕР' : 'SIZE'}</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Btn label="А−" onPress={() => setPref({ fontSize: clamp(prefs.fontSize - 1, 16, 26) })} />
+              <Btn label="А+" onPress={() => setPref({ fontSize: clamp(prefs.fontSize + 1, 16, 26) })} />
+            </View>
+          </View>
 
-          <Stepper label={ru ? 'МЕЖСТРОЧЬЕ' : 'LINE SPACING'} value={prefs.lineHeight} max={LH_MULT.length - 1}
-            onMinus={() => onChange({ lineHeight: clamp(prefs.lineHeight - 1, 0, LH_MULT.length - 1) })}
-            onPlus={() => onChange({ lineHeight: clamp(prefs.lineHeight + 1, 0, LH_MULT.length - 1) })} />
+          {/* Межстрочье */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>{ru ? 'МЕЖСТРОЧЬЕ' : 'SPACING'}</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Btn label="−" onPress={() => setPref({ lineHeight: Math.round(clamp(prefs.lineHeight - 0.1, 1.4, 1.95) * 100) / 100 })} />
+              <Btn label="+" onPress={() => setPref({ lineHeight: Math.round(clamp(prefs.lineHeight + 0.1, 1.4, 1.95) * 100) / 100 })} />
+            </View>
+          </View>
 
           {/* Шрифт */}
           <View style={{ gap: 8 }}>
-            <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '800', letterSpacing: 1 }}>{ru ? 'ШРИФТ' : 'FONT'}</Text>
+            <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>{ru ? 'ШРИФТ' : 'FONT'}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {FONTS.map((f) => {
                 const active = prefs.font === f.key;
                 const ff = resolveFont(f.key, fontsLoaded).body;
                 return (
-                  <Pressable key={f.key} onPress={() => { Haptics.selectionAsync(); onChange({ font: f.key }); }}
+                  <Pressable key={f.key} onPress={() => { Haptics.selectionAsync(); setPref({ font: f.key }); }}
                     style={{ flexGrow: 1, flexBasis: '47%', paddingVertical: 12, borderRadius: radius.md, alignItems: 'center',
-                      backgroundColor: active ? accent : t.bgElev, borderWidth: 1, borderColor: active ? accent : t.border }}>
+                      backgroundColor: active ? t.accent : t.bgElev, borderWidth: 1, borderColor: active ? t.accent : t.border }}>
                     <Text style={{ color: active ? '#fff' : t.text, fontSize: 15, fontWeight: '700', fontFamily: ff }}>{f.label}</Text>
                   </Pressable>
                 );
@@ -307,24 +299,24 @@ function ReaderSettings({
             </View>
           </View>
 
-          {/* Фон */}
+          {/* Тема */}
           <View style={{ gap: 8 }}>
-            <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '800', letterSpacing: 1 }}>{ru ? 'ФОН' : 'BACKGROUND'}</Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {PAPERS.map((p) => {
-                const active = prefs.paper === p.key;
+            <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>{ru ? 'ТЕМА' : 'THEME'}</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              {THEMES.map((th) => {
+                const active = prefs.theme === th;
+                const rt = READER_THEMES[th];
                 return (
-                  <Pressable key={p.key} onPress={() => { Haptics.selectionAsync(); onChange({ paper: p.key }); }}
-                    style={{ flex: 1, paddingVertical: 12, borderRadius: radius.md, alignItems: 'center',
-                      backgroundColor: active ? accent : t.bgElev, borderWidth: 1, borderColor: active ? accent : t.border }}>
-                    <Text style={{ color: active ? '#fff' : t.text, fontSize: 14, fontWeight: '700' }}>{ru ? p.ru : p.en}</Text>
+                  <Pressable key={th} onPress={() => { Haptics.selectionAsync(); setPref({ theme: th }); }}
+                    style={{ flex: 1, height: 52, borderRadius: 14, backgroundColor: rt.bg, borderWidth: 2, borderColor: active ? t.accent : t.border, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: rt.text, fontWeight: '800', fontSize: 17 }}>Аа</Text>
                   </Pressable>
                 );
               })}
             </View>
           </View>
 
-          <Pressable onPress={onClose} style={{ marginTop: 4, alignItems: 'center', paddingVertical: 14, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border }}>
+          <Pressable onPress={onClose} style={{ marginTop: 2, alignItems: 'center', paddingVertical: 14, borderRadius: radius.lg, backgroundColor: t.bgElev, borderWidth: 1, borderColor: t.border }}>
             <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>{ru ? 'Готово' : 'Done'}</Text>
           </Pressable>
         </Pressable>
