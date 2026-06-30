@@ -1,19 +1,14 @@
-// Способ оплаты и управление подпиской: статус, отвязка карты (для рекуррента),
-// запрос возврата. Возврат — НЕ самообслуживанием (как в App Store / Netflix):
-// отмена не возвращает текущий период, деньги — только по запросу на поддержку,
-// вручную. Если возврат одобрят — премиум снимется сам при проверке статуса.
-
-import { useState } from 'react';
-import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
+// Премиум — статус доступа. Модель lifetime-only: карта не привязывается,
+// подписки/автопродления/автосписаний нет, поэтому «способом оплаты» управлять
+// нечем. Экран показывает статус, ведёт на paywall и поясняет порядок возврата.
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
-import { update, useAppState } from '../lib/storage';
+import { useAppState } from '../lib/storage';
 import { usePremium } from '../lib/subscription';
 import { Icon } from '../components/Icon';
-import { unbindCard } from '../lib/billing';
 
 export default function PaymentMethod() {
   const t = useTheme();
@@ -21,39 +16,18 @@ export default function PaymentMethod() {
   const ru = currentLang() === 'ru';
   const [state] = useAppState();
   const premium = usePremium();
-  const [busy, setBusy] = useState(false);
 
   const until = state.premiumUntil ?? 0;
   const lifetime = until > Date.now() + 40 * 365 * 86400_000;
+  const onTrial = premium && state.premiumPlan === 'trial';
+  const daysLeft = Math.max(0, Math.ceil((until - Date.now()) / 86400_000));
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
-  // Реальная привязанная карта (для автопродления). Образцов больше не показываем.
-  // Привязанный способ автопродления — карта (с last4) или СБП/SberPay (только тип).
-  const bound = (state.boundCard && state.boundCard.type) ? state.boundCard : null;
-  const hasCard = !!(bound && bound.last4);
 
-  function confirmUnbind() {
-    Haptics.selectionAsync();
-    Alert.alert(
-      hasCard ? (ru ? 'Отвязать карту?' : 'Remove card?') : (ru ? 'Отвязать способ оплаты?' : 'Remove payment method?'),
-      ru ? 'Автопродление больше не будет списывать. Доступ сохранится до конца оплаченного периода.'
-         : 'Auto-renewal will stop charging. Access stays until the paid period ends.',
-      [
-        { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
-        { text: ru ? 'Отвязать' : 'Remove', style: 'destructive', onPress: doUnbind },
-      ],
-    );
-  }
-
-  async function doUnbind() {
-    setBusy(true);
-    try { await unbindCard(); } catch {}
-    await update((s) => ({ ...s, boundCard: null }));
-    setBusy(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert(ru ? 'Карта отвязана' : 'Card removed',
-      ru ? 'Автосписаний по этой карте больше не будет.' : 'No more automatic charges on this card.');
-  }
-
+  const statusLine = !premium
+    ? (ru ? 'Оформи Премиум, чтобы открыть всё' : 'Get Premium to unlock everything')
+    : onTrial ? (ru ? `Пробный период · осталось ${daysLeft} дн.` : `Free trial · ${daysLeft} days left`)
+    : lifetime ? (ru ? 'Доступ навсегда' : 'Lifetime access')
+    : (ru ? `Активен до ${dateStr}` : `Active until ${dateStr}`);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
@@ -66,15 +40,14 @@ export default function PaymentMethod() {
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: 16 }}>
         <View>
           <Text style={{ color: t.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.6 }}>
-            {ru ? 'Подписка' : 'Subscription'}
+            {ru ? 'Премиум' : 'Premium'}
           </Text>
           <Text style={{ color: t.textDim, fontSize: 14, marginTop: 6, lineHeight: 20 }}>
-            {ru ? 'Статус, способ оплаты и возврат — всё здесь.'
-                : 'Status, payment method and refunds — all here.'}
+            {ru ? 'Статус доступа и порядок возврата.' : 'Access status and refund terms.'}
           </Text>
         </View>
 
-        {/* Статус подписки */}
+        {/* Статус */}
         <View style={{
           padding: 16, borderRadius: radius.lg,
           backgroundColor: premium ? t.accent + '14' : t.card,
@@ -86,13 +59,11 @@ export default function PaymentMethod() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
-              {premium ? (ru ? 'Премиум активен' : 'Premium active') : (ru ? 'Подписка не активна' : 'No active subscription')}
-            </Text>
-            <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>
               {premium
-                ? lifetime ? (ru ? 'Доступ навсегда' : 'Lifetime access') : (ru ? `Активен до ${dateStr}` : `Active until ${dateStr}`)
-                : (ru ? 'Оформи Премиум, чтобы открыть всё' : 'Get Premium to unlock everything')}
+                ? (onTrial ? (ru ? 'Пробный Премиум' : 'Trial Premium') : (ru ? 'Премиум активен' : 'Premium active'))
+                : (ru ? 'Премиум не активен' : 'Premium not active')}
             </Text>
+            <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>{statusLine}</Text>
           </View>
         </View>
 
@@ -103,54 +74,22 @@ export default function PaymentMethod() {
           </Pressable>
         )}
 
-        {/* Привязанный способ автопродления — карта или СБП/SberPay */}
-        {bound && (
-          <>
-            <View style={{
-              padding: 16, borderRadius: radius.lg, backgroundColor: t.card,
-              borderWidth: 1, borderColor: t.border, flexDirection: 'row', alignItems: 'center', gap: 14,
-            }}>
-              <View style={{ width: 46, height: 46, borderRadius: 12, backgroundColor: t.accent + '20', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon.wallet size={24} color={t.accent} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>
-                  {bound.type}{bound.last4 ? ` •••• ${bound.last4}` : ''}
-                </Text>
-                <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>
-                  {ru ? 'Привязана для автопродления' : 'Saved for auto-renewal'}
-                </Text>
-              </View>
-            </View>
-
-            <Pressable onPress={confirmUnbind} disabled={busy}
-              style={{
-                padding: 16, borderRadius: radius.lg, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 10,
-                backgroundColor: t.danger + '14', borderWidth: 1, borderColor: t.danger + '55',
-              }}>
-              {busy && <ActivityIndicator color={t.danger} />}
-              <Icon.cross size={18} color={t.danger} />
-              <Text style={{ color: t.danger, fontSize: 16, fontWeight: '700' }}>
-                {hasCard ? (ru ? 'Отвязать карту' : 'Remove card') : (ru ? 'Отвязать способ оплаты' : 'Remove payment method')}
-              </Text>
-            </Pressable>
-          </>
-        )}
-
-        {/* Премиум есть, но способ не привязан (разовая оплата за период) */}
-        {premium && !bound && !lifetime && (
-          <View style={{ padding: 14, borderRadius: radius.lg, backgroundColor: t.card, borderWidth: 1, borderColor: t.border }}>
-            <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 19 }}>
-              {ru ? 'Оплата разовая за период — карта не привязана, автосписаний нет.'
-                  : 'One-time payment for the period — no card saved, no automatic charges.'}
-            </Text>
-          </View>
-        )}
+        {/* Как устроена оплата */}
+        <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: t.card, borderWidth: 1, borderColor: t.border, gap: 6 }}>
+          <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>
+            {ru ? 'Разовая покупка «Навсегда»' : 'One-time “Forever” purchase'}
+          </Text>
+          <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 19 }}>
+            {ru
+              ? '7 дней бесплатно без карты, дальше — один платёж 990 ₽ за пожизненный доступ. Карта не привязывается, подписки и автосписаний нет — отменять нечего.'
+              : '7 days free with no card, then a single 990 ₽ payment for lifetime access. No card is saved, no subscription, no auto-charges — nothing to cancel.'}
+          </Text>
+        </View>
 
         <Text style={{ color: t.textDim, fontSize: 12, lineHeight: 18, paddingHorizontal: 2 }}>
           {ru
-            ? 'Отмена подписки не возвращает деньги за уже оплаченный период — доступ сохранится до его конца. Порядок возврата — в Условиях использования.'
-            : 'Cancelling does not refund the already-paid period — access stays until it ends. Refund terms are described in the Terms of Use.'}
+            ? 'Премиум — разовый платёж, будущих списаний нет. Порядок возврата описан в Условиях использования.'
+            : 'Premium is a one-time payment; there are no future charges. Refund terms are described in the Terms of Use.'}
         </Text>
       </ScrollView>
     </SafeAreaView>

@@ -38,7 +38,7 @@ export default function Profile() {
 
         <AccountCard />
 
-        <LinkRow icon="wallet" label={lang === 'ru' ? 'Способ оплаты' : 'Payment method'}
+        <LinkRow icon="wallet" label={lang === 'ru' ? 'Премиум' : 'Premium'}
           onPress={() => router.push('/payment-method' as any)} />
 
         <MethodCard />
@@ -204,8 +204,6 @@ function PremiumCard() {
   const until = state.premiumUntil ?? 0;
   const lifetime = until > Date.now() + 40 * 365 * 86400_000;
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
-  // Авто-продление обещаем, когда привязан способ оплаты (карта / СБП / SberPay).
-  const realCard = !!(state.boundCard && state.boundCard.type);
   const onTrial = premium && state.premiumPlan === 'trial';
   const daysLeft = Math.max(0, Math.ceil((until - Date.now()) / 86400_000));
 
@@ -223,23 +221,19 @@ function PremiumCard() {
       );
       return;
     }
-    const head = lifetime ? (ru ? 'Доступ навсегда.' : 'Lifetime access.') : (ru ? `Активна до ${dateStr}.` : `Active until ${dateStr}.`);
-    const note = lifetime
-      ? (ru ? 'Разовая оплата — продлевать не нужно.' : 'One-time payment — nothing to renew.')
-      : realCard
-        ? (ru ? 'Продлевается автоматически. Отменить автопродление — отвязать карту в «Способ оплаты». Доступ сохранится до конца оплаченного периода.'
-              : 'Renews automatically. To stop it, remove the card in “Payment method”. Access stays until the paid period ends.')
-        : (ru ? 'Доступ — до конца оплаченного периода. Автосписаний нет.' : 'Access lasts until the paid period ends. No automatic charges.');
-    Alert.alert(ru ? 'Подписка Премиум' : 'Premium subscription', head + '\n\n' + note, [
+    const head = lifetime ? (ru ? 'Доступ навсегда.' : 'Lifetime access.') : (ru ? `Активен до ${dateStr}.` : `Active until ${dateStr}.`);
+    const note = ru
+      ? 'Разовая покупка «Навсегда» — продлевать ничего не нужно, автосписаний нет.'
+      : 'One-time “Forever” purchase — nothing to renew, no automatic charges.';
+    Alert.alert(ru ? 'Премиум' : 'Premium', head + '\n\n' + note, [
       { text: ru ? 'Закрыть' : 'Close' },
-      ...(realCard ? [{ text: ru ? 'Способ оплаты' : 'Payment method', onPress: () => router.push('/payment-method' as any) }] : []),
+      { text: ru ? 'Подробнее' : 'Details', onPress: () => router.push('/payment-method' as any) },
     ]);
   }
 
   const sub = premium
     ? (onTrial ? (ru ? `Пробный период · осталось ${daysLeft} дн.` : `Free trial · ${daysLeft} days left`)
        : lifetime ? (ru ? 'Доступ навсегда · управление' : 'Lifetime · manage')
-       : realCard ? (ru ? `Продлевается · до ${dateStr} · управление` : `Renews · until ${dateStr} · manage`)
        : (ru ? `Активен до ${dateStr} · управление` : `Until ${dateStr} · manage`))
     : (ru ? 'Безлимит ИИ, все аудиопрактики, статьи и техники' : 'Unlimited AI, all audio, articles and techniques');
 
