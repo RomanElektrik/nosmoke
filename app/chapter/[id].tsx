@@ -62,6 +62,16 @@ export default function ReaderScreen() {
   const current = CHAPTERS[page] ?? CHAPTERS[0];
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any));
 
+  const bookmarked = (state.bookmarks ?? []).includes(current.id);
+  const toggleBookmark = () => {
+    Haptics.selectionAsync();
+    setState((s) => {
+      const set = new Set(s.bookmarks ?? []);
+      set.has(current.id) ? set.delete(current.id) : set.add(current.id);
+      return { ...s, bookmarks: [...set] };
+    });
+  };
+
   const markRead = (ch: BookChapter | undefined) => {
     if (!ch || (!ch.free && !premium)) return;
     setState((s) => {
@@ -98,10 +108,13 @@ export default function ReaderScreen() {
         </Pressable>
         <Pressable onPress={() => { Haptics.selectionAsync(); setShowTOC(true); }}
           style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-          <Text numberOfLines={1} style={{ color: RT.text, fontSize: 14.5, fontWeight: '700', maxWidth: '86%' }}>
+          <Text numberOfLines={1} style={{ color: RT.text, fontSize: 16, fontWeight: '800', maxWidth: '82%' }}>
             {current.number === 0 ? (ru ? 'Вступление' : 'Intro') : `${ru ? 'Глава' : 'Ch.'} ${current.number}`} · {ru ? current.titleRu : (current.titleEn ?? current.titleRu)}
           </Text>
           <Icon.chevronDown size={15} color={RT.dim} />
+        </Pressable>
+        <Pressable onPress={toggleBookmark} hitSlop={10} style={{ padding: 6 }}>
+          <Icon.star size={20} color={bookmarked ? RT.text : RT.dim} />
         </Pressable>
         <Pressable onPress={() => { Haptics.selectionAsync(); setShowSettings(true); }} hitSlop={10}
           style={{ padding: 6, flexDirection: 'row', alignItems: 'flex-end', gap: 1 }}>
@@ -145,7 +158,7 @@ export default function ReaderScreen() {
 
       <TOCModal
         visible={showTOC} onClose={() => setShowTOC(false)} onPick={goToChapter}
-        page={page} premium={premium} progress={state.bookProgress ?? {}} ru={ru} t={t}
+        page={page} premium={premium} progress={state.bookProgress ?? {}} bookmarks={state.bookmarks ?? []} ru={ru} t={t}
       />
       <SettingsModal
         visible={showSettings} onClose={() => setShowSettings(false)}
@@ -166,13 +179,13 @@ function ChapterText({ ch, ru, RT, fam, fontSize, lh }: {
     : `${ch.part} · ${ru ? 'ГЛАВА' : 'CH.'} ${ch.number} / ${TOTAL_CHAPTERS} · ${ch.readMin} ${ru ? 'мин' : 'min'}`;
   return (
     <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 10, paddingBottom: 96, maxWidth: 680, alignSelf: 'center', width: '100%' }} showsVerticalScrollIndicator={false}>
-      <Text style={{ color: ch.color, fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 10 }}>{meta}</Text>
-      <Text style={{ color: RT.text, fontFamily: fam.bold, fontWeight: fam.faux ? '800' : 'normal', fontSize: fontSize + 9, lineHeight: (fontSize + 9) * 1.18, letterSpacing: -0.5, marginBottom: 16 }}>
+      <Text style={{ color: RT.dim, fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 10 }}>{meta}</Text>
+      <Text style={{ color: RT.text, fontFamily: fam.bold, fontWeight: fam.faux ? '800' : 'normal', fontSize: fontSize + 13, lineHeight: (fontSize + 13) * 1.14, letterSpacing: -0.5, marginBottom: 18 }}>
         {ru ? ch.titleRu : (ch.titleEn ?? ch.titleRu)}
       </Text>
       {blocks.map((b, k) =>
         b.type === 'h' ? (
-          <Text key={k} style={{ color: ch.color, fontFamily: fam.bold, fontWeight: fam.faux ? '800' : 'normal', fontSize: fontSize + 2, lineHeight: (fontSize + 2) * 1.3, marginTop: 18, marginBottom: 4 }}>
+          <Text key={k} style={{ color: RT.text, fontFamily: fam.bold, fontWeight: fam.faux ? '800' : 'normal', fontSize: fontSize + 2, lineHeight: (fontSize + 2) * 1.3, marginTop: 18, marginBottom: 4 }}>
             {b.text}
           </Text>
         ) : (
@@ -181,8 +194,8 @@ function ChapterText({ ch, ru, RT, fam, fontSize, lh }: {
           </Text>
         ),
       )}
-      <View style={{ marginTop: 12, padding: 16, borderRadius: radius.lg, backgroundColor: ch.color + '16', borderWidth: 1, borderColor: ch.color + '3A' }}>
-        <Text style={{ color: ch.color, fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 6 }}>{ru ? 'ГЛАВНОЕ' : 'KEY POINT'}</Text>
+      <View style={{ marginTop: 12, padding: 16, borderRadius: radius.lg, backgroundColor: RT.card, borderWidth: 1, borderColor: RT.border }}>
+        <Text style={{ color: RT.dim, fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 6 }}>{ru ? 'ГЛАВНОЕ' : 'KEY POINT'}</Text>
         <Text style={{ color: RT.text, fontFamily: fam.body, fontSize: fontSize - 1, lineHeight: (fontSize - 1) * 1.4, fontWeight: fam.faux ? '600' : 'normal' }}>
           {ru ? ch.takeawayRu : (ch.takeawayEn ?? ch.takeawayRu)}
         </Text>
@@ -195,9 +208,9 @@ function ChapterText({ ch, ru, RT, fam, fontSize, lh }: {
 }
 
 // ── Оглавление (модалка) ───────────────────────────────────────────────────
-function TOCModal({ visible, onClose, onPick, page, premium, progress, ru, t }: {
+function TOCModal({ visible, onClose, onPick, page, premium, progress, bookmarks, ru, t }: {
   visible: boolean; onClose: () => void; onPick: (i: number) => void; page: number;
-  premium: boolean; progress: Record<string, number>; ru: boolean; t: ReturnType<typeof useTheme>;
+  premium: boolean; progress: Record<string, number>; bookmarks: string[]; ru: boolean; t: ReturnType<typeof useTheme>;
 }) {
   let lastPart = '';
   return (
@@ -211,6 +224,7 @@ function TOCModal({ visible, onClose, onPick, page, premium, progress, ru, t }: 
           {CHAPTERS.map((ch, i) => {
             const locked = !ch.free && !premium;
             const read = !!progress[ch.id];
+            const marked = bookmarks.includes(ch.id);
             const head = ch.part !== lastPart ? (lastPart = ch.part) : null;
             return (
               <View key={ch.id} style={{ gap: 8 }}>
@@ -220,12 +234,13 @@ function TOCModal({ visible, onClose, onPick, page, premium, progress, ru, t }: 
                 <Pressable onPress={() => onPick(i)}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13, borderRadius: radius.lg,
                     backgroundColor: i === page ? t.accent + '14' : t.bgElev, borderWidth: 1, borderColor: i === page ? t.accent : t.border }}>
-                  <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: ch.color + '1A', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: ch.color, fontWeight: '800', fontSize: 15 }}>{ch.number === 0 ? '•' : ch.number}</Text>
+                  <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: t.textDim + '1A', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: t.text, fontWeight: '800', fontSize: 15 }}>{ch.number === 0 ? '•' : ch.number}</Text>
                   </View>
                   <Text style={{ flex: 1, color: t.text, fontSize: 15, fontWeight: '600' }} numberOfLines={2}>
                     {ru ? ch.titleRu : (ch.titleEn ?? ch.titleRu)}
                   </Text>
+                  {marked && <Icon.star size={14} color={t.accent} />}
                   {read && <Icon.check size={16} color={t.accent} />}
                   {locked && <Icon.star size={14} color={t.warn} />}
                 </Pressable>
