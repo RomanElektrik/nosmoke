@@ -194,7 +194,19 @@ export type AppState = {
   premiumPlan?: string | null;                 // 'trial' | 'monthly' | 'yearly' | 'lifetime' — для отличия триала
   trialUsed?: boolean;                          // пробный период уже брался (кнопку «попробовать» не показываем)
   boundCard?: { last4: string; type: string } | null; // saved card for auto-renewal; null = explicitly unbound
+  bookProgress?: Record<string, number>;        // книга «Выдох»: chapterId → read-at ms (никогда не обнуляем)
+  bookmarks?: string[];                          // chapterId[] — закладки в книге
+  readerPrefs?: ReaderPrefs;                     // настройки читалки (размер/шрифт/фон)
 };
+
+// Настройки читалки книги — персистятся, применяются ко всем главам.
+export type ReaderPrefs = {
+  size: number;                       // индекс размера шрифта 0..4 (по умолчанию 1)
+  font: 'system' | 'serif' | 'rounded';
+  paper: 'auto' | 'sepia';            // 'auto' = тема устройства, 'sepia' = тёплый «бумажный» режим
+};
+
+export const DEFAULT_READER_PREFS: ReaderPrefs = { size: 1, font: 'system', paper: 'auto' };
 
 // Messenger-style chat threads. Each thread has a persona (coach character)
 // and keeps its own history; `mode` survives for legacy deep-links.

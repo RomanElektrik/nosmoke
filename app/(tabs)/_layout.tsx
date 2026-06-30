@@ -16,6 +16,7 @@ const PILL_TABS = [
   { name: 'progress', labelKey: 'tabs.progress', icon: 'gauge' as const },
   { name: 'awards', labelKey: 'tabs.awards', icon: 'star' as const },
   { name: 'profile', labelKey: 'tabs.profile', icon: 'user' as const },
+  { name: 'book', labelKey: 'tabs.book', icon: 'book' as const },
 ];
 
 function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
@@ -107,6 +108,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
 
         {renderTab(PILL_TABS[2])}
         {renderTab(PILL_TABS[3])}
+        {renderTab(PILL_TABS[4])}
       </View>
       </TourAnchor>
     </View>
@@ -123,6 +125,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="progress" />
       <Tabs.Screen name="awards" />
       <Tabs.Screen name="profile" />
+      <Tabs.Screen name="book" />
       {/* Reachable via router.push but hidden from the pill */}
       <Tabs.Screen name="path" options={{ href: null }} />
       <Tabs.Screen name="techniques" options={{ href: null }} />
