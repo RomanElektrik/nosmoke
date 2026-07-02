@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Image } from 'react-native';
+import { View, Text, Pressable, ScrollView, Image, Linking, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -18,7 +18,7 @@ import { getStep, escalationSuggestion, prepChecklist, abstinenceStartMs } from 
 import { todayDoses, isDoseTaken, expectedMedForStep, MED_SAFETY } from '../../lib/medication';
 import { newlyUnlocked } from '../../lib/achievements';
 import { relapseStatus } from '../../lib/relapse';
-import { rescheduleAll } from '../../lib/notifications';
+import { rescheduleAll, notificationsAllowed } from '../../lib/notifications';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
 import { ARTICLES, ARTICLE_IMAGES } from '../../lib/articles';
 import { usePremium, FREE_ARTICLE_COUNT } from '../../lib/subscription';
@@ -136,6 +136,9 @@ export default function Home() {
           </View>
         </View>
         </TourAnchor>
+
+        {/* Уведомления выключены на уровне iOS — молча пуши не дойдут никогда */}
+        <NotifOffBanner />
 
         {/* Relapse-aware: if smoking most days, gently offer an honest restart */}
         <RelapseCard />
@@ -809,5 +812,41 @@ function StatusCheckCard() {
         </Pressable>
       </View>
     </View>
+  );
+}
+
+// Баннер «уведомления выключены»: показывается только когда iOS-разрешение
+// отозвано (пуши планируются в пустоту). Тап → системные настройки приложения.
+// Перепроверяем при возврате из настроек (AppState active).
+function NotifOffBanner() {
+  const t = useTheme();
+  const ru = currentLang() === 'ru';
+  const [off, setOff] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const check = () => { notificationsAllowed().then((ok) => { if (alive) setOff(!ok); }); };
+    check();
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') check(); });
+    return () => { alive = false; sub.remove(); };
+  }, []);
+  if (!off) return null;
+  return (
+    <Pressable onPress={() => { Haptics.selectionAsync(); Linking.openSettings(); }}
+      style={{
+        flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14,
+        borderRadius: radius.lg, backgroundColor: t.warn + '16', borderWidth: 1, borderColor: t.warn + '50',
+      }}>
+      <Icon.bell size={22} color={t.warn} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: t.text, fontSize: 14.5, fontWeight: '700' }}>
+          {ru ? 'Уведомления выключены' : 'Notifications are off'}
+        </Text>
+        <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2, lineHeight: 17 }}>
+          {ru ? 'Напоминания и поддержка не будут приходить. Включи в настройках iOS.'
+              : 'Reminders and support won’t arrive. Enable them in iOS Settings.'}
+        </Text>
+      </View>
+      <Text style={{ color: t.warn, fontSize: 14, fontWeight: '800' }}>{ru ? 'Включить' : 'Enable'}</Text>
+    </Pressable>
   );
 }

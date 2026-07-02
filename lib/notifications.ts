@@ -14,6 +14,15 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Тихая проверка (без системного диалога): включены ли уведомления на уровне ОС.
+// Для баннера «уведомления выключены» на главной.
+export async function notificationsAllowed(): Promise<boolean> {
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return status === 'granted';
+  } catch { return true; } // не пугаем баннером, если сам запрос упал
+}
+
 // Returns whether notifications are actually allowed, so callers can stop
 // promising reminders that will never arrive.
 export async function requestPermissions(): Promise<boolean> {
