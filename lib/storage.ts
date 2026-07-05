@@ -344,8 +344,17 @@ export function useAppState() {
 }
 
 export async function reset() {
-  cache = initial;
+  // Полный сброс НЕ трогает биллинг: купленный премиум и флаг «триал уже брался»
+  // переживают сброс. Иначе была бы дыра — сбрасывай и получай 7 бесплатных дней
+  // заново до бесконечности. deviceId лежит под отдельным ключом и тоже
+  // сохраняется, так что сервер всё равно знает статус по устройству — это
+  // локальная защита в дополнение к серверной.
+  const prev = cache;
+  const next: AppState = prev
+    ? { ...initial, premiumUntil: prev.premiumUntil, premiumPlan: prev.premiumPlan, trialUsed: prev.trialUsed, boundCard: prev.boundCard }
+    : initial;
+  cache = next;
   loading = null;
-  await AsyncStorage.removeItem(KEY);
-  listeners.forEach((l) => l(initial));
+  await AsyncStorage.setItem(KEY, JSON.stringify(next));
+  listeners.forEach((l) => l(next));
 }

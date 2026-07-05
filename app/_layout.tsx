@@ -88,8 +88,8 @@ export default function Root() {
         // иначе сотрёт его). Только если сейчас активен именно пробный период.
         if (sub && sub.premium && sub.plan === 'trial') {
           const ruL = currentLang() === 'ru';
-          // После триала — разовый «Навсегда» 990 ₽ (рекуррента нет).
-          await scheduleTrialEndReminder(sub.until, currentLang(), ruL ? '990 ₽' : '$14.99');
+          // После триала — разовый «Навсегда» 490 ₽ (рекуррента нет).
+          await scheduleTrialEndReminder(sub.until, currentLang(), ruL ? '490 ₽' : '$6.99');
         }
       } catch {}
       setReady(true);

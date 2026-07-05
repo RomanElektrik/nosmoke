@@ -256,8 +256,8 @@ export async function scheduleTrialEndReminder(untilMs: number, locale: 'ru' | '
       content: {
         // Триал БЕЗ карты → ничего не спишется. Мягко зовём открыть «навсегда».
         title: t('Пробный заканчивается завтра', 'Your trial ends tomorrow'),
-        body: t('Завтра 7 бесплатных дней закончатся. Открой Премиум навсегда за 990 ₽, чтобы не потерять доступ.',
-                'Tomorrow your 7 free days end. Unlock Premium forever for $14.99 to keep access.'),
+        body: t('Завтра 7 бесплатных дней закончатся. Открой Премиум навсегда за 490 ₽, чтобы не потерять доступ.',
+                'Tomorrow your 7 free days end. Unlock Premium forever for $6.99 to keep access.'),
         data: { url: '/paywall' },
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(fire) },

@@ -81,8 +81,8 @@ export default function PaymentMethod() {
           </Text>
           <Text style={{ color: t.textDim, fontSize: 13, lineHeight: 19 }}>
             {ru
-              ? '7 дней бесплатно без карты, дальше — один платёж 990 ₽ за пожизненный доступ. Карта не привязывается, подписки и автосписаний нет — отменять нечего.'
-              : '7 days free with no card, then a single 990 ₽ payment for lifetime access. No card is saved, no subscription, no auto-charges — nothing to cancel.'}
+              ? '7 дней бесплатно без карты, дальше — один платёж 490 ₽ за пожизненный доступ. Карта не привязывается, подписки и автосписаний нет — отменять нечего.'
+              : '7 days free with no card, then a single 490 ₽ payment for lifetime access. No card is saved, no subscription, no auto-charges — nothing to cancel.'}
           </Text>
         </View>
 

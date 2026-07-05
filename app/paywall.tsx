@@ -22,8 +22,8 @@ import { AppleSignInButton } from '../components/AppleSignInButton';
 import { getStoredAccount } from '../lib/auth';
 
 // Единственный план — разовый «Навсегда».
-const LIFETIME_RU = '990 ₽';
-const LIFETIME_EN = '$14.99';
+const LIFETIME_RU = '490 ₽';
+const LIFETIME_EN = '$6.99';
 
 type Feature = { i: IconKey; c: string; t: string; d: string };
 const FEATURES_RU: Feature[] = [
@@ -182,7 +182,7 @@ export default function Paywall() {
   const saved = p ? moneySaved(p, Math.max(0, secondsClean(abstinenceStartMs(p)))) : 0;
   const savedMin = currency === 'RUB' ? 500 : 5;
   const showSaved = saved >= savedMin;
-  const lifetimeAmount = ru ? 990 : 14.99;
+  const lifetimeAmount = ru ? 490 : 6.99;
   const weeks = p ? paybackWeeks(p, lifetimeAmount) : null;
   const paybackWk = weeks && weeks >= 0.5 && weeks <= 52 ? Math.max(1, Math.round(weeks)) : null;
   const wkWord = (n: number) =>

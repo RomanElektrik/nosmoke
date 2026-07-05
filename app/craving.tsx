@@ -12,6 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createAudioPlayer } from 'expo-audio';
 import { ensureSpeaker } from '../lib/audio';
+import { maybeAskReview } from '../lib/review';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, cancelAnimation } from 'react-native-reanimated';
 import { useTheme, spacing, radius, type Theme } from '../lib/theme';
 import { useTranslation } from '../lib/i18n';
@@ -59,6 +60,14 @@ export default function Craving() {
     if (outcome === 'resisted') setPhase('win');
     else router.replace('/slip');
   }
+
+  // Победил тягу через SOS — самый честный позитивный момент попросить оценку.
+  // Ждём пару секунд, чтобы не перебивать радость победы. Apple сама лимитирует.
+  useEffect(() => {
+    if (phase !== 'win') return;
+    const id = setTimeout(() => { maybeAskReview(); }, 2600);
+    return () => clearTimeout(id);
+  }, [phase]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>

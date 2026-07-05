@@ -19,6 +19,7 @@ import { todayDoses, isDoseTaken, expectedMedForStep, MED_SAFETY } from '../../l
 import { newlyUnlocked } from '../../lib/achievements';
 import { relapseStatus } from '../../lib/relapse';
 import { rescheduleAll, notificationsAllowed } from '../../lib/notifications';
+import { maybeAskReview } from '../../lib/review';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
 import { ARTICLES, ARTICLE_IMAGES } from '../../lib/articles';
 import { usePremium, FREE_ARTICLE_COUNT } from '../../lib/subscription';
@@ -41,6 +42,13 @@ export default function Home() {
     const id = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(id);
   }, []);
+
+  // Прожил неделю+ без сигарет — честный позитивный момент попросить оценку.
+  // Apple сама показывает промт и лимитирует; хелпер не чаще раза в 90 дней.
+  useEffect(() => {
+    if (!state.profile?.quitDate) return;
+    if (Math.floor(secondsClean(state.profile.quitDate) / 86400) >= 7) maybeAskReview();
+  }, [state.profile?.quitDate]);
 
   // First-run guided tour: starts once, after onboarding, when Home is settled
   // enough for anchors to have measured. Persisted via tourV1Done.
