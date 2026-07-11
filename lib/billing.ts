@@ -29,12 +29,25 @@ export async function getDeviceId(): Promise<string> {
   return id;
 }
 
+// Любой запрос — с таймаутом. Голый fetch без таймаута при зависшем соединении
+// (сеть тупит / сервер холодный) НИКОГДА не резолвится: на старте это подвешивало
+// весь рендер приложения — «вечное колёсико, вообще не грузит».
+async function fetchTimeout(url: string, opts: RequestInit = {}, ms = 8000): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function postJson(path: string, body: Record<string, unknown>): Promise<any> {
-  const r = await fetch(`${API}${path}`, {
+  const r = await fetchTimeout(`${API}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  });
+  }, 15000);
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
   return j;
@@ -78,7 +91,7 @@ export async function confirmPayment(paymentId: string): Promise<SubStatus> {
 export async function fetchSub(): Promise<SubStatus | null> {
   try {
     const deviceId = await getDeviceId();
-    const r = await fetch(`${API}/sub/${deviceId}`);
+    const r = await fetchTimeout(`${API}/sub/${deviceId}`, {}, 8000);
     if (!r.ok) return null;
     const j = await r.json().catch(() => null);
     if (!j || typeof j.premium !== 'boolean' || typeof j.until !== 'number') return null;

@@ -1,8 +1,8 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { loadState, update, useAppState, seedReasonsFromMotivations } from '../lib/storage';
 import { useTheme } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
@@ -13,6 +13,11 @@ import { currentLang } from '../lib/i18n';
 import { TourProvider } from '../components/Tour';
 import { fetchSub } from '../lib/billing';
 import '../lib/i18n';
+
+// Держим родной сплэш (splash.png на #0A1D15) до первого кадра приложения.
+// Иначе между сплэшем и UI мелькал экран с ActivityIndicator — то самое
+// «колёсико и лишний значок». catch — на случай двойного вызова при Fast Refresh.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function Root() {
   const t = useTheme();
@@ -53,47 +58,55 @@ export default function Root() {
           } : prev.profile,
         }));
       }
+      // Приложение уже может рисоваться: профиль и премиум прочитаны из локального
+      // кэша (офлайн-first). Всё тяжёлое ниже — планирование ~70 пушей и запрос к
+      // серверу — уводим в фон ПОСЛЕ первого кадра. Раньше setReady стоял в самом
+      // конце этой цепочки, поэтому UI висел на сплэше, пока клиент не сходит в сеть,
+      // а на плохой сети / при заходе из пуша иногда не открывался вовсе.
+      setReady(true);
+
       // Rebuild the full notification plan on every launch. This keeps
       // medication-dose reminders alive past the 7-day scheduling window
       // (they were planned once at med-gate and silently died on day 8),
       // refreshes language after a switch, and re-anchors day-1 support.
       // scheduleQuitProgram cancels everything first, so order matters:
-      // program → med doses → craving nudge.
-      try {
-        if (s.profile?.onboardingComplete) {
-          const lang = currentLang();
-          // Гарантируем права на пуши ДО планирования — иначе scheduleNotificationAsync
-          // молча не регистрирует, и «не приходят вообще никакие».
-          try { await requestPermissions(); } catch {}
-          await rescheduleAll(s.profile, lang);
-          const ins = computeInsights(s.cravings ?? []);
-          await scheduleCravingNudge(ins.peakHourStart, lang);
-        }
-      } catch {}
-      // Refresh ЮKassa subscription status (server-validated). Only ever change
-      // premiumUntil on an AUTHORITATIVE 200 response — fetchSub returns null on
-      // any error/parse failure, in which case we keep the cached value (never
-      // wipe a paid user on a transient server hiccup).
-      try {
-        const sub = await fetchSub();
-        if (sub) await update((prev) => ({
-          ...prev,
-          premiumUntil: sub.premium ? sub.until : 0,
-          premiumPlan: sub.premium ? (sub.plan ?? null) : null,
-          trialUsed: sub.trialUsed ?? prev.trialUsed,
-          // Модель lifetime-only: карта не привязывается никогда, автопродления нет.
-          boundCard: null,
-        }));
-        // Напоминание о конце триала ставим ПОСЛЕ rescheduleAll (её cancelAll выше
-        // иначе сотрёт его). Только если сейчас активен именно пробный период.
-        if (sub && sub.premium && sub.plan === 'trial') {
-          const ruL = currentLang() === 'ru';
-          // После триала — разовый «Навсегда» 490 ₽ (рекуррента нет).
-          await scheduleTrialEndReminder(sub.until, currentLang(), ruL ? '490 ₽' : '$6.99');
-        }
-      } catch {}
-      setReady(true);
-    });
+      // program → med doses → craving nudge. Fire-and-forget — НЕ блокирует рендер.
+      void (async () => {
+        try {
+          if (s.profile?.onboardingComplete) {
+            const lang = currentLang();
+            // Гарантируем права на пуши ДО планирования — иначе scheduleNotificationAsync
+            // молча не регистрирует, и «не приходят вообще никакие».
+            try { await requestPermissions(); } catch {}
+            await rescheduleAll(s.profile, lang);
+            const ins = computeInsights(s.cravings ?? []);
+            await scheduleCravingNudge(ins.peakHourStart, lang);
+          }
+        } catch {}
+        // Refresh ЮKassa subscription status (server-validated). Only ever change
+        // premiumUntil on an AUTHORITATIVE 200 response — fetchSub returns null on
+        // any error/parse failure, in which case we keep the cached value (never
+        // wipe a paid user on a transient server hiccup).
+        try {
+          const sub = await fetchSub();
+          if (sub) await update((prev) => ({
+            ...prev,
+            premiumUntil: sub.premium ? sub.until : 0,
+            premiumPlan: sub.premium ? (sub.plan ?? null) : null,
+            trialUsed: sub.trialUsed ?? prev.trialUsed,
+            // Модель lifetime-only: карта не привязывается никогда, автопродления нет.
+            boundCard: null,
+          }));
+          // Напоминание о конце триала ставим ПОСЛЕ rescheduleAll (её cancelAll выше
+          // иначе сотрёт его). Только если сейчас активен именно пробный период.
+          if (sub && sub.premium && sub.plan === 'trial') {
+            const ruL = currentLang() === 'ru';
+            // После триала — разовый «Навсегда» 490 ₽ (рекуррента нет).
+            await scheduleTrialEndReminder(sub.until, currentLang(), ruL ? '490 ₽' : '$6.99');
+          }
+        } catch {}
+      })();
+    }).catch(() => setReady(true));
   }, []);
 
   // Tapping a push routes to the tool it promised (SOS, chat, health) instead
@@ -138,13 +151,13 @@ export default function Root() {
     }
   }, [ready, startedProfile, completed, segments]);
 
-  if (!ready) {
-    return (
-      <View style={{ flex: 1, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={t.accent} />
-      </View>
-    );
-  }
+  // Как только приложение готово рисоваться — прячем родной сплэш. До этого
+  // момента экран закрыт сплэшем, поэтому промежуточного «колёсика» больше нет.
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+
+  if (!ready) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: t.bg }}>
