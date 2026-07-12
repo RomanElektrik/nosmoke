@@ -145,6 +145,12 @@ export function preQuitGraceEnd(p?: Profile | null): number {
 export function abstinenceStartMs(p?: Profile | null): number {
   if (!p) return 0;
   const q = p.quitDate ?? 0;
+  // Постепенное снижение (taper): до целевой даты полного отказа человек ещё
+  // курит по плану — деньги/сигареты/вехи не должны тикать с первого дня
+  // (иначе счётчики врут весь период снижения).
+  if (p.method === 'taper' && p.taperTargetDate && p.taperTargetDate > q) {
+    return p.taperTargetDate;
+  }
   if (methodQuitDay(p.currentStep) <= 1) return q; // L1 — воздержание с quitDate
   return preQuitGraceEnd(p) || q;
 }
@@ -322,6 +328,9 @@ export function alternativesFor(currentStep: StepLevel | undefined, fager: numbe
   // Always offer cytisine and a behavioural-intensive path as baseline alternatives.
   set.add('L2_nrt_light');
   set.add('L1_behavioral');
-  if (currentStep) set.delete(currentStep);
+  // Текущую ступень из альтернатив убираем — КРОМЕ L1: «поведенческий интенсив»
+  // (рестарт L1 с чистым треком) должен оставаться выбором всегда, иначе
+  // L1-юзер после срывов видел только фарму (дыра «нет пути без препаратов»).
+  if (currentStep && currentStep !== 'L1_behavioral') set.delete(currentStep);
   return Array.from(set).slice(0, 3);
 }

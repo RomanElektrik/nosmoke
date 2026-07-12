@@ -16,7 +16,7 @@ import { Icon, IconKey } from '../components/Icon';
 import { secondsClean } from '../lib/health';
 import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
 import { abstinenceStartMs } from '../lib/stepped';
-import { createPayment, confirmPayment, startTrial, type SubStatus } from '../lib/billing';
+import { createPayment, confirmPayment, startTrial, restorePurchase, type SubStatus } from '../lib/billing';
 import { scheduleTrialEndReminder } from '../lib/notifications';
 import { AppleSignInButton } from '../components/AppleSignInButton';
 import { getStoredAccount } from '../lib/auth';
@@ -160,8 +160,12 @@ export default function Paywall() {
       }
       setBusy(false);
       confirmingRef.current = false;
+      // Сбрасываем ВСЕГДА, не только при успехе: иначе отменённая оплата оставляла
+      // pendingRef заполненным, и каждое возвращение в приложение блокировало экран
+      // повторным 21-секундным циклом проверки. Если оплата всё же прошла позже —
+      // её подхватят вебхук на сервере и fetchSub при следующем старте.
+      pendingRef.current = null;
       if (ok) {
-        pendingRef.current = null;
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(ru ? 'Премиум навсегда 🎉' : 'Premium forever 🎉', ru ? 'Спасибо! Все функции открыты навсегда.' : 'Thank you! Everything is unlocked forever.',
           [{ text: 'OK', onPress: done }]);
@@ -189,6 +193,40 @@ export default function Paywall() {
     ru
       ? (n % 10 === 1 && n % 100 !== 11 ? 'неделю' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'недели' : 'недель'))
       : (n === 1 ? 'week' : 'weeks');
+
+  // ── Восстановление покупки (переустановка / новое устройство) по email чека. ──
+  async function restore() {
+    if (busy) return;
+    const em = email.trim();
+    if (!em || !em.includes('@')) {
+      Alert.alert(
+        ru ? 'Укажи email' : 'Enter your email',
+        ru ? 'Введи в поле выше email, который указывал при оплате, — и нажми «Восстановить» ещё раз.'
+           : 'Type the email you used at checkout in the field above, then tap Restore again.',
+      );
+      return;
+    }
+    Haptics.selectionAsync();
+    setBusy(true);
+    try {
+      const st = await restorePurchase(em);
+      if (st.premium && st.until > Date.now()) {
+        await update((s) => ({ ...s, premiumUntil: st.until, premiumPlan: st.plan ?? 'lifetime', trialUsed: st.trialUsed ?? s.trialUsed }));
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(ru ? 'Доступ восстановлен 🎉' : 'Access restored 🎉',
+          ru ? 'Премиум снова с тобой.' : 'Premium is back.', [{ text: 'OK', onPress: done }]);
+      } else {
+        Alert.alert(ru ? 'Покупка не найдена' : 'Purchase not found',
+          ru ? 'По этому email оплат не нашлось. Проверь адрес или напиши в поддержку: istrelkov829@gmail.com'
+             : 'No purchase found for this email. Check the address or contact support: istrelkov829@gmail.com');
+      }
+    } catch (e: any) {
+      Alert.alert(ru ? 'Не получилось' : 'Something went wrong',
+        ru ? 'Проверь связь и попробуй ещё раз.' : 'Check your connection and try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function devToggle() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -299,12 +337,17 @@ export default function Paywall() {
           <View style={{ gap: 8 }}>
             <TextInput
               value={email} onChangeText={setEmail}
-              placeholder={ru ? 'Email для чека (необязательно)' : 'Email for receipt (optional)'}
+              placeholder={ru ? 'Email — для чека и восстановления покупки' : 'Email — for receipt & purchase recovery'}
               placeholderTextColor={t.textDim}
               keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
               style={{ backgroundColor: t.bgElev, color: t.text, paddingHorizontal: 14, paddingVertical: 13, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, fontSize: 14.5 }}
             />
             {!signedIn && <AppleSignInButton style={{ marginTop: 4 }} dark />}
+            <Pressable onPress={restore} disabled={busy} hitSlop={8} style={{ alignItems: 'center', paddingVertical: 6 }}>
+              <Text style={{ color: t.info, fontSize: 13.5, fontWeight: '600' }}>
+                {ru ? 'Уже покупал? Восстановить по email' : 'Already purchased? Restore by email'}
+              </Text>
+            </Pressable>
           </View>
         )}
 

@@ -72,6 +72,8 @@ export type Profile = {
   contractPartner?: string;
   // Health screening (P0 safety) — gates pharmacotherapy recommendations
   age?: number;
+  // Юзер явно отказался от препаратов → wizard предлагает только поведенческие пути.
+  pharmaOff?: boolean;
   healthFlags?: HealthFlag[];
   // Taper method: gradual reduction over N weeks to a full-quit target date
   taperWeeks?: number;

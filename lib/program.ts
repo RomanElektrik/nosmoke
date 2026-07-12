@@ -265,7 +265,12 @@ export function programToday(state: AppState): {
   // Lazy import to avoid circular
   const { getTrack, trackDay } = require('./tracks');
   const tr = getTrack(stepId);
-  const secs = secondsClean(state.profile.quitDate);
+  // День курса — от ВХОДА В СТУПЕНЬ, не от quitDate. quitDate намеренно не
+  // сбрасывается при смене метода (бережём стрик), но день трека обязан начаться
+  // заново: иначе после 40 дней на L1 переход на цитизин показывал «День 25 из 25»
+  // и ФИНАЛЬНУЮ схему приёма вместо первой таблетки (фарма-безопасность).
+  const anchor = state.profile.stepEnteredAt ?? state.profile.quitDate;
+  const secs = secondsClean(anchor);
   const day = Math.min(tr.totalDays, Math.floor(secs / 86400) + 1);
   return { day, total: tr.totalDays, data: trackDay(stepId, day) };
 }

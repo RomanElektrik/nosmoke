@@ -78,7 +78,9 @@ export default function Root() {
             // Гарантируем права на пуши ДО планирования — иначе scheduleNotificationAsync
             // молча не регистрирует, и «не приходят вообще никакие».
             try { await requestPermissions(); } catch {}
-            await rescheduleAll(s.profile, lang);
+            // Триал-напоминание из ЛОКАЛЬНОГО кэша: офлайн-старт больше не стирает его.
+            const cachedTrial = s.premiumPlan === 'trial' && (s.premiumUntil ?? 0) > Date.now() ? s.premiumUntil : undefined;
+            await rescheduleAll(s.profile, lang, cachedTrial);
             const ins = computeInsights(s.cravings ?? []);
             await scheduleCravingNudge(ins.peakHourStart, lang);
           }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Image, Linking, AppState } from 'react-native';
+import { View, Text, Pressable, ScrollView, Image, Linking, AppState, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -736,7 +736,8 @@ function RelapseCard() {
     });
     // rescheduleAll вместо scheduleQuitProgram: иначе cancelAll внутри сотрёт
     // дозы лекарств/недельные/симптомы и не поставит заново до перезапуска.
-    try { await rescheduleAll({ ...p!, quitDate: now, stepEnteredAt: now }, lang); } catch {}
+    const trialUntil = state.premiumPlan === 'trial' && (state.premiumUntil ?? 0) > now ? state.premiumUntil : undefined;
+    try { await rescheduleAll({ ...p!, quitDate: now, stepEnteredAt: now }, lang, trialUntil); } catch {}
   }
 
   return (
@@ -790,13 +791,31 @@ function StatusCheckCard() {
   }
   async function smoked() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    await update((s) => ({
-      ...s,
-      slips: [...s.slips, now],
-      cravings: [...s.cravings, { ts: now, intensity: 7, outcome: 'smoked' as const }],
-      profile: s.profile ? { ...s.profile, lastStatusCheckAt: now } : s.profile,
-    }));
-    router.push('/slip');
+    // Подтверждение обязательно: раньше один тап (в т.ч. случайный) мгновенно и
+    // навсегда записывал срыв в историю — без отмены. Срыв — честные данные,
+    // но фиксируем его только осознанным вторым тапом.
+    Alert.alert(
+      lang === 'ru' ? 'Отметить срыв?' : 'Log a slip?',
+      lang === 'ru'
+        ? 'Без осуждения и без обнуления пути — просто честная отметка, чтобы разобраться.'
+        : 'No judgment, your streak logic stays — just an honest note so we can work with it.',
+      [
+        { text: lang === 'ru' ? 'Отмена' : 'Cancel', style: 'cancel' },
+        {
+          text: lang === 'ru' ? 'Да, закурил' : 'Yes, I smoked',
+          style: 'destructive',
+          onPress: async () => {
+            await update((s) => ({
+              ...s,
+              slips: [...s.slips, now],
+              cravings: [...s.cravings, { ts: now, intensity: 7, outcome: 'smoked' as const }],
+              profile: s.profile ? { ...s.profile, lastStatusCheckAt: now } : s.profile,
+            }));
+            router.push('/slip');
+          },
+        },
+      ],
+    );
   }
 
   return (
@@ -837,7 +856,8 @@ function NotifOffBanner() {
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') check(); });
     return () => { alive = false; sub.remove(); };
   }, []);
-  if (!off) return null;
+  // На web пушей нет и «настроек iOS» тоже — баннер там только пугал бы.
+  if (Platform.OS === 'web' || !off) return null;
   return (
     <Pressable onPress={() => { Haptics.selectionAsync(); Linking.openSettings(); }}
       style={{

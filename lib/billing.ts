@@ -4,6 +4,8 @@
 // запросом к нашему серверу после возвращения в приложение.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 const API = 'https://breezapp.ru/api/briz';
 const DEVICE_KEY = 'briz_device_id_v1';
@@ -20,11 +22,29 @@ function uuidv4(): string {
   });
 }
 
+// deviceId живёт в Keychain (SecureStore) — в отличие от AsyncStorage он
+// ПЕРЕЖИВАЕТ удаление приложения. Это закрывает сразу две дыры:
+// 1) оплативший юзер после переустановки сохраняет тот же deviceId → сервер
+//    сразу отдаёт его lifetime (иначе покупка терялась навсегда);
+// 2) нельзя фармить бесконечные 7-дневные триалы через переустановку.
+// Старый id из AsyncStorage мигрируется, чтобы не разлогинить текущих юзеров.
 let cachedId: string | null = null;
 export async function getDeviceId(): Promise<string> {
   if (cachedId) return cachedId;
-  let id = await AsyncStorage.getItem(DEVICE_KEY);
-  if (!id) { id = uuidv4(); await AsyncStorage.setItem(DEVICE_KEY, id); }
+  const secure = Platform.OS !== 'web';
+  let id: string | null = null;
+  if (secure) {
+    try { id = await SecureStore.getItemAsync(DEVICE_KEY); } catch {}
+  }
+  if (!id) {
+    id = await AsyncStorage.getItem(DEVICE_KEY); // миграция со старого хранилища
+    if (!id) id = uuidv4();
+    if (secure) {
+      try { await SecureStore.setItemAsync(DEVICE_KEY, id); } catch {}
+    }
+  }
+  // Дублируем в AsyncStorage как fallback (и единственное хранилище на web).
+  try { await AsyncStorage.setItem(DEVICE_KEY, id); } catch {}
   cachedId = id;
   return id;
 }
@@ -32,25 +52,28 @@ export async function getDeviceId(): Promise<string> {
 // Любой запрос — с таймаутом. Голый fetch без таймаута при зависшем соединении
 // (сеть тупит / сервер холодный) НИКОГДА не резолвится: на старте это подвешивало
 // весь рендер приложения — «вечное колёсико, вообще не грузит».
-async function fetchTimeout(url: string, opts: RequestInit = {}, ms = 8000): Promise<Response> {
+// Таймер живёт до конца чтения ТЕЛА (json), не только заголовков: сервер, отдавший
+// заголовки и зависший на теле, иначе подвешивал бы клиент несмотря на abort.
+async function fetchJsonTimeout(url: string, opts: RequestInit = {}, ms = 8000): Promise<{ ok: boolean; status: number; json: any }> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
-    return await fetch(url, { ...opts, signal: ctrl.signal });
+    const r = await fetch(url, { ...opts, signal: ctrl.signal });
+    const j = await r.json().catch(() => ({}));
+    return { ok: r.ok, status: r.status, json: j };
   } finally {
     clearTimeout(timer);
   }
 }
 
 async function postJson(path: string, body: Record<string, unknown>): Promise<any> {
-  const r = await fetchTimeout(`${API}${path}`, {
+  const { ok, status, json } = await fetchJsonTimeout(`${API}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }, 15000);
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
-  return j;
+  if (!ok) throw new Error(json?.error || `HTTP ${status}`);
+  return json;
 }
 
 // Начать пробный период С ПРИВЯЗКОЙ КАРТЫ (основной путь): сервер создаёт
@@ -91,10 +114,8 @@ export async function confirmPayment(paymentId: string): Promise<SubStatus> {
 export async function fetchSub(): Promise<SubStatus | null> {
   try {
     const deviceId = await getDeviceId();
-    const r = await fetchTimeout(`${API}/sub/${deviceId}`, {}, 8000);
-    if (!r.ok) return null;
-    const j = await r.json().catch(() => null);
-    if (!j || typeof j.premium !== 'boolean' || typeof j.until !== 'number') return null;
+    const { ok, json: j } = await fetchJsonTimeout(`${API}/sub/${deviceId}`, {}, 8000);
+    if (!ok || !j || typeof j.premium !== 'boolean' || typeof j.until !== 'number') return null;
     return j;
   } catch {
     return null;

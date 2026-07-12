@@ -32,7 +32,10 @@ const PLANS = {
 };
 // Белый список оплачиваемых планов — публичный API не должен принимать
 // служебные ключи (раньше утекал тестовый план 10 ₽).
-const PAY_PLANS = ['monthly', 'yearly', 'lifetime'];
+// Только lifetime: monthly/yearly убраны — модель без рекуррента. Их платежи
+// сохраняли карту (save_payment_method), и «висячие» записи начали бы списываться,
+// если когда-нибудь снова включить renewSweep.
+const PAY_PLANS = ['lifetime'];
 const RECUR_PLANS = ['monthly', 'yearly']; // только эти сохраняют способ для автопродления
 
 const isDevice = (d) => typeof d === 'string' && /^[0-9a-fA-F-]{8,64}$/.test(d);
@@ -716,7 +719,23 @@ module.exports = function attach(app) {
     try {
       const { deviceId } = req.body || {};
       if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
-      if (devLink[deviceId]) { delete devLink[deviceId]; saveAcc(); }
+      if (devLink[deviceId]) {
+        // Перед отвязкой копируем право доступа аккаунта обратно на устройство:
+        // иначе после выхода statusOf(deviceId) видел бы пустоту, клиент получал
+        // авторитетный premium:false и затирал оплаченный lifetime — «купил →
+        // вышел из Apple → премиум пропал».
+        const acc = accounts[devLink[deviceId]];
+        if (acc && (acc.lifetime || (acc.paidUntil || 0) > Date.now())) {
+          subs[deviceId] = {
+            plan: acc.plan, lifetime: !!acc.lifetime, paidUntil: acc.paidUntil || 0,
+            paymentMethodId: null, card: null, applied: [...(acc.applied || [])].slice(-50),
+            lastPaymentId: acc.lastPaymentId || null, email: acc.email || null,
+            trialUsed: acc.trialUsed, updatedAt: Date.now(),
+          };
+          saveStore(subs);
+        }
+        delete devLink[deviceId]; saveAcc();
+      }
       res.json(statusOf(deviceId));
     } catch (e) {
       res.status(500).json({ error: e.message });

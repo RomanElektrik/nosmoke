@@ -46,9 +46,10 @@ export default function Transition() {
 
   // Hooks must run unconditionally — never place an early return before them.
   const fager = p?.fagerstromScore ?? 0;
+  const noPharma = pharmaBlocked(p) || !!p?.pharmaOff;
   const alts: StepLevel[] = useMemo(
-    () => alternativesFor(p?.currentStep, fager, pharmaBlocked(p)),
-    [p?.currentStep, fager, p?.healthFlags],
+    () => alternativesFor(p?.currentStep, fager, noPharma),
+    [p?.currentStep, fager, noPharma],
   );
 
   if (!p) return null;
@@ -164,6 +165,36 @@ export default function Transition() {
           {tt('Это твой выбор, не приказ. Можно начать с самого мягкого, можно сразу с препаратами — обоснования внутри.',
               "Your choice, not an order. You can start gentle or jump to meds — rationale inside each.")}
         </Text>
+        {/* «Без препаратов» — путь никогда не должен упираться только в фарму.
+            Тумблер пишет pharmaOff в профиль; alternativesFor тогда оставляет
+            только поведенческий интенсив. pharmaBlocked (беременность) — жёстче
+            и этим тумблером не выключается. */}
+        {!pharmaBlocked(p) && (
+          <Pressable
+            onPress={async () => {
+              Haptics.selectionAsync();
+              const next = !p.pharmaOff;
+              if (next && pickedMethod && pickedMethod !== 'L1_behavioral') setPickedMethod(null);
+              await update((s) => ({ ...s, profile: s.profile ? { ...s.profile, pharmaOff: next } : s.profile }));
+            }}
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12,
+              borderRadius: radius.md, backgroundColor: t.bgElev, borderWidth: 1,
+              borderColor: p.pharmaOff ? t.accent : t.border,
+            }}>
+            <View style={{
+              width: 22, height: 22, borderRadius: 7, borderWidth: 2,
+              borderColor: p.pharmaOff ? t.accent : t.textDim,
+              backgroundColor: p.pharmaOff ? t.accent : 'transparent',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              {p.pharmaOff && <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>✓</Text>}
+            </View>
+            <Text style={{ color: t.text, fontSize: 14, fontWeight: '600', flex: 1 }}>
+              {tt('Не хочу препараты — только поведенческие методы', 'No meds for me — behavioural methods only')}
+            </Text>
+          </Pressable>
+        )}
         <View style={{ gap: 10 }}>
           {alts.map((id) => {
             const s = getStep(id);
@@ -429,7 +460,10 @@ export default function Transition() {
       // (вместо scheduleQuitProgram) — иначе cancelAll сотрёт дозы лекарств и
       // недельные/симптом-напоминания и не поставит их заново до перезапуска.
       try {
-        if (p) await rescheduleAll({ ...p, quitDate: startMs }, lang);
+        if (p) {
+          const trialUntil = state.premiumPlan === 'trial' && (state.premiumUntil ?? 0) > Date.now() ? state.premiumUntil : undefined;
+          await rescheduleAll({ ...p, quitDate: startMs }, lang, trialUntil);
+        }
       } catch {}
 
       setPhase('done');

@@ -31,13 +31,19 @@ export async function requestPermissions(): Promise<boolean> {
     status = (await Notifications.requestPermissionsAsync()).status;
   }
   if (Platform.OS === 'android') {
+    // HIGH → heads-up баннер. С DEFAULT уведомления приходили «молча» в шторку,
+    // и юзеры читали это как «уведомления не приходят вообще».
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: Notifications.AndroidImportance.HIGH,
     });
   }
   return status === 'granted';
 }
+
+// Android требует channelId В ТРИГГЕРЕ (не в content) — иначе уведомление уходит
+// в фолбэк-канал, и настроенная важность (heads-up) не работает.
+const CHANNEL = Platform.OS === 'android' ? { channelId: 'default' } : {};
 
 type T = (ru: string, en: string) => string;
 
@@ -73,7 +79,7 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
     try {
       await Notifications.scheduleNotificationAsync({
         content: { title, body, data: url ? { url } : undefined },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(date) },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(date), ...CHANNEL },
       });
     } catch {}
   };
@@ -144,8 +150,12 @@ export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en
   // every evening was the #1 complaint.
 }
 
-// Schedule per-dose medication reminders for next 7 days.
+// Schedule per-dose medication reminders for the next 4 days.
 // Uses dosesForDay() to know what dose at what hour for each day of the course.
+// 4, а не 7: iOS хранит максимум 64 запланированных уведомления и МОЛЧА выкидывает
+// самые дальние. Цитизин на 7 днях давал ~38 дозовых пушей, суммарно ~85 — и iOS
+// тихо убивала долгосрочный слой (2 недели, рефлексии, симптомы). rescheduleAll
+// перепланирует всё при каждом запуске, так что 4 дней запаса достаточно.
 export async function scheduleMedicationDoses(
   locale: 'ru' | 'en',
   med: 'cytisine' | 'bupropion' | 'varenicline',
@@ -155,7 +165,7 @@ export async function scheduleMedicationDoses(
   const t: T = (ru, en) => (locale === 'ru' ? ru : en);
   const now = Date.now();
   const startMidnight = new Date(startedAtMs); startMidnight.setHours(0, 0, 0, 0);
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 4; i++) {
     const date = new Date(); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() + i);
     const courseDay = Math.floor((date.getTime() - startMidnight.getTime()) / 86400_000) + 1;
     if (courseDay < 1) continue;
@@ -173,31 +183,27 @@ export async function scheduleMedicationDoses(
           body: locale === 'ru' ? (d.noteRu ?? '') : (d.noteEn ?? ''),
           data: { route: '/meds' },
         },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fire },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fire, ...CHANNEL },
       });
     }
   }
 }
 
 // Schedules a recurring daily check-in notification at the user's check-in hour.
-// On iOS we cannot truly recur, so we batch-schedule for next 30 days.
+// Повторяющийся DAILY-триггер: 1 слот вместо пачки из 30 дат (лимит iOS = 64).
+// Сейчас нигде не вызывается (ежедневный «ты курил?» был жалобой №1) — оставлен
+// как утилита.
 export async function scheduleDailyCheckIn(locale: 'ru' | 'en', checkInHour: number) {
   const t: T = (ru, en) => (locale === 'ru' ? ru : en);
-  const now = Date.now();
-  for (let d = 0; d < 30; d++) {
-    const date = new Date();
-    date.setDate(date.getDate() + d);
-    date.setHours(checkInHour, 0, 0, 0);
-    if (date.getTime() < now) continue;
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: t('Чек-ин дня', 'Daily check-in'),
-        body: t('Ты сегодня курил? Один тап в приложении.', 'Did you smoke today? One tap in the app.'),
-        data: { route: '/checkin' },
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
-    });
-  }
+  await Notifications.scheduleNotificationAsync({
+    identifier: 'daily-checkin',
+    content: {
+      title: t('Чек-ин дня', 'Daily check-in'),
+      body: t('Ты сегодня курил? Один тап в приложении.', 'Did you smoke today? One tap in the app.'),
+      data: { route: '/checkin' },
+    },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: checkInHour, minute: 0, ...CHANNEL },
+  });
 }
 
 // Proactive, data-driven nudge: fires ~10 min before the user's personal peak
@@ -213,31 +219,23 @@ export async function scheduleCravingNudge(peakHourStart: number | null, locale:
 
 // Sunday reflection: a weekly ritual that keeps the long-term relationship
 // alive. Opens a chat where Breeze proactively reviews the week from data
-// (opener=weekly) and asks one question about the next. Batched ~8 weeks ahead;
-// re-created on each launch (scheduleQuitProgram's cancelAll wipes the prior
-// batch first, so no duplicates).
+// (opener=weekly) and asks one question about the next.
+// ПОВТОРЯЮЩИЙСЯ календарный триггер (1 слот) вместо пачки из 8 дат: экономит
+// лимит iOS в 64 уведомления и живёт бесконечно, а не 8 недель.
 export async function scheduleWeeklyReflection(locale: 'ru' | 'en') {
   const t: T = (ru, en) => (locale === 'ru' ? ru : en);
-  const now = Date.now();
-  const d = new Date();
-  // next Sunday at 11:00 local
-  d.setHours(11, 0, 0, 0);
-  const daysToSun = (7 - d.getDay()) % 7;
-  d.setDate(d.getDate() + (daysToSun === 0 && d.getTime() <= now ? 7 : daysToSun));
-  for (let w = 0; w < 8; w++) {
-    const fire = new Date(d.getTime() + w * 7 * 86400_000);
-    if (fire.getTime() <= now) continue;
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: t('Разбор недели с Бризом', 'Weekly reflection with Breeze'),
-          body: t('Глянем, как прошла неделя — пара минут.', "Let's look back on your week — a couple of minutes."),
-          data: { url: '/chat?mode=support&opener=weekly' },
-        },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fire },
-      });
-    } catch {}
-  }
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier: 'weekly-reflection',
+      content: {
+        title: t('Разбор недели с Бризом', 'Weekly reflection with Breeze'),
+        body: t('Глянем, как прошла неделя — пара минут.', "Let's look back on your week — a couple of minutes."),
+        data: { url: '/chat?mode=support&opener=weekly' },
+      },
+      // weekday: 1 = воскресенье (стандарт Apple/expo)
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday: 1, hour: 11, minute: 0, ...CHANNEL },
+    });
+  } catch {}
 }
 
 // Напоминание за сутки до конца пробного периода → мягкий paywall. Фикс-id, чтобы
@@ -260,7 +258,7 @@ export async function scheduleTrialEndReminder(untilMs: number, locale: 'ru' | '
                 'Tomorrow your 7 free days end. Unlock Premium forever for $6.99 to keep access.'),
         data: { url: '/paywall' },
       },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(fire) },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(fire), ...CHANNEL },
     });
   } catch {}
 }
@@ -270,36 +268,37 @@ export async function scheduleTrialEndReminder(untilMs: number, locale: 'ru' | '
 // самочувствия НУЖНО ставить заново после неё. Этот хелпер вызывают _layout (при
 // запуске), restart() (новый старт после срыва) и transition (смена ступени),
 // чтобы планы не «терялись» до следующего холодного запуска.
-export async function rescheduleAll(p: Profile, locale: 'ru' | 'en') {
+// trialUntil (опционально) — конец активного пробного периода из ЛОКАЛЬНОГО
+// стейта. Раньше напоминание «триал заканчивается» пересоздавал только boot после
+// удачного fetchSub: рестарт после срыва, смена ступени и офлайн-запуск стирали
+// его (cancelAll) и не возвращали.
+export async function rescheduleAll(p: Profile, locale: 'ru' | 'en', trialUntil?: number) {
   await scheduleQuitProgram(p.quitDate, locale, 8, p.checkInHour ?? 21, abstinenceStartMs(p));
   if (p.medication && p.medicationStartedAt) {
     await scheduleMedicationDoses(locale, p.medication, p.medicationStartedAt);
   }
   await scheduleWeeklyReflection(locale);
   await scheduleSymptomReminder(locale);
+  if (trialUntil && trialUntil > Date.now()) {
+    await scheduleTrialEndReminder(trialUntil, locale);
+  }
 }
 
 // Weekly nudge to log the body-recovery survey, so the trend actually builds.
 // Wednesday 12:00 — spaced away from the Sunday reflection push.
+// Повторяющийся триггер (1 слот) вместо 8 дат — см. комментарий у рефлексии.
 export async function scheduleSymptomReminder(locale: 'ru' | 'en') {
   const t: T = (ru, en) => (locale === 'ru' ? ru : en);
-  const now = Date.now();
-  const d = new Date();
-  d.setHours(12, 0, 0, 0);
-  const daysToWed = (3 - d.getDay() + 7) % 7; // 3 = Wednesday
-  d.setDate(d.getDate() + (daysToWed === 0 && d.getTime() <= now ? 7 : daysToWed));
-  for (let w = 0; w < 8; w++) {
-    const fire = new Date(d.getTime() + w * 7 * 86400_000);
-    if (fire.getTime() <= now) continue;
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: t('Как самочувствие?', 'How are you feeling?'),
-          body: t('Отметь за 40 секунд — посмотрим, как тело восстанавливается.', 'Log it in 40 seconds — see how your body is recovering.'),
-          data: { url: '/symptoms' },
-        },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fire },
-      });
-    } catch {}
-  }
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier: 'symptom-weekly',
+      content: {
+        title: t('Как самочувствие?', 'How are you feeling?'),
+        body: t('Отметь за 40 секунд — посмотрим, как тело восстанавливается.', 'Log it in 40 seconds — see how your body is recovering.'),
+        data: { url: '/symptoms' },
+      },
+      // weekday: 4 = среда (1 = воскресенье)
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday: 4, hour: 12, minute: 0, ...CHANNEL },
+    });
+  } catch {}
 }

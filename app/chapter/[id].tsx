@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import PagerView from 'react-native-pager-view';
+import PagerView from '../../components/PagerCompat';
 import * as Haptics from 'expo-haptics';
 import { useFonts } from 'expo-font';
 import { Lora_400Regular, Lora_700Bold } from '@expo-google-fonts/lora';
@@ -82,12 +82,17 @@ export default function ReaderScreen() {
   };
   useEffect(() => { markRead(CHAPTERS[startIndex]); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // «Прочитано» — только если юзер задержался на главе ≥3 сек. Иначе быстрый
+  // пролёт свайпами через несколько глав помечал их все прочитанными.
+  const dwellRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onPageSelected = (e: { nativeEvent: { position: number } }) => {
     const i = e.nativeEvent.position;
     setPage(i);
-    markRead(CHAPTERS[i]);
+    if (dwellRef.current) clearTimeout(dwellRef.current);
+    dwellRef.current = setTimeout(() => markRead(CHAPTERS[i]), 3000);
     Haptics.selectionAsync();
   };
+  useEffect(() => () => { if (dwellRef.current) clearTimeout(dwellRef.current); }, []);
 
   const goToChapter = (i: number) => {
     setShowTOC(false);
@@ -96,8 +101,10 @@ export default function ReaderScreen() {
     markRead(CHAPTERS[i]);
   };
 
+  // Функциональный апдейт от СВЕЖЕГО состояния: со снапшотом prefs два быстрых
+  // тапа «А+» до ре-рендера давали +1 вместо +2.
   const setPref = (p: Partial<ReaderPrefs>) =>
-    setState((s) => ({ ...s, readerPrefs: { ...prefs, ...p } }));
+    setState((s) => ({ ...s, readerPrefs: { ...DEFAULT_READER_PREFS, ...s.readerPrefs, ...p } }));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: RT.bg }} edges={['top']}>
