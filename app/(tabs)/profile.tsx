@@ -204,7 +204,10 @@ function PremiumCard() {
   const until = state.premiumUntil ?? 0;
   const lifetime = until > Date.now() + 40 * 365 * 86400_000;
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
-  const onTrial = premium && state.premiumPlan === 'trial';
+  // lifetime сильнее плана: если until — «навсегда» (2100 год), это не триал,
+  // даже если сервер прислал исторический plan='trial' (иначе рисовали
+  // «Пробный · осталось 26 800 дн.»).
+  const onTrial = premium && state.premiumPlan === 'trial' && !lifetime;
   const daysLeft = Math.max(0, Math.ceil((until - Date.now()) / 86400_000));
 
   function manage() {

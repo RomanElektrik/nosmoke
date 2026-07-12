@@ -113,7 +113,10 @@ function statusOf(deviceId) {
   return {
     premium,
     until: s ? (s.lifetime ? LIFETIME_UNTIL : s.paidUntil) : 0,
-    plan: s ? s.plan : null,
+    // lifetime перекрывает исторический plan записи: reverify докидывает флаг
+    // lifetime к бывшему trial/monthly, и клиент иначе показывал
+    // «Пробный период · осталось 26 800 дн.» (дни до 2100 года).
+    plan: s ? (s.lifetime ? 'lifetime' : s.plan) : null,
     card: (s && s.paymentMethodId && s.card) ? s.card : null, // привязанная карта для автопродления
     autopay: !!(s && s.paymentMethodId),
     account: h.acct ? ((s && s.email) || h.key) : null, // вошёл ли в аккаунт и под кем
