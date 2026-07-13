@@ -6,6 +6,7 @@ import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Pla
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { track } from '../lib/analytics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update, newThreadId, MAX_CHAT_THREADS, MAX_THREAD_MESSAGES, type ChatThread, type PersonaId } from '../lib/storage';
@@ -136,6 +137,7 @@ export default function ChatScreen() {
   }
 
   async function send() {
+    track('chat_message');
     const text = input.trim();
     if (!text || loading) return;
     if (!premium && (remaining ?? 0) <= 0) {

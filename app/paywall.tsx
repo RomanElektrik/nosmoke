@@ -18,6 +18,7 @@ import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
 import { abstinenceStartMs } from '../lib/stepped';
 import { createPayment, confirmPayment, startTrial, restorePurchase, type SubStatus } from '../lib/billing';
 import { scheduleTrialEndReminder } from '../lib/notifications';
+import { track } from '../lib/analytics';
 import { AppleSignInButton } from '../components/AppleSignInButton';
 import { getStoredAccount } from '../lib/auth';
 
@@ -64,6 +65,7 @@ export default function Paywall() {
   // Пробный (7 дней бесплатно, без карты) — если не премиум и триал не брался.
   const eligibleForTrial = !premium && !state.trialUsed;
   const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => { track('paywall_view', { onb: fromOnb }); }, []);
   useEffect(() => {
     let alive = true;
     getStoredAccount().then((a) => { if (alive) setSignedIn(!!a); });
@@ -89,6 +91,7 @@ export default function Paywall() {
     try {
       const st = await startTrial();
       if (st.premium && st.plan === 'trial') {
+        track('trial_start');
         await update((s) => ({ ...s, premiumUntil: st.until, premiumPlan: 'trial', trialUsed: true }));
         try { await scheduleTrialEndReminder(st.until, lang); } catch {}
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -166,6 +169,7 @@ export default function Paywall() {
       // её подхватят вебхук на сервере и fetchSub при следующем старте.
       pendingRef.current = null;
       if (ok) {
+        track('purchase_success');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(ru ? 'Премиум навсегда 🎉' : 'Premium forever 🎉', ru ? 'Спасибо! Все функции открыты навсегда.' : 'Thank you! Everything is unlocked forever.',
           [{ text: 'OK', onPress: done }]);
@@ -211,6 +215,7 @@ export default function Paywall() {
     try {
       const st = await restorePurchase(em);
       if (st.premium && st.until > Date.now()) {
+        track('restore_success');
         await update((s) => ({ ...s, premiumUntil: st.until, premiumPlan: st.plan ?? 'lifetime', trialUsed: st.trialUsed ?? s.trialUsed }));
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(ru ? 'Доступ восстановлен 🎉' : 'Access restored 🎉',

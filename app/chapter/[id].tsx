@@ -17,6 +17,7 @@ import { currentLang } from '../../lib/i18n';
 import { Icon } from '../../components/Icon';
 import { useAppState, DEFAULT_READER_PREFS, type ReaderPrefs } from '../../lib/storage';
 import { usePremium } from '../../lib/subscription';
+import { track } from '../../lib/analytics';
 import { chapterBody, CHAPTERS, TOTAL_CHAPTERS, type BookChapter } from '../../lib/book';
 
 // Темы читалки — отдельно от темы приложения.
@@ -77,6 +78,7 @@ export default function ReaderScreen() {
     setState((s) => {
       const m = s.bookProgress ?? {};
       if (m[ch.id]) return s;
+      track('chapter_read', { id: ch.id });
       return { ...s, bookProgress: { ...m, [ch.id]: Date.now() } };
     });
   };

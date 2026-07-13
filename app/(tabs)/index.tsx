@@ -20,6 +20,7 @@ import { newlyUnlocked } from '../../lib/achievements';
 import { relapseStatus } from '../../lib/relapse';
 import { rescheduleAll, notificationsAllowed } from '../../lib/notifications';
 import { maybeAskReview } from '../../lib/review';
+import { track } from '../../lib/analytics';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
 import { ARTICLES, ARTICLE_IMAGES } from '../../lib/articles';
 import { usePremium, FREE_ARTICLE_COUNT } from '../../lib/subscription';
@@ -722,6 +723,7 @@ function RelapseCard() {
   if (!rs.activelySmoking || dismissed) return null;
 
   async function restart() {
+    track('restart_after_slip');
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const now = Date.now();
     await update((s) => {
@@ -786,6 +788,7 @@ function StatusCheckCard() {
   if (daysSince < 2 || now - lastAsked < 3 * DAY || relapseStatus(state).activelySmoking) return null;
 
   async function holding() {
+    track('status_holding');
     Haptics.selectionAsync();
     await update((s) => ({ ...s, profile: s.profile ? { ...s.profile, lastStatusCheckAt: now } : s.profile }));
   }

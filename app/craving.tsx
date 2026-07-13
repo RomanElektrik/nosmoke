@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { createAudioPlayer } from 'expo-audio';
 import { ensureSpeaker } from '../lib/audio';
 import { maybeAskReview } from '../lib/review';
+import { track } from '../lib/analytics';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, cancelAnimation } from 'react-native-reanimated';
 import { useTheme, spacing, radius, type Theme } from '../lib/theme';
 import { useTranslation } from '../lib/i18n';
@@ -36,6 +37,7 @@ export default function Craving() {
   const { t: tr } = useTranslation();
   const [state] = useAppState();
   const [phase, setPhase] = useState<Phase>('choose');
+  useEffect(() => { track('sos_open'); }, []);
   const [intensity, setIntensity] = useState(6);
   const [trigger, setTrigger] = useState<Trigger | undefined>();
   const [outcome, setOutcome] = useState<'resisted' | 'smoked' | null>(null);
@@ -57,7 +59,7 @@ export default function Craving() {
       cravings: [...s.cravings, { ts: Date.now(), intensity, trigger, outcome: outcome! }],
       slips: outcome === 'smoked' ? [...s.slips, Date.now()] : s.slips,
     }));
-    if (outcome === 'resisted') setPhase('win');
+    if (outcome === 'resisted') { track('sos_win'); setPhase('win'); }
     else router.replace('/slip');
   }
 

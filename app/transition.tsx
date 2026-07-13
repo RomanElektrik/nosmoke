@@ -22,6 +22,7 @@ import { useAppState, update } from '../lib/storage';
 import type { StepLevel } from '../lib/storage';
 import { STEPS, getStep, alternativesFor, prepChecklist, recommendStep, pharmaBlocked } from '../lib/stepped';
 import { rescheduleAll } from '../lib/notifications';
+import { track } from '../lib/analytics';
 import { Icon } from '../components/Icon';
 
 type Phase = 'reality' | 'paused' | 'reflect' | 'choose' | 'date' | 'prep' | 'bridge' | 'commit' | 'done';
@@ -456,6 +457,7 @@ export default function Transition() {
         };
       });
 
+      track('method_change', { to: String(pickedMethod) });
       // Reschedule ALL notifications anchored to the new step start. rescheduleAll
       // (вместо scheduleQuitProgram) — иначе cancelAll сотрёт дозы лекарств и
       // недельные/симптом-напоминания и не поставит их заново до перезапуска.

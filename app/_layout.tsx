@@ -12,6 +12,7 @@ import { rescheduleAll, scheduleCravingNudge, scheduleTrialEndReminder, requestP
 import { currentLang } from '../lib/i18n';
 import { TourProvider } from '../components/Tour';
 import { fetchSub } from '../lib/billing';
+import { initAnalytics } from '../lib/analytics';
 import '../lib/i18n';
 
 // Держим родной сплэш (splash.png на #0A1D15) до первого кадра приложения.
@@ -64,6 +65,8 @@ export default function Root() {
       // конце этой цепочки, поэтому UI висел на сплэше, пока клиент не сходит в сеть,
       // а на плохой сети / при заходе из пуша иногда не открывался вовсе.
       setReady(true);
+      // Аналитика — строго после первого кадра, fire-and-forget.
+      try { initAnalytics(); } catch {}
 
       // Rebuild the full notification plan on every launch. This keeps
       // medication-dose reminders alive past the 7-day scheduling window

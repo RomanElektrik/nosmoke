@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { track } from '../../lib/analytics';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, currentLang } from '../../lib/i18n';
 import { Icon } from '../../components/Icon';
@@ -22,6 +23,7 @@ export default function Practice() {
   const t = useTheme();
   const router = useRouter();
   const { t: tr } = useTranslation();
+  useEffect(() => { track('practice_open', { id: String(id) }); }, []);
 
   const back = () => router.back();
 

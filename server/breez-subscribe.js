@@ -19,7 +19,8 @@ const YK_URL = 'https://api.yookassa.ru/v3/payments';
 // отмена не возвращает текущий период, возврат только по запросу на поддержку и
 // вручную. Но если возврат всё-таки одобрен (через ЮKassa/банк) — премиум снимаем
 // автоматически (reverify ниже). Кнопки «вернуть деньги» в приложении нет.
-const STORE = path.join(__dirname, 'data', 'briz-subs.json');
+const DATA_DIR = path.join(__dirname, 'data');
+const STORE = path.join(DATA_DIR, 'briz-subs.json');
 const RETURN_URL = process.env.BRIZ_RETURN_URL || 'https://breezapp.ru/pay-ok.html';
 const LIFETIME_UNTIL = 4102444800000; // 2100-01-01 — отображаемая «дата» для навсегда
 const TRIAL_DAYS = 7; // пробный период: полный премиум бесплатно
@@ -529,6 +530,9 @@ async function renewSweep() {
 // setTimeout(() => { renewSweep().catch(() => {}); }, 8000); // и вскоре после старта
 
 module.exports = function attach(app) {
+  // Идемпотентность: mount может прийти и строкой в server.js, и из
+  // briz-preload.js (страховка от перезаписи server.js) — вешаемся один раз.
+  if (app.__brizMounted) return; app.__brizMounted = true;
   if (!SHOP_ID || !SECRET_KEY) console.warn('[briz] YOOKASSA keys missing — /api/briz/* вернёт 503');
 
   app.post('/api/briz/pay/create', async (req, res) => {
@@ -597,6 +601,37 @@ module.exports = function attach(app) {
       res.json(statusOf(deviceId));
     } catch (e) {
       console.error('[briz] confirm:', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── Анонимная продукт-аналитика ────────────────────────────────────────────
+  // Приём батчей событий из приложения. Никакой персоналки: deviceId (анонимный
+  // uuid) + имя события + ts. Пишем в дневные JSONL-файлы data/briz-events-*.jsonl
+  // (append-only, атомарность не критична). Разбор — офлайн-скриптами.
+  const EV_NAME = /^[a-z0-9_]{2,40}$/;
+  app.post('/api/briz/events', (req, res) => {
+    try {
+      const { deviceId, platform, events } = req.body || {};
+      if (!isDevice(deviceId) || !Array.isArray(events)) return res.status(400).json({ error: 'bad payload' });
+      const now = Date.now();
+      const rows = [];
+      for (const e of events.slice(0, 100)) {
+        if (!e || typeof e.n !== 'string' || !EV_NAME.test(e.n)) continue;
+        const ts = Number(e.ts);
+        rows.push(JSON.stringify({
+          d: deviceId, n: e.n,
+          ts: Number.isFinite(ts) && ts > 1700000000000 && ts < now + 86400000 ? ts : now,
+          pf: platform === 'android' ? 'a' : platform === 'web' ? 'w' : 'i',
+          ...(e.p && typeof e.p === 'object' ? { p: e.p } : {}),
+        }));
+      }
+      if (rows.length) {
+        const day = new Date().toISOString().slice(0, 10);
+        fs.appendFileSync(path.join(DATA_DIR, `briz-events-${day}.jsonl`), rows.join('\n') + '\n');
+      }
+      res.json({ ok: true, accepted: rows.length });
+    } catch (e) {
       res.status(500).json({ error: e.message });
     }
   });

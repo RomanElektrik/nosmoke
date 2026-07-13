@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { track } from '../lib/analytics';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
@@ -44,6 +45,7 @@ export default function Slip() {
   }, []);
 
   async function finish() {
+    track('slip_logged');
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     // The streak is NEVER reset — a slip is data, not a verdict. We only
     // attach the trigger + next-step note to the just-logged slip.
