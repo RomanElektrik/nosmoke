@@ -4,6 +4,8 @@ import * as Localization from 'expo-localization';
 import ru from '../locales/ru.json';
 import en from '../locales/en.json';
 
+// Локаль устройства — только ДЕФОЛТ для самого первого запуска. Если юзер выбрал
+// язык явно (AppState.lang), _layout применит его через setLanguage() при старте.
 const lang = (Localization.getLocales()[0]?.languageCode === 'ru' ? 'ru' : 'en') as 'ru' | 'en';
 
 i18n.use(initReactI18next).init({

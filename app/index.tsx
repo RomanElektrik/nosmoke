@@ -10,7 +10,8 @@ export default function Index() {
   const [state] = useAppState();
   // Нет профиля → онбординг. Профиль есть, но онбординг не закрыт → воронка на
   // paywall (возобновление). Иначе → приложение.
-  if (!state.profile) return <Redirect href="/(onboarding)/welcome" />;
+  // Первый запуск: язык не выбран → экран выбора языка, он уводит на welcome.
+  if (!state.profile) return <Redirect href={(state.lang ? '/(onboarding)/welcome' : '/(onboarding)/language') as any} />;
   if (!state.profile.onboardingComplete) return <Redirect href={'/paywall?onb=1' as any} />;
   return <Redirect href="/(tabs)" />;
 }

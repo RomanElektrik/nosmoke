@@ -37,7 +37,8 @@ const FEATURES_RU: Feature[] = [
 const FEATURES_EN: Feature[] = [
   { i: 'spark', c: '#30D158', t: 'Unlimited Breeze', d: 'No daily message cap' },
   { i: 'pulse', c: '#BF5AF2', t: 'Craving analytics', d: 'Your risk hours and triggers ahead of time' },
-  { i: 'headphones', c: '#0A84FF', t: 'All audio practices', d: 'A voice for any moment' },
+  // Аудиопрактики озвучены только по-русски и в EN-версии скрыты —
+  // обещать их англоязычному покупателю нельзя.
   { i: 'toolbox', c: '#FF9F0A', t: 'All techniques', d: 'The full toolkit' },
   { i: 'feather', c: '#FF375F', t: 'All content', d: 'Every article, unrestricted' },
 ];

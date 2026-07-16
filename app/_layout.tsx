@@ -9,7 +9,7 @@ import { recommendStep } from '../lib/stepped';
 import { computeInsights } from '../lib/insights';
 import * as Notifications from 'expo-notifications';
 import { rescheduleAll, scheduleCravingNudge, scheduleTrialEndReminder, requestPermissions } from '../lib/notifications';
-import { currentLang } from '../lib/i18n';
+import { currentLang, setLanguage } from '../lib/i18n';
 import { TourProvider } from '../components/Tour';
 import { fetchSub } from '../lib/billing';
 import { initAnalytics } from '../lib/analytics';
@@ -29,6 +29,9 @@ export default function Root() {
 
   useEffect(() => {
     loadState().then(async (s) => {
+      // Явно выбранный язык применяем ДО первого кадра — иначе i18n остаётся на
+      // локали устройства и перетирает выбор юзера.
+      if (s.lang) setLanguage(s.lang);
       // Migration: legacy profile without currentStep → auto-recommend.
       if (s.profile && !s.profile.currentStep) {
         const recommended = recommendStep(s.profile);
@@ -146,7 +149,8 @@ export default function Root() {
     // с них на главную — иначе тап по «Узнай тип зависимости» просто мигает домой.
     const reusable = segments[1] === 'personality' || segments[1] === 'depth';
     if (!startedProfile && !inOnb) {
-      router.replace('/(onboarding)/welcome');
+      // Язык ещё не выбран → сначала экран выбора языка, потом welcome.
+      router.replace(state.lang ? '/(onboarding)/welcome' : ('/(onboarding)/language' as any));
     } else if (startedProfile && !completed && !inOnb && !onPaywall) {
       // Профиль собран, но онбординг не закрыт (оффер не пройден) — возобновляем
       // воронку на paywall. Покрывает выгрузку приложения прямо на оффере.
@@ -154,7 +158,7 @@ export default function Root() {
     } else if (completed && inOnb && !reusable) {
       router.replace('/(tabs)');
     }
-  }, [ready, startedProfile, completed, segments]);
+  }, [ready, startedProfile, completed, state.lang, segments]);
 
   // Как только приложение готово рисоваться — прячем родной сплэш. До этого
   // момента экран закрыт сплэшем, поэтому промежуточного «колёсика» больше нет.

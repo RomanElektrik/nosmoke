@@ -56,6 +56,14 @@ export default function AudioPlayer() {
   const total = steps.length;
   const recorded = !!practice?.audio;
 
+  // Озвучка есть только по-русски: в EN плеер недоступен из UI, но по прямой
+  // ссылке сюда всё же можно попасть — молча уводим назад, а не даём русский голос.
+  useEffect(() => {
+    if (ru) return;
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/techniques' as any);
+  }, [ru, router]);
+
   const [voiceId, setVoiceId] = useState<string>(state.profile?.voiceId || 'female');
   const [rate, setRate] = useState(1);
   const [idx, setIdx] = useState(0);

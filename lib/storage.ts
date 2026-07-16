@@ -199,6 +199,10 @@ export type AppState = {
   bookProgress?: Record<string, number>;        // книга «Выдох»: chapterId → read-at ms (никогда не обнуляем)
   bookmarks?: string[];                          // chapterId[] — закладки в книге
   readerPrefs?: ReaderPrefs;                     // настройки читалки (размер/шрифт/фон)
+  // Язык, выбранный юзером явно на первом экране онбординга. Источник правды —
+  // именно это корневое поле, а НЕ profile.language: профиля ещё нет, когда язык
+  // уже выбран. Undefined = выбора не было → дефолт из локали устройства.
+  lang?: 'ru' | 'en';
 };
 
 // Настройки читалки книги — персистятся, применяются ко всем главам.
@@ -353,7 +357,7 @@ export async function reset() {
   // локальная защита в дополнение к серверной.
   const prev = cache;
   const next: AppState = prev
-    ? { ...initial, premiumUntil: prev.premiumUntil, premiumPlan: prev.premiumPlan, trialUsed: prev.trialUsed, boundCard: prev.boundCard }
+    ? { ...initial, premiumUntil: prev.premiumUntil, premiumPlan: prev.premiumPlan, trialUsed: prev.trialUsed, boundCard: prev.boundCard, lang: prev.lang }
     : initial;
   cache = next;
   loading = null;

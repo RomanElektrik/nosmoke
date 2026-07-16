@@ -636,6 +636,9 @@ module.exports = function attach(app) {
     }
   });
 
+  // Дашборд аналитики — отдельный модуль (см. server/briz-stats.js).
+  try { require('./briz-stats.js')(app, DATA_DIR); } catch (e) { console.error('[briz] stats mount failed:', e.message); }
+
   app.get('/api/briz/sub/:deviceId', async (req, res) => {
     const d = String(req.params.deviceId);
     if (isDevice(d) && SHOP_ID && SECRET_KEY) { try { await reverify(d); } catch {} }

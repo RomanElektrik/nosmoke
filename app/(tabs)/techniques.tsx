@@ -71,7 +71,11 @@ export default function Techniques() {
   const router = useRouter();
   const lang = currentLang();
   const [open, setOpen] = useState<Technique | null>(null);
-  const [tab, setTab] = useState<TabId>('audio');
+  // Аудиопрактики озвучены только по-русски — в EN их не показываем вовсе,
+  // иначе англоязычный юзер платит и получает русский голос.
+  const audioOn = lang === 'ru';
+  const tabs = audioOn ? TABS : TABS.filter((tb) => tb.id !== 'audio');
+  const [tab, setTab] = useState<TabId>(audioOn ? 'audio' : 'breath');
   const premium = usePremium();
   const navLock = useRef(false);
 
@@ -123,7 +127,7 @@ export default function Techniques() {
 
         {/* Segmented tabs */}
         <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: spacing.lg, marginBottom: 18 }}>
-          {TABS.map((tb) => {
+          {tabs.map((tb) => {
             const on = tab === tb.id;
             return (
               <Pressable key={tb.id} onPress={() => { Haptics.selectionAsync(); setTab(tb.id); }}
@@ -139,7 +143,7 @@ export default function Techniques() {
         {/* No entering animation here: re-animating 13 SVG-heavy cards on every
             tab switch made the list scroll jank. */}
         <View style={{ paddingHorizontal: spacing.lg, gap: 12 }}>
-          {tab === 'audio' && audioItems.map((p, i) => (
+          {audioOn && tab === 'audio' && audioItems.map((p, i) => (
             <AudioCard key={p.id} p={p} openAudio={openAudio} lang={lang}
               locked={!premium && i >= FREE_PRACTICE_COUNT} />
           ))}
