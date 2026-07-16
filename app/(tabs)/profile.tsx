@@ -201,6 +201,8 @@ function PremiumCard() {
   const ru = lang === 'ru';
   const [state] = useAppState();
   const premium = usePremium();
+  // EN-версия бесплатна (платежи только ЮKassa/РФ) — карточка Премиума не нужна.
+  if (!ru) return null;
   const until = state.premiumUntil ?? 0;
   const lifetime = until > Date.now() + 40 * 365 * 86400_000;
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');

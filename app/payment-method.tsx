@@ -1,6 +1,7 @@
 // Премиум — статус доступа. Модель lifetime-only: карта не привязывается,
 // подписки/автопродления/автосписаний нет, поэтому «способом оплаты» управлять
 // нечем. Экран показывает статус, ведёт на paywall и поясняет порядок возврата.
+import { useEffect } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -24,6 +25,9 @@ export default function PaymentMethod() {
   // «Пробный · осталось 26 800 дн.»).
   const onTrial = premium && state.premiumPlan === 'trial' && !lifetime;
   const daysLeft = Math.max(0, Math.ceil((until - Date.now()) / 86400_000));
+  // EN-версия бесплатна — экрана оплаты там нет.
+  useEffect(() => { if (!ru) (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any)); }, [ru]);
+  if (!ru) return null;
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
 
   const statusLine = !premium

@@ -3,6 +3,7 @@
 // профиля для теста заблокированных фич; в проде он не выставляется и не читается.
 
 import { useAppState } from './storage';
+import { currentLang } from './i18n';
 
 // Flat 10 messages/day on the free tier — generous and honest, no shrinking
 // tricks. Enough to prove Breeze helps; premium removes the limit entirely.
@@ -34,6 +35,10 @@ export function isTechniquePremium(techId: string, tags?: readonly string[]): bo
  *  server-validated ЮKassa subscription that hasn't expired. */
 export function usePremium(): boolean {
   const [state] = useAppState();
+  // 🌍 EN-версия ПОКА полностью бесплатна: оплата только через ЮKassa
+  // (карты РФ) — англоязычный юзер физически не может заплатить, показывать
+  // ему пейвол нечестно. Когда появится IAP/Stripe — убрать эту ветку.
+  if (currentLang() === 'en') return true;
   // devPremium — только в dev-сборке. На чтении тоже гейтим __DEV__, чтобы
   // случайно persist'нутый флаг не дал вечный премиум в проде (один bundleId).
   if (__DEV__ && state.profile?.devPremium) return true;
