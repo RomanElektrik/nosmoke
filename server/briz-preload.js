@@ -13,12 +13,16 @@ try {
 
   const patched = function patchedExpress(...args) {
     const app = orig(...args);
-    try {
-      require(subscribePath)(app);
-      console.log('[briz] auto-mounted via preload');
-    } catch (e) {
-      console.error('[briz] preload mount failed:', e.message);
-    }
+    // Монтируем ПОСЛЕ текущего тика: server.js должен успеть навесить свои
+    // app.use (express.json и пр.), иначе briz-роуты встают раньше парсера тела.
+    setImmediate(() => {
+      try {
+        require(subscribePath)(app);
+        console.log('[briz] auto-mounted via preload');
+      } catch (e) {
+        console.error('[briz] preload mount failed:', e.message);
+      }
+    });
     return app;
   };
   Object.setPrototypeOf(patched, orig);

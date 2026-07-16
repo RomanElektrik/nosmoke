@@ -533,6 +533,11 @@ module.exports = function attach(app) {
   // Идемпотентность: mount может прийти и строкой в server.js, и из
   // briz-preload.js (страховка от перезаписи server.js) — вешаемся один раз.
   if (app.__brizMounted) return; app.__brizMounted = true;
+  // Свой body-parser на нашем префиксе: mount может случиться ДО глобального
+  // express.json() в server.js (например из briz-preload при создании app) —
+  // тогда req.body у всех briz-POST был бы undefined и оплата/триал ложились
+  // с «bad payload». Дубль парсера безопасен (второй просто пропускает).
+  try { app.use('/api/briz', require('express').json({ limit: '300kb' })); } catch (e) { console.error('[briz] json mw:', e.message); }
   if (!SHOP_ID || !SECRET_KEY) console.warn('[briz] YOOKASSA keys missing — /api/briz/* вернёт 503');
 
   app.post('/api/briz/pay/create', async (req, res) => {
