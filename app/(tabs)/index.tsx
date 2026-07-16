@@ -629,7 +629,9 @@ function MedicationCard() {
   }
 
   const medColor = med === 'cytisine' ? t.accent : med === 'bupropion' ? t.warn : t.info;
-  const medName = med === 'cytisine' ? 'Цитизин' : med === 'bupropion' ? 'Бупропион' : 'Варениклин';
+  const medName = currentLang() === 'ru'
+    ? (med === 'cytisine' ? 'Цитизин' : med === 'bupropion' ? 'Бупропион' : 'Варениклин')
+    : (med === 'cytisine' ? 'Cytisine' : med === 'bupropion' ? 'Bupropion' : 'Varenicline');
 
   async function stopMed() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);

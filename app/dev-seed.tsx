@@ -2,21 +2,27 @@
 // накопления) и уходит на главную. НЕ КОММИТИТЬ — удалить после съёмки.
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { update } from '../lib/storage';
+import { setLanguage } from '../lib/i18n';
 
 const DAY = 86400_000;
 
 export default function DevSeed() {
   const router = useRouter();
+  // ?lang=en — сеет англоязычный демо-профиль (для EN-скринов стора).
+  const { lang } = useLocalSearchParams<{ lang?: string }>();
   useEffect(() => {
     (async () => {
       // 🔴 Только dev: в прод-сборке роут просто уводит на главную, ничего не сея
       // (иначе любой, узнавший URL/scheme, получил бы вечный премиум).
       if (!__DEV__) { router.replace('/'); return; }
       const now = Date.now();
+      const en = lang === 'en';
+      setLanguage(en ? 'en' : 'ru');
       await update((prev) => ({
         ...prev,
+        lang: en ? 'en' : 'ru',
         premiumUntil: now + 3650 * DAY,
         premiumPlan: 'lifetime',
         tourV1Done: true,
@@ -31,8 +37,8 @@ export default function DevSeed() {
           yearsSmoked: 9,
           cigsPerDay: 15,
           cigsInPack: 20,
-          packPrice: 240,
-          currency: 'RUB',
+          packPrice: en ? 9 : 240,
+          currency: en ? 'USD' : 'RUB',
           type: 'cigarette',
           triggers: ['stress', 'coffee', 'after_meal'],
           motivations: ['health', 'money', 'family'],
@@ -49,8 +55,13 @@ export default function DevSeed() {
           wakeHour: 8,
           importance: 9,
           confidence: 7,
-          identityStatement: 'свободным человеком',
-          reasons: [
+          language: en ? 'en' : 'ru',
+          identityStatement: en ? 'a free person' : 'свободным человеком',
+          reasons: en ? [
+            { text: 'Breathe deeply again', emoji: '🫁' },
+            { text: 'My kids shouldn\'t see me smoking', emoji: '👨‍👧' },
+            { text: 'Save up for a trip', emoji: '✈️' },
+          ] : [
             { text: 'Дышать полной грудью', emoji: '🫁' },
             { text: 'Дети не должны видеть меня с сигаретой', emoji: '👨‍👧' },
             { text: 'Накопить на путешествие', emoji: '✈️' },
@@ -67,6 +78,6 @@ export default function DevSeed() {
       }));
       router.replace('/');
     })();
-  }, []);
+  }, [lang]);
   return <View style={{ flex: 1, backgroundColor: '#0A1D15' }} />;
 }

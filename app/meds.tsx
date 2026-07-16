@@ -50,9 +50,9 @@ export default function Meds() {
   }
 
   const medColor = med === 'cytisine' ? '#30D158' : med === 'bupropion' ? '#FF9500' : '#0A84FF';
-  const medName = med === 'cytisine' ? 'Цитизин (Табекс)'
-    : med === 'bupropion' ? 'Бупропион (Велбутрин)'
-    : 'Варениклин (Чампикс)';
+  const medName = currentLang() === 'ru'
+    ? (med === 'cytisine' ? 'Цитизин (Табекс)' : med === 'bupropion' ? 'Бупропион (Велбутрин)' : 'Варениклин (Чампикс)')
+    : (med === 'cytisine' ? 'Cytisine (Tabex)' : med === 'bupropion' ? 'Bupropion (Wellbutrin)' : 'Varenicline (Chantix)');
 
   // Build last-7-days adherence
   const today = new Date(); today.setHours(0, 0, 0, 0);

@@ -18,7 +18,7 @@ import { Icon } from '../../components/Icon';
 import { useAppState, DEFAULT_READER_PREFS, type ReaderPrefs } from '../../lib/storage';
 import { usePremium } from '../../lib/subscription';
 import { track } from '../../lib/analytics';
-import { chapterBody, CHAPTERS, TOTAL_CHAPTERS, type BookChapter } from '../../lib/book';
+import { chapterBody, CHAPTERS, TOTAL_CHAPTERS, partName, type BookChapter } from '../../lib/book';
 
 // Темы читалки — отдельно от темы приложения.
 const READER_THEMES = {
@@ -184,8 +184,8 @@ function ChapterText({ ch, ru, RT, fam, fontSize, lh }: {
 }) {
   const blocks = chapterBody(ch, ru);
   const meta = ch.number === 0
-    ? `${ch.part} · ${ru ? 'ВСТУПЛЕНИЕ' : 'INTRO'}`
-    : `${ch.part} · ${ru ? 'ГЛАВА' : 'CH.'} ${ch.number} / ${TOTAL_CHAPTERS} · ${ch.readMin} ${ru ? 'мин' : 'min'}`;
+    ? `${partName(ch.part, ru)} · ${ru ? 'ВСТУПЛЕНИЕ' : 'INTRO'}`
+    : `${partName(ch.part, ru)} · ${ru ? 'ГЛАВА' : 'CH.'} ${ch.number} / ${TOTAL_CHAPTERS} · ${ch.readMin} ${ru ? 'мин' : 'min'}`;
   return (
     <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 10, paddingBottom: 96, maxWidth: 680, alignSelf: 'center', width: '100%' }} showsVerticalScrollIndicator={false}>
       <Text style={{ color: RT.dim, fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 10 }}>{meta}</Text>
@@ -234,7 +234,7 @@ function TOCModal({ visible, onClose, onPick, page, premium, progress, bookmarks
             const locked = !ch.free && !premium;
             const read = !!progress[ch.id];
             const marked = bookmarks.includes(ch.id);
-            const head = ch.part !== lastPart ? (lastPart = ch.part) : null;
+            const head = ch.part !== lastPart ? partName((lastPart = ch.part), ru) : null;
             return (
               <View key={ch.id} style={{ gap: 8 }}>
                 {head && (

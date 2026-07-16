@@ -189,6 +189,18 @@ export const CHAPTERS: BookChapter[] = [
   },
 ];
 
+// Названия частей — EN. Ключ = русское имя part из глав.
+const PART_EN: Record<string, string> = {
+  'I. Как работает ловушка': 'I. How the trap works',
+  'II. Разбор иллюзий': 'II. Taking illusions apart',
+  'III. Тело и страхи': 'III. The body and the fears',
+  'IV. Срыв и опора': 'IV. Slips and support',
+  'V. Свобода': 'V. Freedom',
+};
+export function partName(part: string, ru: boolean): string {
+  return ru ? part : (PART_EN[part] ?? part);
+}
+
 export function getChapter(id: string): BookChapter | undefined {
   return CHAPTERS.find((c) => c.id === id);
 }

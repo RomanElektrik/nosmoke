@@ -26,7 +26,7 @@ export const SUMMARIZE_OVER = 24;
 export const KEEP_TAIL = 12;
 
 const EXTRACT_PROMPT = `You extract DURABLE personal facts about a user from a quit-smoking support chat.
-Return a JSON array of 0-3 SHORT facts in Russian (each ≤ 90 chars). Only include facts that will still matter in a month:
+Return a JSON array of 0-3 SHORT facts in the SAME LANGUAGE the user writes in (each ≤ 90 chars). Only include facts that will still matter in a month:
 - names/relations of close people, job/schedule, city
 - what concretely HELPS or DOES NOT help this user against cravings
 - important life events, strong personal reasons for quitting
@@ -96,7 +96,7 @@ export async function extractFacts(state: AppState, messages: ChatMessage[]): Pr
 }
 
 const SUMMARY_PROMPT = `You compress a long quit-smoking coaching conversation into a running summary for the coach's own memory.
-Write 2-4 short sentences in Russian, third-person, capturing only what matters for continuing the relationship: what the user is going through, what was tried and how it went, agreements/next steps, emotional state. Merge the PREVIOUS SUMMARY with the NEW MESSAGES. No greetings, no meta, no markdown. Output ONLY the summary text.`;
+Write 2-4 short sentences in the same language the conversation is in, third-person, capturing only what matters for continuing the relationship: what the user is going through, what was tried and how it went, agreements/next steps, emotional state. Merge the PREVIOUS SUMMARY with the NEW MESSAGES. No greetings, no meta, no markdown. Output ONLY the summary text.`;
 
 // Roll the older half of a long thread into a compact summary. Returns the new
 // summary text or null on failure / nothing to do. Caller stores it on the
