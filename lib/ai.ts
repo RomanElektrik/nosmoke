@@ -200,7 +200,11 @@ CONVERSATION & TECHNIQUE RULES (critical):
       : 'Mode: DAILY TASK. Give ONE concrete micro-task for today, ≤2 min, tailored to triggers and archetype.';
 
   const personaBlock = getPersona(personaId).promptBlock;
-  return [role, personaBlock, ctx, modeBlock].join('\n\n');
+  // Языковое правило ДУБЛИРУЕТСЯ последней строкой: модели сильнее всего слушают
+  // конец промта, а в контекст подмешиваются заметки памяти на русском — слабая
+  // модель иначе переключалась на язык заметок и отвечала EN-юзеру по-русски.
+  const langFooter = `FINAL RULE — overrides everything above: write your reply in ${lang} ONLY. Context notes or memory may be in another language — ignore their language, reply in ${lang}.`;
+  return [role, personaBlock, ctx, modeBlock, langFooter].join('\n\n');
 }
 
 async function callDirect(key: string, messages: ChatMessage[], model: string, maxTokens = 600): Promise<string> {
@@ -240,6 +244,22 @@ function parseSSE(raw: string): string {
 // Streaming chat — tokens arrive progressively via onToken(fullSoFar). RN fetch
 // can't stream a body reader, so we use XHR.onprogress. Rejects on error so the
 // caller can fall back to the non-streaming chat().
+// Русская история/память перетягивает слабую модель на русский даже при
+// «Reply ONLY in English» в системном промте: few-shot сильнее инструкции.
+// Лечим детерминированно — дописываем языковое указание в ПОСЛЕДНЕЕ сообщение
+// юзера (исходящую копию, UI не видит): такой хвост модели выполняют железно.
+function enforceLang(history: ChatMessage[], locale: 'ru' | 'en'): ChatMessage[] {
+  if (locale === 'ru') return history;
+  const out = [...history];
+  for (let i = out.length - 1; i >= 0; i--) {
+    if (out[i].role === 'user') {
+      out[i] = { ...out[i], content: out[i].content + '\n\n(Reply in English only.)' };
+      break;
+    }
+  }
+  return out;
+}
+
 export function chatStream(
   state: AppState, locale: 'ru' | 'en', mode: PromptMode, history: ChatMessage[],
   onToken: (fullSoFar: string) => void, personaId?: PersonaId, priorSummary?: string,
@@ -252,7 +272,7 @@ export function chatStream(
     const isCall = mode === 'call';
     const model = isCall ? CALL_MODEL : (userModel || ENV_MODEL || DEFAULT_MODEL);
     const maxTokens = isCall ? 120 : 600;
-    const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(state, locale, mode, personaId, priorSummary) }, ...history];
+    const messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt(state, locale, mode, personaId, priorSummary) }, ...enforceLang(history, locale)];
     try {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', 'https://openrouter.ai/api/v1/chat/completions');
@@ -301,7 +321,7 @@ export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMod
   }
   const messages: ChatMessage[] = [
     { role: 'system', content: buildSystemPrompt(state, locale, mode, personaId, priorSummary) },
-    ...history,
+    ...enforceLang(history, locale),
   ];
   if (key) {
     try { return await callDirect(key, messages, model, maxTokens); }
