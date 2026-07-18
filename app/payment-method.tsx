@@ -25,9 +25,9 @@ export default function PaymentMethod() {
   // «Пробный · осталось 26 800 дн.»).
   const onTrial = premium && state.premiumPlan === 'trial' && !lifetime;
   const daysLeft = Math.max(0, Math.ceil((until - Date.now()) / 86400_000));
-  // EN-версия бесплатна — экрана оплаты там нет.
-  useEffect(() => { if (!ru) (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any)); }, [ru]);
-  if (!ru) return null;
+  // App Review 3.1.1: покупок в приложении нет — экран оплаты недостижим.
+  useEffect(() => { (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any)); }, []);
+  return null;
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
 
   const statusLine = !premium

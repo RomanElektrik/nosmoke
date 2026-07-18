@@ -12,7 +12,7 @@ import { SwipeToHome } from '../../components/SwipeToHome';
 import { usePremium } from '../../lib/subscription';
 import { getDeviceId } from '../../lib/billing';
 import { AppleSignInButton } from '../../components/AppleSignInButton';
-import { getStoredAccount, signOutAccount, type Account } from '../../lib/auth';
+import { getStoredAccount, signOutAccount, deleteAccount, type Account } from '../../lib/auth';
 
 const PRIVACY_URL = 'https://breezapp.ru/privacy-policy.html';
 const TERMS_URL = 'https://breezapp.ru/terms.html';
@@ -130,6 +130,28 @@ function AccountCard() {
             <Text style={{ color: t.danger, fontSize: 14, fontWeight: '600' }}>{ru ? 'Выйти' : 'Sign out'}</Text>
           </Pressable>
         </View>
+        {/* App Review 5.1.1(v): у входа обязан быть путь ПОЛНОГО удаления аккаунта. */}
+        <Pressable
+          hitSlop={8}
+          style={{ marginTop: 10, alignSelf: 'flex-start' }}
+          onPress={() => Alert.alert(
+            ru ? 'Удалить аккаунт?' : 'Delete account?',
+            ru ? 'Аккаунт и его данные будут удалены с сервера навсегда. Локальный прогресс на этом устройстве останется.'
+               : 'Your account and its data will be permanently deleted from our server. Local progress on this device stays.',
+            [
+              { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
+              { text: ru ? 'Удалить навсегда' : 'Delete forever', style: 'destructive', onPress: async () => {
+                  await deleteAccount();
+                  setAcct(null);
+                  Alert.alert(ru ? 'Аккаунт удалён' : 'Account deleted',
+                    ru ? 'Все данные аккаунта стёрты с сервера.' : 'All account data has been erased from our server.');
+                } },
+            ],
+          )}>
+          <Text style={{ color: t.textDim, fontSize: 13, textDecorationLine: 'underline' }}>
+            {ru ? 'Удалить аккаунт и данные' : 'Delete account & data'}
+          </Text>
+        </Pressable>
       </GlassCard>
     );
   }
@@ -201,8 +223,8 @@ function PremiumCard() {
   const ru = lang === 'ru';
   const [state] = useAppState();
   const premium = usePremium();
-  // EN-версия бесплатна (платежи только ЮKassa/РФ) — карточка Премиума не нужна.
-  if (!ru) return null;
+  // App Review 3.1.1: покупок в приложении нет — карточка Премиума скрыта.
+  return null;
   const until = state.premiumUntil ?? 0;
   const lifetime = until > Date.now() + 40 * 365 * 86400_000;
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');

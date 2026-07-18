@@ -63,6 +63,20 @@ export async function signInWithApple(): Promise<AuthStatus> {
 }
 
 // Выйти: отвязать устройство от аккаунта (подписка остаётся на аккаунте).
+// Полное удаление аккаунта на сервере (App Review 5.1.1(v)) + локальный выход.
+export async function deleteAccount(): Promise<void> {
+  try {
+    const { getDeviceId } = await import('./billing');
+    const deviceId = await getDeviceId();
+    await fetch(`${API}/account/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceId }),
+    });
+  } catch {}
+  await signOutAccount();
+}
+
 export async function signOutAccount(): Promise<void> {
   try {
     const deviceId = await getDeviceId();

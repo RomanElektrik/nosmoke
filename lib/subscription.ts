@@ -35,14 +35,17 @@ export function isTechniquePremium(techId: string, tags?: readonly string[]): bo
  *  server-validated ЮKassa subscription that hasn't expired. */
 export function usePremium(): boolean {
   const [state] = useAppState();
-  // 🌍 EN-версия ПОКА полностью бесплатна: оплата только через ЮKassa
-  // (карты РФ) — англоязычный юзер физически не может заплатить, показывать
-  // ему пейвол нечестно. Когда появится IAP/Stripe — убрать эту ветку.
-  if (currentLang() === 'en') return true;
-  // devPremium — только в dev-сборке. На чтении тоже гейтим __DEV__, чтобы
-  // случайно persist'нутый флаг не дал вечный премиум в проде (один bundleId).
-  if (__DEV__ && state.profile?.devPremium) return true;
-  return !!state.premiumUntil && state.premiumUntil > Date.now();
+  // 🍎 App Review 3.1.1 (реджект 1.0.6): продажа цифрового контента в обход
+  // IAP запрещена, а IAP с российского dev-аккаунта невозможен (выплаты
+  // остановлены). Поэтому в сторовой сборке приложение ПОЛНОСТЬЮ бесплатно —
+  // пейвол недостижим, все замки сняты. Оплатившие ранее ничего не теряют.
+  // Вернуть монетизацию: IAP через зарубежный акк ИЛИ веб-продажи без ссылок
+  // из приложения (3.1.3) — тогда сузить эту ветку обратно до 'en'.
+  void state;
+  return true;
+  // Прежняя логика (вернуть вместе с монетизацией):
+  //   if (__DEV__ && state.profile?.devPremium) return true;
+  //   return !!state.premiumUntil && state.premiumUntil > Date.now();
 }
 
 /** AI usage helpers — count messages sent today (free tier). */

@@ -788,6 +788,38 @@ module.exports = function attach(app) {
     }
   });
 
+  // Удаление аккаунта (App Review 5.1.1(v)): стираем Apple-аккаунт и все связки
+  // устройств с ним. Запись самого устройства не трогаем — оплаченный доступ,
+  // если он был локальным, у юзера остаётся (удаление аккаунта ≠ отзыв покупки).
+  app.post('/api/briz/account/delete', (req, res) => {
+    try {
+      const { deviceId } = req.body || {};
+      if (!isDevice(deviceId)) return res.status(400).json({ error: 'bad deviceId' });
+      const acctId = devLink[deviceId];
+      if (acctId) {
+        // Право доступа аккаунта возвращаем на устройство (как в signout) —
+        // удаление аккаунта не должно сжигать оплаченный lifetime.
+        const acc = accounts[acctId];
+        if (acc && (acc.lifetime || (acc.paidUntil || 0) > Date.now()) && !subs[deviceId]) {
+          subs[deviceId] = {
+            plan: acc.plan, lifetime: !!acc.lifetime, paidUntil: acc.paidUntil || 0,
+            paymentMethodId: null, card: null, applied: [...(acc.applied || [])].slice(-50),
+            lastPaymentId: acc.lastPaymentId || null, email: null,
+            trialUsed: acc.trialUsed, updatedAt: Date.now(),
+          };
+          saveStore(subs);
+        }
+        delete accounts[acctId];
+        for (const d of Object.keys(devLink)) if (devLink[d] === acctId) delete devLink[d];
+        saveAcc();
+        console.log('[briz] account deleted:', String(acctId).slice(0, 14) + '…');
+      }
+      res.json({ ok: true, deleted: !!acctId });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Пробный период С ПРИВЯЗКОЙ КАРТЫ (основной путь): создаём привязочный платёж
   // на 1 ₽ с сохранением карты. Премиум и trialUsed выставляются НЕ здесь, а
   // только после подтверждённой привязки (applyTrialBind в /confirm и webhook) —

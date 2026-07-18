@@ -66,10 +66,9 @@ export default function Paywall() {
   // Пробный (7 дней бесплатно, без карты) — если не премиум и триал не брался.
   const eligibleForTrial = !premium && !state.trialUsed;
   const [signedIn, setSignedIn] = useState(false);
-  // EN: платежей нет (ЮKassa = карты РФ) — пейвол недостижим, всё бесплатно.
-  // Из онбординга done() ещё и помечает onboardingComplete.
-  useEffect(() => { if (!ru) void done(); }, [ru]);
-  useEffect(() => { if (ru) track('paywall_view', { onb: fromOnb }); }, []);
+  // App Review 3.1.1: покупок в приложении нет ни на одном языке — пейвол
+  // всегда выпроваживает (из онбординга done() помечает onboardingComplete).
+  useEffect(() => { void done(); }, []);
   useEffect(() => {
     let alive = true;
     getStoredAccount().then((a) => { if (alive) setSignedIn(!!a); });
