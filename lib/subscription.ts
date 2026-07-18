@@ -4,6 +4,7 @@
 
 import { useAppState } from './storage';
 import { currentLang } from './i18n';
+import * as Localization from 'expo-localization';
 
 // Flat 10 messages/day on the free tier — generous and honest, no shrinking
 // tricks. Enough to prove Breeze helps; premium removes the limit entirely.
@@ -35,17 +36,24 @@ export function isTechniquePremium(techId: string, tags?: readonly string[]): bo
  *  server-validated ЮKassa subscription that hasn't expired. */
 export function usePremium(): boolean {
   const [state] = useAppState();
-  // 🍎 App Review 3.1.1 (реджект 1.0.6): продажа цифрового контента в обход
-  // IAP запрещена, а IAP с российского dev-аккаунта невозможен (выплаты
-  // остановлены). Поэтому в сторовой сборке приложение ПОЛНОСТЬЮ бесплатно —
-  // пейвол недостижим, все замки сняты. Оплатившие ранее ничего не теряют.
-  // Вернуть монетизацию: IAP через зарубежный акк ИЛИ веб-продажи без ссылок
-  // из приложения (3.1.3) — тогда сузить эту ветку обратно до 'en'.
-  void state;
-  return true;
-  // Прежняя логика (вернуть вместе с монетизацией):
-  //   if (__DEV__ && state.profile?.devPremium) return true;
-  //   return !!state.premiumUntil && state.premiumUntil > Date.now();
+  // Платная модель действует ТОЛЬКО для российских юзеров (язык RU + регион
+  // устройства RU): ЮKassa принимает лишь карты РФ, а IAP с российского
+  // dev-аккаунта невозможен (Apple остановила платные функции и выплаты).
+  // Всем остальным приложение полностью бесплатно — пейвол для них недостижим.
+  if (!isRuMarket()) return true;
+  // devPremium — только в dev-сборке. На чтении тоже гейтим __DEV__, чтобы
+  // случайно persist'нутый флаг не дал вечный премиум в проде (один bundleId).
+  if (__DEV__ && state.profile?.devPremium) return true;
+  return !!state.premiumUntil && state.premiumUntil > Date.now();
+}
+
+/** Российский рынок = русский язык интерфейса И регион устройства «Россия».
+ *  Только в этой комбинации существуют оплата и премиум-замки. */
+export function isRuMarket(): boolean {
+  try {
+    const region = Localization.getLocales()[0]?.regionCode;
+    return currentLang() === 'ru' && region === 'RU';
+  } catch { return false; }
 }
 
 /** AI usage helpers — count messages sent today (free tier). */

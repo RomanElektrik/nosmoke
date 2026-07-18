@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
 import { update, useAppState } from '../lib/storage';
+import { isRuMarket } from '../lib/subscription';
 import { Icon, IconKey } from '../components/Icon';
 import { secondsClean } from '../lib/health';
 import { moneySaved, paybackWeeks, formatMoney } from '../lib/money';
@@ -66,9 +67,10 @@ export default function Paywall() {
   // Пробный (7 дней бесплатно, без карты) — если не премиум и триал не брался.
   const eligibleForTrial = !premium && !state.trialUsed;
   const [signedIn, setSignedIn] = useState(false);
-  // App Review 3.1.1: покупок в приложении нет ни на одном языке — пейвол
-  // всегда выпроваживает (из онбординга done() помечает onboardingComplete).
-  useEffect(() => { void done(); }, []);
+  // Оплата существует только на российском рынке (см. isRuMarket): ЮKassa
+  // принимает только карты РФ. Остальным пейвол недостижим — сразу наружу
+  // (из онбординга done() помечает onboardingComplete).
+  useEffect(() => { if (!isRuMarket()) void done(); else track('paywall_view', { onb: fromOnb }); }, []);
   useEffect(() => {
     let alive = true;
     getStoredAccount().then((a) => { if (alive) setSignedIn(!!a); });

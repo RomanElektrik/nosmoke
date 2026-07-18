@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
+import { isRuMarket } from '../lib/subscription';
 import { useAppState } from '../lib/storage';
 import { usePremium } from '../lib/subscription';
 import { Icon } from '../components/Icon';
@@ -25,9 +26,9 @@ export default function PaymentMethod() {
   // «Пробный · осталось 26 800 дн.»).
   const onTrial = premium && state.premiumPlan === 'trial' && !lifetime;
   const daysLeft = Math.max(0, Math.ceil((until - Date.now()) / 86400_000));
-  // App Review 3.1.1: покупок в приложении нет — экран оплаты недостижим.
-  useEffect(() => { (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any)); }, []);
-  return null;
+  // Оплата только на российском рынке — остальным экран недостижим.
+  useEffect(() => { if (!isRuMarket()) (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any)); }, []);
+  if (!isRuMarket()) return null;
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
 
   const statusLine = !premium

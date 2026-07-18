@@ -9,7 +9,7 @@ import { GlassCard } from '../../components/GlassCard';
 import { getStep } from '../../lib/stepped';
 import { Icon } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
-import { usePremium } from '../../lib/subscription';
+import { usePremium, isRuMarket } from '../../lib/subscription';
 import { getDeviceId } from '../../lib/billing';
 import { AppleSignInButton } from '../../components/AppleSignInButton';
 import { getStoredAccount, signOutAccount, deleteAccount, type Account } from '../../lib/auth';
@@ -223,8 +223,8 @@ function PremiumCard() {
   const ru = lang === 'ru';
   const [state] = useAppState();
   const premium = usePremium();
-  // App Review 3.1.1: покупок в приложении нет — карточка Премиума скрыта.
-  return null;
+  // Оплата только на российском рынке — остальным карточка Премиума не нужна.
+  if (!isRuMarket()) return null;
   const until = state.premiumUntil ?? 0;
   const lifetime = until > Date.now() + 40 * 365 * 86400_000;
   const dateStr = new Date(until).toLocaleDateString(ru ? 'ru-RU' : 'en-US');
