@@ -37,6 +37,7 @@ export default function Profile() {
         <PremiumCard />
 
         <AccountCard />
+        <DeleteAccountRow />
 
         <LinkRow icon="wallet" label={lang === 'ru' ? 'Премиум' : 'Premium'}
           onPress={() => router.push('/payment-method' as any)} />
@@ -130,28 +131,6 @@ function AccountCard() {
             <Text style={{ color: t.danger, fontSize: 14, fontWeight: '600' }}>{ru ? 'Выйти' : 'Sign out'}</Text>
           </Pressable>
         </View>
-        {/* App Review 5.1.1(v): у входа обязан быть путь ПОЛНОГО удаления аккаунта. */}
-        <Pressable
-          hitSlop={8}
-          style={{ marginTop: 10, alignSelf: 'flex-start' }}
-          onPress={() => Alert.alert(
-            ru ? 'Удалить аккаунт?' : 'Delete account?',
-            ru ? 'Аккаунт и его данные будут удалены с сервера навсегда. Локальный прогресс на этом устройстве останется.'
-               : 'Your account and its data will be permanently deleted from our server. Local progress on this device stays.',
-            [
-              { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
-              { text: ru ? 'Удалить навсегда' : 'Delete forever', style: 'destructive', onPress: async () => {
-                  await deleteAccount();
-                  setAcct(null);
-                  Alert.alert(ru ? 'Аккаунт удалён' : 'Account deleted',
-                    ru ? 'Все данные аккаунта стёрты с сервера.' : 'All account data has been erased from our server.');
-                } },
-            ],
-          )}>
-          <Text style={{ color: t.textDim, fontSize: 13, textDecorationLine: 'underline' }}>
-            {ru ? 'Удалить аккаунт и данные' : 'Delete account & data'}
-          </Text>
-        </Pressable>
       </GlassCard>
     );
   }
@@ -164,6 +143,58 @@ function AccountCard() {
       </Text>
       <AppleSignInButton style={{ marginTop: 12 }} onDone={() => getStoredAccount().then(setAcct)} />
     </GlassCard>
+  );
+}
+
+// App Review 5.1.1(v): удаление аккаунта обязано быть легко находимым.
+// Отдельная полноразмерная строка в профиле, видна ВСЕГДА (не только после
+// входа): ревьюер дважды не нашёл мелкую ссылку внутри карточки.
+function DeleteAccountRow() {
+  const t = useTheme();
+  const ru = currentLang() === 'ru';
+  if (Platform.OS !== 'ios') return null;
+  const onPress = async () => {
+    const acct = await getStoredAccount();
+    if (!acct) {
+      Alert.alert(
+        ru ? 'Аккаунта нет' : 'No account',
+        ru ? 'На этом устройстве нет аккаунта — удалять нечего. Если ты создавал аккаунт раньше, войди через Apple выше, затем удали.'
+           : 'There is no account on this device — nothing to delete. If you created an account before, sign in with Apple above, then delete it.',
+      );
+      return;
+    }
+    Alert.alert(
+      ru ? 'Удалить аккаунт?' : 'Delete account?',
+      ru ? 'Аккаунт и все его данные будут удалены с сервера навсегда. Это действие необратимо.'
+         : 'Your account and all its data will be permanently deleted from our server. This cannot be undone.',
+      [
+        { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
+        { text: ru ? 'Удалить навсегда' : 'Delete forever', style: 'destructive', onPress: async () => {
+            await deleteAccount();
+            Alert.alert(ru ? 'Аккаунт удалён' : 'Account deleted',
+              ru ? 'Все данные аккаунта стёрты с сервера.' : 'All account data has been erased from our server.');
+          } },
+      ],
+    );
+  };
+  return (
+    <Pressable onPress={onPress}>
+      <GlassCard>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: t.danger + '20', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon.close size={20} color={t.danger} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.danger, fontSize: 16, fontWeight: '600' }}>
+              {ru ? 'Удалить аккаунт и данные' : 'Delete account & data'}
+            </Text>
+            <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>
+              {ru ? 'Стереть аккаунт с сервера навсегда' : 'Permanently erase your account from our server'}
+            </Text>
+          </View>
+        </View>
+      </GlassCard>
+    </Pressable>
   );
 }
 
