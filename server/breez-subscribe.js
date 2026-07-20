@@ -641,6 +641,9 @@ module.exports = function attach(app) {
     }
   });
 
+  // ИИ-прокси: OpenRouter блокирует РФ, телефон ходит в чат через нас.
+  try { require('./briz-ai.js')(app); } catch (e) { console.error('[briz] ai mount failed:', e.message); }
+
   // Дашборд аналитики — отдельный модуль (см. server/briz-stats.js).
   try { require('./briz-stats.js')(app, DATA_DIR); } catch (e) { console.error('[briz] stats mount failed:', e.message); }
 

@@ -268,6 +268,10 @@ export function chatStream(
     const userKey = state.profile?.openrouterKey?.trim();
     const userModel = state.profile?.openrouterModel?.trim();
     const key = userKey || ENV_KEY;
+    // Через прокси стриминга нет: сразу отдаём в chat() (вызывающий код в
+    // send() ловит это и делает обычный запрос). Иначе XHR идёт напрямую в
+    // OpenRouter и ловит 403 в России.
+    if (PROXY_URL) { reject(new Error('use-proxy')); return; }
     if (!key) { reject(new Error('no-key')); return; }
     const isCall = mode === 'call';
     const model = isCall ? CALL_MODEL : (userModel || ENV_MODEL || DEFAULT_MODEL);
@@ -323,6 +327,17 @@ export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMod
     { role: 'system', content: buildSystemPrompt(state, locale, mode, personaId, priorSummary) },
     ...enforceLang(history, locale),
   ];
+  // 🔴 ПРОКСИ ПЕРВЫМ. OpenRouter отдаёт 403 на российские IP, а приложение
+  // ходило туда напрямую — у русских юзеров чат не работал вообще. Наш сервер
+  // ходит в OpenRouter через HTTPS-прокси и не блокируется.
+  // Раньше этот вызов стоял ПОСЛЕ throw и никогда не выполнялся при вшитом ключе.
+  if (PROXY_URL) {
+    try { return await callProxy(messages, locale); }
+    catch (e: any) {
+      // Прокси лёг — пробуем напрямую (сработает у тех, кто не в РФ / под VPN).
+      if (!key) throw new Error(e?.message || 'proxy error');
+    }
+  }
   if (key) {
     try { return await callDirect(key, messages, model, maxTokens); }
     catch (e: any) {
