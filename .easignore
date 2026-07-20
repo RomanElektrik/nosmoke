@@ -1,0 +1,59 @@
+# Что НЕ отправлять в EAS Build.
+# Когда этот файл есть, EAS использует именно его (вместо .gitignore), поэтому
+# здесь продублированы и обычные gitignore-правила.
+#
+# Зачем: тарбол пух до 145 МБ и загрузка рвалась (EPIPE). В сборку тащились
+# .claude/worktrees (63 МБ), dist (62 МБ) и все папки со скринами для стора.
+# Нужны сборке только исходники + assets (аудио и картинки статей бандлятся).
+
+# зависимости и артефакты сборки
+node_modules/
+dist/
+web-build/
+.expo/
+ios/
+android/
+
+# служебное клода (worktrees агентов раздували архив на 63 МБ)
+.claude/
+.serena/
+
+# бэкенд — не часть мобильного приложения
+server/
+
+# маркетинг, стор, дизайн — в сборке не нужны
+store-screens/
+store-screens-new/
+store-screens-65/
+store-screens-ipad/
+design/
+docs/
+scripts/
+"скрины эпл"/
+"скрины для стора и лендинга"/
+скрины*/
+Бриз-скрины*/
+аудиопрактики/
+*.mp4
+деньги-уходят.png
+
+# секреты (в образ сборки не попадают, значения берутся из EAS env)
+.env
+.env.local
+.env*.local
+eas.json
+
+# прочее
+.git/
+.DS_Store
+.idea/
+.vscode/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+npm-debug.*
+yarn-debug.*
+yarn-error.*
