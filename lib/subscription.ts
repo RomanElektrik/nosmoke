@@ -4,7 +4,6 @@
 
 import { useAppState } from './storage';
 import { currentLang } from './i18n';
-import * as Localization from 'expo-localization';
 
 // Flat 10 messages/day on the free tier — generous and honest, no shrinking
 // tricks. Enough to prove Breeze helps; premium removes the limit entirely.
@@ -47,12 +46,16 @@ export function usePremium(): boolean {
   return !!state.premiumUntil && state.premiumUntil > Date.now();
 }
 
-/** Российский рынок = русский язык интерфейса И регион устройства «Россия».
- *  Только в этой комбинации существуют оплата и премиум-замки. */
+/** Российский рынок = РУССКИЙ ЯЗЫК интерфейса. Только здесь есть оплата и
+ *  премиум-замки (ЮKassa принимает лишь карты РФ).
+ *
+ *  🔴 Регион устройства НЕ проверяем намеренно: масса россиян держит регион
+ *  App Store не «RU» (США/Казахстан — иначе часть приложений не поставить).
+ *  Требование region === 'RU' отрезало таким людям оплату: пейвол открывался
+ *  и тут же закрывался, а приложение считало их «бесплатным рынком». */
 export function isRuMarket(): boolean {
   try {
-    const region = Localization.getLocales()[0]?.regionCode;
-    return currentLang() === 'ru' && region === 'RU';
+    return currentLang() === 'ru';
   } catch { return false; }
 }
 
