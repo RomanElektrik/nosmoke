@@ -13,6 +13,7 @@ import { currentLang, setLanguage } from '../lib/i18n';
 import { TourProvider } from '../components/Tour';
 import { fetchSub } from '../lib/billing';
 import { initAnalytics } from '../lib/analytics';
+import { marketForLang } from '../lib/subscription';
 import '../lib/i18n';
 
 // Держим родной сплэш (splash.png на #0A1D15) до первого кадра приложения.
@@ -32,6 +33,12 @@ export default function Root() {
       // Явно выбранный язык применяем ДО первого кадра — иначе i18n остаётся на
       // локали устройства и перетирает выбор юзера.
       if (s.lang) setLanguage(s.lang);
+      // Миграция рынка: у стоявших до появления поля market его нет — латчим
+      // один раз из уже выбранного языка, дальше он не меняется.
+      if (!s.market) {
+        const m = marketForLang(s.lang ?? s.profile?.language ?? currentLang());
+        await update((prev) => (prev.market ? prev : { ...prev, market: m }));
+      }
       // Migration: legacy profile without currentStep → auto-recommend.
       if (s.profile && !s.profile.currentStep) {
         const recommended = recommendStep(s.profile);

@@ -243,6 +243,11 @@ export default function Paywall() {
     await update((s) => ({ ...s, profile: s.profile ? { ...s.profile, devPremium: !s.profile.devPremium } : s.profile }));
   }
 
+  // 🔴 Гейт НА РЕНДЕРЕ, не только в эффекте: иначе экран успевает целиком
+  // отрисоваться (цена, кнопка покупки, email) и лишь потом закрыться —
+  // ревьюер Apple видит именно это (реджект 3.1.1 дважды).
+  if (!isRuMarket()) return null;
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top', 'left', 'right']}>
       <Pressable onPress={done} hitSlop={14}

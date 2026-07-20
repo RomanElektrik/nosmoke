@@ -192,6 +192,10 @@ export type AppState = {
   symptoms?: SymptomLog[];                     // weekly body-recovery survey
   identityLog?: string[];                      // localDateKey[] of identity affirmations — never punishes
   tourV1Done?: boolean;                        // first-run in-app guided tour seen
+  // Рынок «залатчивается» ОДИН РАЗ при первом выборе языка и больше не меняется.
+  // Раньше рынок выводился из живого currentLang(), и любой русский юзер мог
+  // тапнуть «EN» в профиле → usePremium() возвращал true → весь премиум даром.
+  market?: 'ru' | 'intl';
   premiumUntil?: number;                       // ms — server-validated ЮKassa subscription expiry
   premiumPlan?: string | null;                 // 'trial' | 'monthly' | 'yearly' | 'lifetime' — для отличия триала
   trialUsed?: boolean;                          // пробный период уже брался (кнопку «попробовать» не показываем)
@@ -301,6 +305,10 @@ const initial: AppState = {
 };
 
 let cache: AppState | null = null;
+
+/** Синхронный снимок состояния (может быть null до первой загрузки).
+ *  Нужен там, где состояние читают вне React-хуков — например isRuMarket(). */
+export function cachedState(): AppState | null { return cache; }
 let loading: Promise<AppState> | null = null;
 const listeners = new Set<(s: AppState) => void>();
 
@@ -357,7 +365,7 @@ export async function reset() {
   // локальная защита в дополнение к серверной.
   const prev = cache;
   const next: AppState = prev
-    ? { ...initial, premiumUntil: prev.premiumUntil, premiumPlan: prev.premiumPlan, trialUsed: prev.trialUsed, boundCard: prev.boundCard, lang: prev.lang }
+    ? { ...initial, premiumUntil: prev.premiumUntil, premiumPlan: prev.premiumPlan, trialUsed: prev.trialUsed, boundCard: prev.boundCard, lang: prev.lang, market: prev.market }
     : initial;
   cache = next;
   loading = null;

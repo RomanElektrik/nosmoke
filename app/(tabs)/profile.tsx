@@ -39,8 +39,12 @@ export default function Profile() {
         <AccountCard />
         <DeleteAccountRow />
 
-        <LinkRow icon="wallet" label={lang === 'ru' ? 'Премиум' : 'Premium'}
-          onPress={() => router.push('/payment-method' as any)} />
+        {/* Платёжная вывеска только на RU-рынке: вне его экран оплаты пуст
+            (payment-method сам себя закрывает), а ревьюер видел мёртвый контрол. */}
+        {isRuMarket() && (
+          <LinkRow icon="wallet" label={lang === 'ru' ? 'Премиум' : 'Premium'}
+            onPress={() => router.push('/payment-method' as any)} />
+        )}
 
         <MethodCard />
 
@@ -49,7 +53,12 @@ export default function Profile() {
             <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>{tr('profile.language')}</Text>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               {(['ru', 'en'] as const).map((l) => (
-                <Pressable key={l} onPress={() => setLanguage(l)}
+                <Pressable key={l} onPress={async () => {
+                  setLanguage(l);
+                  // Только язык интерфейса. Рынок (и платная модель) залатчен
+                  // при первом запуске и здесь намеренно не меняется.
+                  await update((st) => ({ ...st, lang: l, profile: st.profile ? { ...st.profile, language: l } : st.profile }));
+                }}
                   style={{
                     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
                     backgroundColor: lang === l ? t.accentSoft : t.border,
@@ -122,7 +131,7 @@ function AccountCard() {
             hitSlop={8}
             onPress={() => Alert.alert(
               ru ? 'Выйти из аккаунта?' : 'Sign out?',
-              ru ? 'Подписка останется на аккаунте — войдёшь снова и восстановишь.' : 'Your subscription stays on the account — sign in again to restore.',
+              ru ? 'Подписка останется на аккаунте — войдёшь снова и восстановишь.' : 'Your data stays on the account — sign in again to restore.',
               [
                 { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
                 { text: ru ? 'Выйти' : 'Sign out', style: 'destructive', onPress: async () => { await signOutAccount(); setAcct(null); } },
@@ -137,9 +146,9 @@ function AccountCard() {
 
   return (
     <GlassCard>
-      <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>{ru ? 'Сохрани подписку' : 'Save your subscription'}</Text>
+      <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>{ru ? 'Сохрани подписку' : 'Save your progress'}</Text>
       <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 4, lineHeight: 18 }}>
-        {ru ? 'Войди — и подписка восстановится на новом телефоне в один тап.' : 'Sign in — your subscription restores on a new phone in one tap.'}
+        {ru ? 'Войди — и подписка восстановится на новом телефоне в один тап.' : 'Sign in — your progress restores on a new phone in one tap.'}
       </Text>
       <AppleSignInButton style={{ marginTop: 12 }} onDone={() => getStoredAccount().then(setAcct)} />
     </GlassCard>

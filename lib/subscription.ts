@@ -2,7 +2,7 @@
 // (lib/billing.ts + серверный рекуррент). `devPremium` — dev-only тоггл из
 // профиля для теста заблокированных фич; в проде он не выставляется и не читается.
 
-import { useAppState } from './storage';
+import { useAppState, cachedState } from './storage';
 import { currentLang } from './i18n';
 
 // Flat 10 messages/day on the free tier — generous and honest, no shrinking
@@ -55,8 +55,17 @@ export function usePremium(): boolean {
  *  и тут же закрывался, а приложение считало их «бесплатным рынком». */
 export function isRuMarket(): boolean {
   try {
-    return currentLang() === 'ru';
+    const latched = cachedState()?.market;
+    if (latched) return latched === 'ru';
+    // Миграция: у тех, кто ставил приложение до появления поля, рынок ещё не
+    // залатчен — выводим из выбранного языка (и он залатчится на старте).
+    return marketForLang(cachedState()?.lang ?? cachedState()?.profile?.language ?? currentLang()) === 'ru';
   } catch { return false; }
+}
+
+/** Язык → рынок. Единственное место, где делается это сопоставление. */
+export function marketForLang(lang: string | undefined | null): 'ru' | 'intl' {
+  return lang === 'ru' ? 'ru' : 'intl';
 }
 
 /** AI usage helpers — count messages sent today (free tier). */

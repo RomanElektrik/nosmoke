@@ -27,7 +27,7 @@ export default function ChapterWeb() {
     return (
       <View style={{ flex: 1, backgroundColor: T.bg, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 }}>
         <Text style={{ color: T.text, fontSize: 24, fontWeight: '800', textAlign: 'center', fontFamily: 'Georgia' }}>{ru ? ch.titleRu : (ch.titleEn ?? ch.titleRu)}</Text>
-        <Text style={{ color: T.dim, fontSize: 16, textAlign: 'center' }}>' + '', 1) if False else s.replace("x","x")</Text>
+        <Text style={{ color: T.dim, fontSize: 16, textAlign: 'center' }}>{ru ? 'Эта глава открывается с Премиумом.' : 'This chapter unlocks with Premium.'}</Text>
         <Pressable onPress={() => router.push('/paywall')} style={{ backgroundColor: '#1DB85A', paddingHorizontal: 22, paddingVertical: 12, borderRadius: 12 }}>
           <Text style={{ color: '#fff', fontWeight: '700' }}>{ru ? 'Открыть Премиум' : 'Unlock Premium'}</Text>
         </Pressable>

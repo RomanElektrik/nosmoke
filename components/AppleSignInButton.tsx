@@ -39,9 +39,9 @@ export function AppleSignInButton({
       }));
       onDone?.(!!st.premium);
       if (st.premium) {
-        Alert.alert(ru ? 'Готово' : 'Done', ru ? 'Вход выполнен — подписка восстановлена.' : 'Signed in — subscription restored.');
+        Alert.alert(ru ? 'Готово' : 'Done', ru ? 'Вход выполнен — подписка восстановлена.' : 'Signed in — your data has been restored.');
       } else {
-        Alert.alert(ru ? 'Вход выполнен' : 'Signed in', ru ? 'Аккаунт привязан — теперь подписка сохранится за ним на любом устройстве.' : 'Account linked — your purchase is now tied to it.');
+        Alert.alert(ru ? 'Вход выполнен' : 'Signed in', ru ? 'Аккаунт привязан — теперь подписка сохранится за ним на любом устройстве.' : 'Account linked — your progress is now saved to it.');
       }
     } catch (e: any) {
       const code = String(e?.code || '');

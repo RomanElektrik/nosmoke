@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { setLanguage } from '../../lib/i18n';
+import { marketForLang } from '../../lib/subscription';
 import { update } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
 
@@ -22,6 +23,9 @@ export default function LanguagePick() {
     await update((prev) => ({
       ...prev,
       lang: l,
+      // Рынок фиксируется здесь НАВСЕГДА: дальше смена языка интерфейса в
+      // профиле меняет только язык, но не платёжную модель.
+      market: marketForLang(l),
       profile: prev.profile ? { ...prev.profile, language: l } : prev.profile,
     }));
     router.replace('/(onboarding)/welcome');
