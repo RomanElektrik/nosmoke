@@ -26,6 +26,18 @@ module.exports = function attachAi(app) {
   const KEY = process.env.BRIZ_OPENROUTER_KEY || process.env.OPENROUTER_KEY_1 || process.env.OPENROUTER_KEY_2 || '';
   const MODEL = process.env.BRIZ_AI_MODEL || 'google/gemini-2.5-flash-lite';
   const FALLBACK = 'openai/gpt-4o-mini';
+
+  // Российский посредник к OpenRouter: работает из РФ напрямую, прокси не нужен.
+  // Модель и формат запроса те же, поэтому канал взаимозаменяем с прямым OpenRouter.
+  // Включается одним лишь наличием ключа в .env — код деплоить повторно не надо.
+  const PROXYAPI_KEY = process.env.BRIZ_PROXYAPI_KEY || process.env.PROXYAPI_KEY || '';
+  const OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
+  const PROXYAPI_URL = 'https://api.proxyapi.ru/openrouter/v1/chat/completions';
+
+  // Каналы пробуются по порядку. Первый живой отвечает — остальные не трогаем.
+  const ROUTES = [];
+  if (PROXYAPI_KEY) ROUTES.push({ name: 'proxyapi', url: PROXYAPI_URL, key: PROXYAPI_KEY, viaProxy: false });
+  if (KEY) ROUTES.push({ name: 'openrouter', url: OR_URL, key: KEY, viaProxy: true });
   const APP_KEY = process.env.BRIZ_AI_APP_KEY || ''; // если задан — требуем заголовок x-app-key
   const MAX_TOKENS = 600;
 
@@ -41,19 +53,20 @@ module.exports = function attachAi(app) {
     return arr.length > LIMIT;
   }
 
-  async function ask(messages, model) {
+  async function ask(messages, model, route) {
     const opts = {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${KEY}`,
+        Authorization: `Bearer ${route.key}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://breezapp.ru',
         'X-Title': 'Breeze',
       },
       body: JSON.stringify({ model, messages, temperature: 0.7, max_tokens: MAX_TOKENS }),
     };
-    if (PROXY) opts.agent = new HttpsProxyAgent(PROXY); // без него из РФ будет 403
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', opts);
+    // Прокси нужен только прямому OpenRouter: у российского посредника без него 403 не будет.
+    if (route.viaProxy && PROXY) opts.agent = new HttpsProxyAgent(PROXY);
+    const r = await fetch(route.url, opts);
     const text = await r.text();
     let j = null;
     try { j = JSON.parse(text); } catch {}
@@ -75,15 +88,18 @@ module.exports = function attachAi(app) {
         .slice(-30)
         .map((m) => ({ role: m.role, content: m.content.slice(0, 8000) }));
       if (!clean.length) return res.status(400).json({ error: 'bad messages' });
-      if (!KEY) return res.status(500).json({ error: 'no upstream key' });
+      if (!ROUTES.length) return res.status(500).json({ error: 'no upstream key' });
 
-      let content;
-      try {
-        content = await ask(clean, MODEL);
-      } catch (e) {
-        console.error('[briz-ai] primary failed:', e.message);
-        content = await ask(clean, FALLBACK); // вторая попытка другой моделью
+      // Каждый канал: сначала основная модель, потом запасная. Не вышло — следующий канал.
+      let content = null, last = null;
+      for (const route of ROUTES) {
+        for (const model of [MODEL, FALLBACK]) {
+          try { content = await ask(clean, model, route); break; }
+          catch (e) { last = e; console.error(`[briz-ai] ${route.name}/${model}: ${e.message}`); }
+        }
+        if (content) break;
       }
+      if (content == null) throw last || new Error('all routes failed');
       res.json({ content });
     } catch (e) {
       console.error('[briz-ai] error:', e.message);
@@ -91,5 +107,6 @@ module.exports = function attachAi(app) {
     }
   });
 
-  console.log(`[briz] ai proxy: POST /api/briz/ai · модель ${MODEL} · прокси ${PROXY ? 'ВКЛ' : 'ВЫКЛ (из РФ будет 403!)'}`);
+  const how = ROUTES.map((r) => r.name).join(' → ') || 'НЕТ КЛЮЧЕЙ';
+  console.log(`[briz] ai proxy: POST /api/briz/ai · модель ${MODEL} · каналы: ${how} · прокси ${PROXY ? 'ВКЛ' : 'ВЫКЛ (из РФ будет 403!)'}`);
 };
