@@ -70,8 +70,17 @@ export default function MedGate() {
       }));
     } catch {}
     try {
-      const { scheduleMedicationDoses } = await import('../lib/notifications');
-      await scheduleMedicationDoses(lang, med, startMs);
+      // rescheduleAll, а не scheduleMedicationDoses: при переключении препарата
+      // (цитизин → бупропион) старые дозовые пуши иначе остаются висеть, и юзер
+      // получает напоминания сразу по двум лекарствам вперемешку.
+      const { rescheduleAll } = await import('../lib/notifications');
+      const cur = (await import('../lib/storage')).cachedState?.() ?? null;
+      const prof = cur?.profile;
+      if (prof) await rescheduleAll({ ...prof, medication: med, medicationStartedAt: startMs }, lang, cur?.premiumUntil);
+      else {
+        const { scheduleMedicationDoses } = await import('../lib/notifications');
+        await scheduleMedicationDoses(lang, med, startMs);
+      }
     } catch {}
     // Переход — всегда, даже если сохранение/планировщик упали (не залипаем).
     (router.canGoBack() ? router.back() : router.replace('/(tabs)'));

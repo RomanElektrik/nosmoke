@@ -53,6 +53,15 @@ type T = (ru: string, en: string) => string;
 // • Day 4–7: morning hot-zone + evening reflection.
 // • Day 8–14: morning + check-in.
 // • After day 14: occasional + milestones.
+// Погасить ВСЁ запланированное. Нужна на каждом пути, который стирает план:
+// сброс данных, «начать заново», остановка курса препарата. Без неё телефон
+// продолжает слать «День 35 · утро» и «доза 2/6» из плана, которого больше нет —
+// для фарма-контура это прямое указание принять препарат, от которого человек
+// отказался. Недельные триггеры вообще бессрочные.
+export async function cancelAllNotifications(): Promise<void> {
+  try { await Notifications.cancelAllScheduledNotificationsAsync(); } catch {}
+}
+
 export async function scheduleQuitProgram(quitDateMs: number, locale: 'ru' | 'en', wakeHour = 8, checkInHour = 21, healthAnchorMs?: number) {
   await Notifications.cancelAllScheduledNotificationsAsync();
   const t: T = (ru, en) => (locale === 'ru' ? ru : en);

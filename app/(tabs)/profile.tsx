@@ -13,6 +13,7 @@ import { usePremium, isRuMarket } from '../../lib/subscription';
 import { getDeviceId } from '../../lib/billing';
 import { AppleSignInButton } from '../../components/AppleSignInButton';
 import { getStoredAccount, signOutAccount, deleteAccount, type Account } from '../../lib/auth';
+import { cancelAllNotifications } from '../../lib/notifications';
 
 const PRIVACY_URL = 'https://breezapp.ru/privacy-policy.html';
 const TERMS_URL = 'https://breezapp.ru/terms.html';
@@ -85,7 +86,7 @@ export default function Profile() {
           onPress={() =>
             Alert.alert(tr('profile.reset'), tr('profile.reset_confirm'), [
               { text: tr('common.cancel'), style: 'cancel' },
-              { text: tr('profile.reset'), style: 'destructive', onPress: async () => { await reset(); router.replace('/(onboarding)/welcome'); } },
+              { text: tr('profile.reset'), style: 'destructive', onPress: async () => { await reset(); await cancelAllNotifications(); router.replace('/(onboarding)/welcome'); } },
             ])
           }
           style={{ padding: 16, alignItems: 'center', marginTop: 12 }}>

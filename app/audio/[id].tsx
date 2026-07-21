@@ -35,6 +35,7 @@ import {
   playFile, speakFallback, ensureSpeaker, claimAudio, releaseAudio, newOwner, stopAudio,
   playTrack, trackPause, trackResume, trackSeek, trackSetRate, trackStatus,
 } from '../../lib/audio';
+import { usePremium, FREE_PRACTICE_COUNT } from '../../lib/subscription';
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const RATES = [0.75, 1, 1.25, 1.5];
@@ -51,6 +52,9 @@ export default function AudioPlayer() {
   // there's no slide-from-bottom animation between practices — like every
   // normal music player.
   const [curId, setCurId] = useState<string>(routeId);
+  // Актуальный id для замороженного в PanResponder замыкания.
+  const curIdRef = useRef(routeId);
+  curIdRef.current = curId;
   const practice = getPractice(curId);
   const steps = practice?.steps ?? [];
   const total = steps.length;
@@ -63,6 +67,15 @@ export default function AudioPlayer() {
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/techniques' as any);
   }, [ru, router]);
+
+  const premium = usePremium();
+  // Прямой deep-link /audio/<платная_практика> в обход списка — тот же гейт,
+  // что и на карточке в «Техниках».
+  useEffect(() => {
+    if (premium) return;
+    const i = PRACTICES.findIndex((x) => x.id === curId);
+    if (i >= FREE_PRACTICE_COUNT) router.replace('/paywall' as any);
+  }, [premium, curId, router]);
 
   const [voiceId, setVoiceId] = useState<string>(state.profile?.voiceId || 'female');
   const [rate, setRate] = useState(1);
@@ -91,7 +104,11 @@ export default function AudioPlayer() {
   const prevP = PRACTICES[(pIdx - 1 + PRACTICES.length) % PRACTICES.length];
   const nextP = PRACTICES[(pIdx + 1) % PRACTICES.length];
   function goPractice(target: typeof PRACTICES[number]) {
-    if (!target || target.id === curId) return;
+    if (!target || target.id === curIdRef.current) return;
+    // 🔴 Платный контур: кнопки ⏮/⏭ и свайп листали ВСЕ практики подряд, включая
+    // 10 платных — пейвол не показывался ни разу.
+    const ti = PRACTICES.findIndex((x) => x.id === target.id);
+    if (!premium && ti >= FREE_PRACTICE_COUNT) { Haptics.selectionAsync(); router.push('/paywall' as any); return; }
     Haptics.selectionAsync();
     genRef.current++;
     stopAudio(audioId);
@@ -99,11 +116,20 @@ export default function AudioPlayer() {
     setCurId(target.id);
   }
 
+  // PanResponder создаётся ОДИН раз, поэтому замыкание держит первые goPractice/
+  // prevP/nextP навсегда: второй свайп сравнивал с устаревшим curId, выходил в
+  // ранний return и оставлял экран немым. Держим свежие значения в ref.
+  const navRef = useRef({ goPractice, prevP, nextP });
+  navRef.current = { goPractice, prevP, nextP };
+
   // Horizontal swipe on the body — left/right swaps practice.
   const swipePan = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 24 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
-    onPanResponderRelease: (_e, g) => { if (g.dx < -60) goPractice(nextP); else if (g.dx > 60) goPractice(prevP); },
+    onPanResponderRelease: (_e, g) => {
+      if (g.dx < -60) navRef.current.goPractice(navRef.current.nextP);
+      else if (g.dx > 60) navRef.current.goPractice(navRef.current.prevP);
+    },
   })).current;
 
   const current = steps[idx];

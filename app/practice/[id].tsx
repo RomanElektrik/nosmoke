@@ -363,6 +363,13 @@ function Pharma({ onDone }: { onDone: () => void }) {
       ...s,
       profile: s.profile ? { ...s.profile, medication: undefined, medicationStartedAt: undefined } : s.profile,
     }));
+    // 🔴 Дозовые пуши стоят на 4 дня вперёд. Без перепланирования телефон
+    // продолжает требовать «доза 4/6 — 1 таблетка с водой» от препарата, от
+    // которого человек только что отказался. Для фарма-контура недопустимо.
+    try {
+      const { rescheduleAll } = await import('../../lib/notifications');
+      if (p) await rescheduleAll({ ...p, medication: undefined, medicationStartedAt: undefined }, lang as 'ru' | 'en', state.premiumUntil);
+    } catch {}
   }
   // Adherence calendar: last 14 days from check-ins
   const today = new Date(); today.setHours(0,0,0,0);
