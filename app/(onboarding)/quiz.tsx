@@ -58,9 +58,16 @@ export default function Quiz() {
   const meta = META[kind];
   const isLast = idx === STEPS.length - 1;
   const underage = kind === 'health' && (!age || Number(age) < 18);
+  // Ноль здесь убивает ВСЮ арифметику приложения: «сэкономлено» и «не выкурено»
+  // навсегда останутся нулями, и юзер решит, что приложение сломано. Поля
+  // предзаполнены, но их можно стереть — поэтому не пускаем дальше с пустым.
+  const missingNumber =
+    (kind === 'perday' && !(Number(perday) > 0)) ||
+    (kind === 'pack' && !(Number(packPrice) > 0 && Number(packSize) > 0));
+  const blocked = underage || missingNumber;
 
   function next() {
-    if (underage) return;
+    if (blocked) return;
     Haptics.selectionAsync();
     if (!isLast) return setIdx(idx + 1);
     finish();
@@ -202,12 +209,13 @@ export default function Quiz() {
             </View>
           </Pressable>
         )}
-        <Pressable onPress={next} disabled={underage}
-          style={{ flex: 1, paddingVertical: 18, borderRadius: radius.xl, backgroundColor: underage ? t.border : t.accent, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+        <Pressable onPress={next} disabled={blocked}
+          style={{ flex: 1, paddingVertical: 18, borderRadius: radius.xl, backgroundColor: blocked ? t.border : t.accent, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
           <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>
-            {isLast ? tt('Собрать мой план', 'Build my plan') : tr('common.continue')}
+            {missingNumber ? tt('Впиши число', 'Enter a number')
+              : isLast ? tt('Собрать мой план', 'Build my plan') : tr('common.continue')}
           </Text>
-          {!underage && <Icon.arrowRight size={18} color="#fff" />}
+          {!blocked && <Icon.arrowRight size={18} color="#fff" />}
         </Pressable>
       </View>
     </SafeAreaView>
