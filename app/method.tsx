@@ -53,10 +53,28 @@ export default function MethodScreen() {
         {
           text: lang === 'ru' ? 'Перейти сейчас' : 'Switch now',
           onPress: async () => {
-            await update((s) => ({
-              ...s,
-              profile: s.profile ? { ...s.profile, currentStep: id, stepEnteredAt: Date.now() } : s.profile,
-            }));
+            await update((s) => {
+              if (!s.profile) return s;
+              const prevSince = s.profile.stepEnteredAt ?? s.profile.quitDate ?? Date.now();
+              const history = s.profile.methodHistory ?? [];
+              // Паритет с Мастером: архивируем пройденную ступень (иначе ачивка
+              // «Подбираю метод» и статистика попыток не видят быстрый переход)…
+              const archived = s.profile.currentStep ? [
+                ...history,
+                { stepId: s.profile.currentStep, startedAt: prevSince, endedAt: Date.now(),
+                  slips: s.slips.filter((ts) => ts >= prevSince).length, reason: 'quick_switch' },
+              ] : history;
+              return {
+                ...s,
+                profile: {
+                  ...s.profile, currentStep: id, stepEnteredAt: Date.now(), methodHistory: archived,
+                  // …и снимаем ЗАПЛАНИРОВАННЫЙ переход. Без этого Главная
+                  // продолжала показывать баннер «старт через N дней», а в
+                  // назначенный день молча перезаписывала выбор юзера обратно.
+                  pendingMethod: undefined, pendingQuitDate: undefined, pendingPrep: undefined,
+                },
+              };
+            });
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             // Ступень с препаратом — только через гейт рецепта и противопоказаний
             // (CLAUDE.md: фарма никогда не активируется одним тапом). Быстрый

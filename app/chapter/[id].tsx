@@ -82,11 +82,18 @@ export default function ReaderScreen() {
       return { ...s, bookProgress: { ...m, [ch.id]: Date.now() } };
     });
   };
-  useEffect(() => { markRead(CHAPTERS[startIndex]); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   // «Прочитано» — только если юзер задержался на главе ≥3 сек. Иначе быстрый
   // пролёт свайпами через несколько глав помечал их все прочитанными.
+  //
+  // 🔴 Правило должно работать и на ВХОДЕ, и в оглавлении. Раньше markRead
+  // вызывался мгновенно при открытии (и при тапе в оглавлении): «открыл, понял
+  // что не то, вышел» — глава уже прочитана, и плитка «Книга» на главной
+  // перескакивала через непрочитанное, теряя место в книге навсегда.
   const dwellRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    dwellRef.current = setTimeout(() => markRead(CHAPTERS[startIndex]), 3000);
+    return () => { if (dwellRef.current) clearTimeout(dwellRef.current); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const onPageSelected = (e: { nativeEvent: { position: number } }) => {
     const i = e.nativeEvent.position;
     setPage(i);
@@ -100,7 +107,8 @@ export default function ReaderScreen() {
     setShowTOC(false);
     setPage(i);
     pagerRef.current?.setPageWithoutAnimation(i);
-    markRead(CHAPTERS[i]);
+    if (dwellRef.current) clearTimeout(dwellRef.current);
+    dwellRef.current = setTimeout(() => markRead(CHAPTERS[i]), 3000);
   };
 
   // Функциональный апдейт от СВЕЖЕГО состояния: со снапшотом prefs два быстрых

@@ -25,6 +25,8 @@ export type AchContext = {
   checkInsDone: number;
   stepIndex: number;
   hadSlip: boolean;
+  daysSinceLastSlip: number;
+  methodChanges: number;
   goalReached: boolean;
 };
 
@@ -99,6 +101,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     value: (c) => (c.goalReached ? 1 : 0), target: 1 },
 
   // ─── Health (timeline milestones, in seconds) ───
+  // 🔴 Здесь ТОЛЬКО пороги, которых нет в категории «Время». Раньше h2w/h1mo/h1y
+  // дублировали d14/d30/d365 — на 14-й день человеку прилетало два одинаковых
+  // салюта подряд, «Две недели силы» и «Дышу легче», секунда в секунду.
   { id: 'h20m', category: 'health', icon: 'heartPulse', color: '#FF453A',
     titleRu: 'Пульс в норме', titleEn: 'Pulse normal',
     descRu: '20 минут без сигарет', descEn: '20 minutes smoke-free',
@@ -111,18 +116,16 @@ export const ACHIEVEMENTS: Achievement[] = [
     titleRu: 'Чувствую вкус', titleEn: 'Taste returns',
     descRu: '48 часов без сигарет', descEn: '48 hours smoke-free',
     value: (c) => c.secs, target: 48 * 3600 },
-  { id: 'h2w',  category: 'health', icon: 'wind', color: '#5AC8FA',
-    titleRu: 'Дышу легче', titleEn: 'Breathing easier',
-    descRu: '2 недели без сигарет', descEn: '2 weeks smoke-free',
-    value: (c) => c.secs, target: 14 * 86400 },
-  { id: 'h1mo', category: 'health', icon: 'lungs', color: '#30D158',
-    titleRu: 'Лёгкие очищаются', titleEn: 'Lungs clearing',
-    descRu: '1 месяц без сигарет', descEn: '1 month smoke-free',
-    value: (c) => c.secs, target: 30 * 86400 },
-  { id: 'h1y',  category: 'health', icon: 'heart', color: '#FF453A',
-    titleRu: 'Сердце благодарит', titleEn: 'Heart thanks you',
-    descRu: '1 год без сигарет', descEn: '1 year smoke-free',
-    value: (c) => c.secs, target: 365 * 86400 },
+  // Длинный хвост: после года в «Времени» больше ничего не открывалось.
+  // Пороги взяты из MILESTONES (lib/health.ts) и с «Временем» не пересекаются.
+  { id: 'h5y',  category: 'health', icon: 'lungs', color: '#BF5AF2',
+    titleRu: 'Риск инсульта как у некурящего', titleEn: 'Stroke risk like a non-smoker',
+    descRu: '5 лет без сигарет', descEn: '5 years smoke-free',
+    value: (c) => c.secs, target: 5 * 365 * 86400 },
+  { id: 'h10y', category: 'health', icon: 'heart', color: '#FF453A',
+    titleRu: 'Риск рака лёгких вдвое ниже', titleEn: 'Lung cancer risk halved',
+    descRu: '10 лет без сигарет', descEn: '10 years smoke-free',
+    value: (c) => c.secs, target: 10 * 365 * 86400 },
 
   // ─── Cigarettes avoided ───
   { id: 'c100',  category: 'cigs', icon: 'cig', color: '#FF9500',
@@ -158,13 +161,19 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'step2',    category: 'engagement', icon: 'shieldStar', color: '#30D158',
     titleRu: 'Подбираю метод', titleEn: 'Tuning the method',
     descRu: 'Перешёл на более сильный метод', descEn: 'Moved to a stronger method',
-    value: (c) => (c.stepIndex >= 2 ? 1 : 0), target: 1 },
+    // 🔴 По факту ПЕРЕХОДА. Раньше условие было stepIndex >= 2, а онбординг сам
+    // ставит ступень 2 при Фагерстрёме ≥3 — ачивка «перешёл» падала в первую
+    // секунду, когда человек никуда не переходил.
+    value: (c) => (c.methodChanges > 0 ? 1 : 0), target: 1 },
 
   // ─── Recovery ───
   { id: 'comeback', category: 'recovery', icon: 'dove', color: '#5AC8FA',
     titleRu: 'Возвращение', titleEn: 'Comeback',
     descRu: 'Сорвался — и продолжил путь', descEn: 'Slipped — and kept going',
-    value: (c) => (c.hadSlip ? 1 : 0), target: 1 },
+    // 🔴 Не по факту срыва: раньше конфетти «Достижение открыто» прилетало
+    // ЧЕРЕЗ СЕКУНДУ после того, как человек признался, что закурил. Награда за
+    // возвращение должна приходить, когда он действительно вернулся.
+    value: (c) => (c.hadSlip && c.daysSinceLastSlip >= 3 ? 1 : 0), target: 1 },
 ];
 
 export function buildContext(state: AppState, now: number = Date.now()): AchContext {
@@ -183,6 +192,11 @@ export function buildContext(state: AppState, now: number = Date.now()): AchCont
     checkInsDone: state.checkIns.length,
     stepIndex: p?.currentStep ? getStep(p.currentStep).index : 1,
     hadSlip: state.slips.length > 0,
+    // Для «Возвращения»: важен не сам срыв, а факт возврата после него.
+    daysSinceLastSlip: state.slips.length
+      ? Math.floor((now - state.slips[state.slips.length - 1]) / 86400_000)
+      : Infinity,
+    methodChanges: p?.methodHistory?.length ?? 0,
     goalReached: !!(p?.goalAmount && p.goalAmount > 0 && money >= p.goalAmount),
   };
 }

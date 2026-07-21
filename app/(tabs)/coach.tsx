@@ -30,12 +30,12 @@ export default function CoachHub() {
     const now = Date.now();
     const fresh: ChatThread = { id, persona, mode, createdAt: now, updatedAt: now, messages: [] };
     await update((s) => ({ ...s, chats: [fresh, ...(s.chats ?? [])].slice(0, MAX_CHAT_THREADS) }));
-    router.push(`/chat?threadId=${id}` as any);
+    router.push(`/chat?threadId=${id}&mode=${mode}` as any);
   }
 
   function openThread(c: ChatThread) {
     Haptics.selectionAsync();
-    router.push(`/chat?threadId=${c.id}` as any);
+    router.push(`/chat?threadId=${c.id}&mode=${c.mode ?? 'support'}` as any);
   }
 
   function removeThread(c: ChatThread) {

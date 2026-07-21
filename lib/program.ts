@@ -269,7 +269,13 @@ export function programToday(state: AppState): {
   // сбрасывается при смене метода (бережём стрик), но день трека обязан начаться
   // заново: иначе после 40 дней на L1 переход на цитизин показывал «День 25 из 25»
   // и ФИНАЛЬНУЮ схему приёма вместо первой таблетки (фарма-безопасность).
-  const anchor = state.profile.stepEnteredAt ?? state.profile.quitDate;
+  //
+  // 🔴 Если курс препарата УЖЕ идёт — якорь берём от его начала. Иначе «Путь» и
+  // дневник доз считали разные дни: юзер вошёл в ступень в понедельник, а
+  // таблетки начал в четверг — трек показывал «День 4 · 5 таблеток», дневник
+  // «День 1 · 6 таблеток». Два разных числа таблеток на один день в
+  // фарма-контуре недопустимы.
+  const anchor = state.profile.medicationStartedAt ?? state.profile.stepEnteredAt ?? state.profile.quitDate;
   const secs = secondsClean(anchor);
   const day = Math.min(tr.totalDays, Math.floor(secs / 86400) + 1);
   return { day, total: tr.totalDays, data: trackDay(stepId, day) };

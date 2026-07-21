@@ -464,7 +464,16 @@ export default function Transition() {
       try {
         if (p) {
           const trialUntil = state.premiumPlan === 'trial' && (state.premiumUntil ?? 0) > Date.now() ? state.premiumUntil : undefined;
-          await rescheduleAll({ ...p, quitDate: startMs }, lang, trialUntil);
+          // 🔴 quitDate НЕ подменяем при немедленном переходе. Раньше сюда шёл
+          // startMs, и весь 14-дневный «новичковый» набор пушей стартовал заново:
+          // человеку с 62 чистыми днями наутро приходило «День 2 · утро», потом
+          // «Пик абстиненции — день 3», а на седьмой — «Неделя без сигарет».
+          // Стрик намеренно не сбрасывается при смене метода — расписание тоже
+          // не должно. Прошедшие дни программы сами отсеются в schedule().
+          // Отложенный переход — единственный случай, когда день отказа реально
+          // новый, только там подмена уместна.
+          const anchor = isImmediate ? p.quitDate : startMs;
+          await rescheduleAll({ ...p, quitDate: anchor, currentStep: pickedMethod, stepEnteredAt: startMs }, lang, trialUntil);
         }
       } catch {}
 

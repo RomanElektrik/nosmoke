@@ -15,7 +15,7 @@ import { identityHeadline, plural } from '../../lib/identity';
 import { Icon } from '../../components/Icon';
 import { programToday } from '../../lib/program';
 import { getStep, escalationSuggestion, prepChecklist, abstinenceStartMs } from '../../lib/stepped';
-import { todayDoses, isDoseTaken, expectedMedForStep, MED_SAFETY } from '../../lib/medication';
+import { todayDoses, isDoseTaken, expectedMedForStep, MED_SAFETY, medCourseDay, COURSE_DAYS } from '../../lib/medication';
 import { newlyUnlocked } from '../../lib/achievements';
 import { relapseStatus } from '../../lib/relapse';
 import { rescheduleAll, notificationsAllowed } from '../../lib/notifications';
@@ -682,6 +682,37 @@ function MedicationCard() {
   // dosesForDay would fall through to the full default schedule. Hide instead.
   if (state.profile?.medicationStartedAt && state.profile.medicationStartedAt > Date.now()) return null;
   const medInfo = todayDoses(state, lang);
+  // 🔴 Курс окончен (цитизин — 26-й день и дальше): раньше карточка просто
+  // ИСЧЕЗАЛА, а вместе с ней — единственные ссылки на дневник доз. Дневник
+  // становился недостижим: нельзя доотметить последние дозы, посмотреть
+  // приверженность и нажать «я закончил». При этом profile.medication
+  // оставался навсегда и продолжал уходить в промпт ИИ.
+  const courseOver = !!med && medCourseDay(state) > COURSE_DAYS[med];
+  if (courseOver) {
+    return (
+      <Pressable onPress={() => router.push('/meds')}>
+        <View style={{
+          padding: 16, borderRadius: radius.lg,
+          backgroundColor: t.card, borderWidth: 1, borderColor: t.border,
+          flexDirection: 'row', alignItems: 'center', gap: 12,
+        }}>
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: medColor + '20', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon.check size={22} color={medColor} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>
+              {lang === 'ru' ? `Курс окончен · ${medName}` : `Course complete · ${medName}`}
+            </Text>
+            <Text style={{ color: t.textDim, fontSize: 12.5, marginTop: 2 }}>
+              {lang === 'ru' ? 'Открой дневник — отметь последние дозы и заверши курс'
+                             : 'Open the diary — log the last doses and close the course'}
+            </Text>
+          </View>
+          <Icon.arrowRight size={18} color={t.textDim} />
+        </View>
+      </Pressable>
+    );
+  }
   if (medInfo.schedule.length === 0) return null;
 
   return (

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, Alert, TextInput, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, setLanguage, currentLang } from '../../lib/i18n';
 import { reset, update, useAppState } from '../../lib/storage';
@@ -107,11 +108,15 @@ function AccountCard() {
   const [acct, setAcct] = useState<Account | null>(null);
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
+  // 🔴 Перечитываем при КАЖДОМ фокусе, а не один раз на маунте. DeleteAccountRow —
+  // отдельный компонент со своим состоянием: после удаления аккаунта карточка
+  // «Вход выполнен» продолжала висеть, и выглядело это так, будто удаление не
+  // сработало (ровно то, за что Apple уже отбивала дважды).
+  useFocusEffect(useCallback(() => {
     let alive = true;
     getStoredAccount().then((a) => { if (alive) { setAcct(a); setReady(true); } });
     return () => { alive = false; };
-  }, []);
+  }, []));
 
   if (Platform.OS !== 'ios') return null; // пока только Apple (iOS); Google — следующим
   if (!ready) return null;

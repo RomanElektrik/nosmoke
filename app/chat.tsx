@@ -29,13 +29,18 @@ export default function ChatScreen() {
   const { t: tr } = useTranslation();
   const lang = currentLang();
   const params = useLocalSearchParams<{ mode?: string; threadId?: string; persona?: string; opener?: string }>();
-  const mode = (params.mode as CoachMode) || 'support';
+  // 🔴 Режим берём ИЗ ТРЕДА, если он там записан. Кнопки «Разбери срыв» и
+  // «Задание на день» создают тред с нужным режимом, но переходили на
+  // /chat?threadId=... без mode — и коуч открывался обычным support-чатом,
+  // то есть режим, ради которого юзер нажал кнопку, молча терялся.
+  const paramMode = (params.mode as CoachMode) || 'support';
 
   const [state] = useAppState();
   // Resolve the thread: explicit threadId wins; a bare mode deep-link (SOS,
   // pushes) reuses the freshest thread with that mode or creates one.
   const [threadId, setThreadId] = useState<string | null>(params.threadId ?? null);
   const thread: ChatThread | undefined = (state.chats ?? []).find((c) => c.id === threadId);
+  const mode: CoachMode = (thread?.mode as CoachMode) ?? paramMode;
   const persona = getPersona(thread?.persona ?? (params.persona as PersonaId | undefined));
   const meta = mode !== 'support'
     ? MODE_META[mode]
@@ -62,7 +67,7 @@ export default function ChatScreen() {
     }
     // mode deep-link: reuse the freshest thread with this mode, else create one
     const existing = [...(state.chats ?? [])]
-      .filter((c) => c.mode === mode)
+      .filter((c) => c.mode === paramMode)
       .sort((a, b) => b.updatedAt - a.updatedAt)[0];
     if (existing) {
       setThreadId(existing.id);
@@ -73,14 +78,14 @@ export default function ChatScreen() {
       const id = newThreadId();
       const now = Date.now();
       const fresh: ChatThread = {
-        id, persona: (params.persona as PersonaId) || 'breeze', mode,
+        id, persona: (params.persona as PersonaId) || 'breeze', mode: paramMode,
         createdAt: now, updatedAt: now, messages: [],
       };
       update((s) => ({ ...s, chats: [fresh, ...(s.chats ?? [])].slice(0, MAX_CHAT_THREADS) }));
       setThreadId(id);
       setHistory([{ role: 'assistant', content: tr('coach.first_msg') }]);
     }
-  }, [params.threadId, mode]);
+  }, [params.threadId, paramMode]);
 
   // Proactive opener: when the chat is opened with intent (from a push or SOS,
   // i.e. an `opener` param) and the thread has no conversation yet, Breeze

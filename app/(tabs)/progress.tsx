@@ -2,10 +2,11 @@
 // and the "why I'm quitting" board. Replaces the old Path tab in the pill;
 // Path itself is still reachable from the home screen.
 
-import { useState } from 'react';
-import { View, Text, Pressable, ScrollView, Image, Modal } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, Pressable, ScrollView, Image, Modal, AppState as RNAppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
@@ -19,6 +20,19 @@ import { abstinenceStartMs, healthStartMs } from '../../lib/stepped';
 import { rewardProgress } from '../../lib/rewards';
 import { computeInsights, triggerName, worstDayLocalized } from '../../lib/insights';
 import { plural } from '../../lib/identity';
+
+// Минутный тикер + мгновенное обновление при возврате на экран (из фона или
+// с другой вкладки), чтобы цифры не отставали.
+function useNow(): number {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    const sub = RNAppState.addEventListener('change', (st) => { if (st === 'active') setNow(Date.now()); });
+    return () => { clearInterval(id); sub.remove(); };
+  }, []);
+  useFocusEffect(useCallback(() => { setNow(Date.now()); }, []));
+  return now;
+}
 
 export default function Progress() {
   const t = useTheme();
@@ -37,12 +51,16 @@ export default function Progress() {
   const p = state.profile;
   if (!p) return null;
 
+  // Экран живёт в таб-навигаторе и не размонтируется: без тикера цифры
+  // застывали на момент ПЕРВОГО открытия вкладки и не менялись сутками —
+  // «Накоплено» на Прогрессе расходилось с Главной, где тикер есть.
+  const now = useNow();
   // Деньги и сигареты — от старта программы: счётчик обязан двигаться с первой
   // секунды, иначе экран выглядит сломанным.
-  const secs = Math.max(0, secondsClean(abstinenceStartMs(p)));
+  const secs = Math.max(0, secondsClean(abstinenceStartMs(p), now));
   // Вехи здоровья — только с дня отказа по протоколу: пока человек курит по
   // схеме, физиология не восстанавливается (см. healthStartMs).
-  const healthSecs = Math.max(0, secondsClean(healthStartMs(p)));
+  const healthSecs = Math.max(0, secondsClean(healthStartMs(p), now));
   const saved = moneySaved(p, secs);
   const perDay = pricePerCig(p) * p.cigsPerDay;
   const rp = rewardProgress(saved, perDay);
