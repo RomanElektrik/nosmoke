@@ -24,7 +24,13 @@ export function relapseStatus(state: AppState): RelapseStatus {
 
   // Pre-quit protocol window (Tabex days 1–4, bupropion/varenicline titration):
   // smoking there is per-protocol, not a relapse — ignore those events entirely.
-  const graceEnd = preQuitGraceEnd(state.profile);
+  // То же и для постепенного снижения: до целевой даты сигареты — это ВЫПОЛНЕНИЕ
+  // плана приложения, а не срыв. Иначе человек, честно куривший по расписанию
+  // снижения 3 дня за неделю, получал карточку «Похоже, ты снова куришь» и
+  // предложение перейти на цитизин — приложение обвиняло его за собственный план.
+  const prof = state.profile;
+  const taperEnd = prof?.method === 'taper' && prof.taperTargetDate ? prof.taperTargetDate : 0;
+  const graceEnd = Math.max(preQuitGraceEnd(prof), taperEnd);
 
   const days = new Set<string>();
   let lastSmokeTs: number | null = null;

@@ -4,12 +4,30 @@ export function pricePerCig(p: Pick<Profile, 'packPrice' | 'cigsInPack'>): numbe
   return p.cigsInPack > 0 ? p.packPrice / p.cigsInPack : 0;
 }
 
-// Cigarettes that would have been smoked over `secs` seconds at the user's daily rate.
-export function cigsAvoided(p: Pick<Profile, 'cigsPerDay'>, secs: number): number {
-  return (p.cigsPerDay * secs) / 86400;
+type AvoidInput = Pick<Profile, 'cigsPerDay'> & Partial<Pick<Profile, 'method' | 'quitDate' | 'taperTargetDate'>>;
+
+// Сигареты, которые человек НЕ выкурил за `secs` секунд.
+//
+// Резкий отказ — всё просто: полная дневная норма за всё время.
+//
+// Постепенное снижение — нет. Там человек по собственному плану приложения ещё
+// курит, просто всё меньше: норма линейно едет от cigsPerDay до нуля к
+// taperTargetDate (та же кривая, что рисует taperPlan в lib/clinical.ts).
+// Считать всю норму «не выкуренной» — завышать вдвое: на 7-й день
+// четырёхнедельного плана выходило «не выкурено 140» при реальных ~35.
+// Не выкуренное за момент t = cigsPerDay · t/T, интеграл = cigsPerDay · t²/(2T).
+export function cigsAvoided(p: AvoidInput, secs: number): number {
+  const full = (p.cigsPerDay * secs) / 86400;
+  if (p.method !== 'taper' || !p.taperTargetDate || !p.quitDate) return full;
+  const totalSec = (p.taperTargetDate - p.quitDate) / 1000;
+  if (!(totalSec > 0)) return full;
+  const perSec = p.cigsPerDay / 86400;
+  if (secs <= totalSec) return (perSec * secs * secs) / (2 * totalSec);
+  // После целевой даты — половина за период снижения плюс полная норма дальше.
+  return (perSec * totalSec) / 2 + perSec * (secs - totalSec);
 }
 
-export function moneySaved(p: Pick<Profile, 'cigsPerDay' | 'packPrice' | 'cigsInPack'>, secs: number): number {
+export function moneySaved(p: AvoidInput & Pick<Profile, 'packPrice' | 'cigsInPack'>, secs: number): number {
   return cigsAvoided(p, secs) * pricePerCig(p);
 }
 
