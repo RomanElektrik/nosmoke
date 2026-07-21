@@ -36,6 +36,10 @@ export function extractLinks(text: string): { label: string; href: string }[] {
     let key = (m[1] || m[2] || '').toLowerCase();
     if (key.startsWith('practice/')) key = key.slice('practice/'.length);
     if (key === 'transition') key = 'method';
+    // Аудиопрактики озвучены только по-русски: на EN плеер сам выкидывает
+    // назад, поэтому кнопка вела в никуда. Не показываем её вовсе, даже
+    // если модель выдумает маркер.
+    if (key === 'audio' && lang !== 'ru') continue;
     if (!ROUTE_LABELS[key] || found.has(key)) continue;
     found.add(key);
     const r = ROUTE_LABELS[key];

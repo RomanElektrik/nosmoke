@@ -7,7 +7,7 @@ import { useTheme, spacing, radius } from '../lib/theme';
 import { currentLang } from '../lib/i18n';
 import { Icon } from '../components/Icon';
 import { ARTICLES, ARTICLE_CATEGORY, ARTICLE_IMAGES, articleAspect, type ArticleCategory } from '../lib/articles';
-import { usePremium } from '../lib/subscription';
+import { usePremium, freeArticleIds } from '../lib/subscription';
 
 const ORDER: ArticleCategory[] = ['craving', 'slip', 'triggers', 'body', 'meds', 'motivation'];
 
@@ -19,13 +19,7 @@ export default function Articles() {
   // Free = the first 3 articles AS DISPLAYED (the list is grouped by category,
   // so an array-order slice could leave the top cards locked). Building the flat
   // display order guarantees the top 3 of the list are always free.
-  const displayOrder = ORDER.flatMap((cat) => ARTICLES.filter((a) => a.category === cat));
-  const freeIds = new Set([
-    ...displayOrder.slice(0, 3).map((a) => a.id),
-    // 🔴 Безопасность лекарств — НИКОГДА не за деньги (wellness-правило проекта):
-    // противопоказания и «назначает только врач» должны быть доступны бесплатно.
-    ...ARTICLES.filter((a) => a.category === 'meds').map((a) => a.id),
-  ]);
+  const freeIds = freeArticleIds();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>

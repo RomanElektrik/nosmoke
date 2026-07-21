@@ -143,16 +143,49 @@ export default function Root() {
 
   // Tapping a push routes to the tool it promised (SOS, chat, health) instead
   // of dropping the user on Home. The url rides in the notification payload.
+  //
+  // 🔴 ХОЛОДНЫЙ СТАРТ. Нативная сторона отдаёт ответ на тап ОДИН раз, событием,
+  // в момент создания модуля — то есть раньше, чем React смонтирует Root и
+  // повесит слушатель. Поэтому запуск ИЗ уведомления терял адрес и высаживал
+  // человека на Главной («перехожу по уведомлению — открывается не то»).
+  // Читаем стартовый ответ явно и навигируем только когда навигатор готов.
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  const takeUrl = (data: unknown): string | null => {
+    const d = data as { url?: string; route?: string } | undefined;
+    const url = d?.url ?? d?.route;
+    return typeof url === 'string' && url.startsWith('/') ? url : null;
+  };
+
   useEffect(() => {
+    // 1) Приложение было убито и открыто тапом по пушу — событие уже прошло.
+    (async () => {
+      try {
+        const last = await Notifications.getLastNotificationResponseAsync();
+        const url = takeUrl(last?.notification?.request?.content?.data);
+        if (url) setPendingUrl(url);
+        // Иначе тот же адрес переиграется на следующем запуске.
+        try { await Notifications.clearLastNotificationResponseAsync?.(); } catch {}
+      } catch {}
+    })();
+    // 2) Приложение живо (фон/передний план) — обычный слушатель.
     const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
-      const data = resp.notification.request.content.data as { url?: string; route?: string } | undefined;
-      const url = data?.url ?? data?.route;
-      if (typeof url === 'string' && url.startsWith('/')) {
-        setTimeout(() => router.push(url as any), 300);
-      }
+      const url = takeUrl(resp.notification.request.content.data);
+      if (url) setPendingUrl(url);
     });
     return () => sub.remove();
   }, []);
+
+  // Навигация — только после того, как стейт загружен и роутер смонтирован.
+  // Раньше тут стоял setTimeout(300) наугад: на медленном старте он стрелял
+  // раньше готовности навигатора, и переход молча терялся.
+  useEffect(() => {
+    if (!ready || !pendingUrl) return;
+    const id = setTimeout(() => {
+      try { router.push(pendingUrl as any); } catch {}
+      setPendingUrl(null);
+    }, 60);
+    return () => clearTimeout(id);
+  }, [ready, pendingUrl]);
 
   // «Профиль создан» (прошёл квиз) ≠ «онбординг завершён» (вышел с paywall).
   // Между ними — экран плана и оффер; в этом промежутке профиль уже есть,

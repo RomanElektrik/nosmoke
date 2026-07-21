@@ -16,6 +16,24 @@ export const FREE_TECHNIQUE_IDS = new Set([
 
 export const FREE_ARTICLE_COUNT = 3;
 
+// Единый список бесплатных статей для ВСЕХ экранов.
+//
+// 🔴 Раньше он считался в двух местах по-разному: app/articles.tsx брал первые
+// три по порядку показа ПЛЮС все статьи про лекарства, а главный экран — просто
+// первые три по порядку массива. Из-за этого «Лекарства: цитизин, бупропион,
+// варениклин» на главной висела с замком и вела в пейвол, а в списке статей
+// открывалась бесплатно. Безопасность лекарств за деньги — прямое нарушение
+// wellness-правила проекта (CLAUDE.md).
+const ARTICLE_ORDER: ArticleCategory[] = ['craving', 'slip', 'triggers', 'body', 'meds', 'motivation'];
+
+export function freeArticleIds(): Set<string> {
+  const displayOrder = ARTICLE_ORDER.flatMap((cat) => ARTICLES.filter((a) => a.category === cat));
+  return new Set([
+    ...displayOrder.slice(0, FREE_ARTICLE_COUNT).map((a) => a.id),
+    ...ARTICLES.filter((a) => a.category === 'meds').map((a) => a.id),
+  ]);
+}
+
 /** First N audio practices (by PRACTICES order) are free; the rest are premium. */
 export const FREE_PRACTICE_COUNT = 3;
 
@@ -70,6 +88,7 @@ export function marketForLang(lang: string | undefined | null): 'ru' | 'intl' {
 
 /** AI usage helpers — count messages sent today (free tier). */
 import { localDateKey } from './dates';
+import { ARTICLES, type ArticleCategory } from './articles';
 export function todayKey(d = new Date()): string {
   return localDateKey(d);
 }

@@ -99,11 +99,19 @@ export async function deleteAccount(): Promise<boolean> {
 export async function signOutAccount(): Promise<void> {
   try {
     const deviceId = await getDeviceId();
-    const r = await fetch(`${API}/auth/signout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId }),
-    });
+    // Без таймаута на залипшей сети кнопка «Выйти» мертва навсегда: обработчик
+    // ждёт промис, который никогда не резолвится, и setAcct(null) не вызывается.
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 15000);
+    let r: Response;
+    try {
+      r = await fetch(`${API}/auth/signout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId }),
+        signal: ctl.signal,
+      });
+    } finally { clearTimeout(timer); }
     // Применяем авторитетный статус сервера, чтобы премиум не «завис» до перезапуска.
     const j = await r.json().catch(() => null);
     if (j && typeof j.premium === 'boolean' && typeof j.until === 'number') {

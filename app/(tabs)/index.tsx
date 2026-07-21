@@ -23,7 +23,7 @@ import { maybeAskReview } from '../../lib/review';
 import { track } from '../../lib/analytics';
 import { AchievementUnlock } from '../../components/AchievementUnlock';
 import { ARTICLES, ARTICLE_IMAGES } from '../../lib/articles';
-import { usePremium, FREE_ARTICLE_COUNT } from '../../lib/subscription';
+import { usePremium, freeArticleIds } from '../../lib/subscription';
 import { TourAnchor, useTour } from '../../components/Tour';
 
 export default function Home() {
@@ -424,8 +424,8 @@ function KnowledgeSection() {
   const premium = usePremium();
   // Free articles ALWAYS come first in the strip — users should see open
   // content up front, not a locked card. Paid ones follow as rotating teasers.
-  const freeArts = ARTICLES.slice(0, FREE_ARTICLE_COUNT);
-  const freeIds = new Set(freeArts.map((a) => a.id));
+  const freeIds = freeArticleIds();
+  const freeArts = ARTICLES.filter((a) => freeIds.has(a.id));
   const lockedArts = ARTICLES.filter((a) => !freeIds.has(a.id));
   const start = lockedArts.length ? Math.floor(Date.now() / 86400_000) % lockedArts.length : 0;
   const teasers = lockedArts.length
