@@ -124,7 +124,11 @@ export default function Paywall() {
           ru ? 'Похоже, сбой связи. Попробуй ещё раз.' : 'A connection hiccup. Try again.');
       }
     } catch (e: any) {
-      Alert.alert(ru ? 'Не получилось' : 'Something went wrong', String(e?.message || ''));
+      // Раньше сюда прилетало сырое «Aborted» / «Network request failed» —
+      // человек 15 секунд смотрел спиннер и получал техническую строку.
+      Alert.alert(ru ? 'Нет связи' : 'No connection',
+        ru ? 'Не получилось связаться с сервером. Проверь интернет и попробуй ещё раз — пробный никуда не денется.'
+           : "Couldn't reach the server. Check your connection and try again — the trial isn't going anywhere.");
     } finally {
       setBusy(false);
     }

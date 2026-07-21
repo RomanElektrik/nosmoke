@@ -4,8 +4,10 @@
 
 export type Reward = { ru: string; en: string; amount: number; emoji: string };
 
-// Ascending tiers. Amounts are rough RUB; the label still reads fine in other
-// currencies since it's "you've saved enough for X".
+// Ascending tiers. Суммы заданы в рублях — для других валют делим на курс
+// (см. currencyScale): «кофе за 300» у англоязычного юзера превращалось в
+// «you've saved enough for a good coffee» на 300 долларах, то есть порог
+// достигался в сто раз позже и вся копилка выглядела сломанной.
 export const REWARDS: Reward[] = [
   { ru: 'чашку хорошего кофе', en: 'a good coffee',        amount: 300,   emoji: '☕️' },
   { ru: 'поход в кино',        en: 'a movie night',         amount: 800,   emoji: '🎬' },
@@ -18,6 +20,13 @@ export const REWARDS: Reward[] = [
   { ru: 'отпуск',              en: 'a vacation',            amount: 80000, emoji: '✈️' },
 ];
 
+// Грубый коэффициент к рублёвым порогам. Точность здесь не нужна: подписи вида
+// «хватит на чашку кофе» — ориентир, а не прайс-лист.
+const CURRENCY_SCALE: Record<string, number> = { RUB: 1, KZT: 0.2, BYN: 30, UAH: 2.4, USD: 90, EUR: 100 };
+export function currencyScale(currency?: string): number {
+  return CURRENCY_SCALE[(currency || 'RUB').toUpperCase()] ?? 1;
+}
+
 export type RewardProgress = {
   current: Reward | null;     // highest tier already covered
   next: Reward | null;        // next tier to reach
@@ -26,16 +35,18 @@ export type RewardProgress = {
   pct: number;                // progress toward next (0..1)
 };
 
-export function rewardProgress(saved: number, perDay: number): RewardProgress {
+export function rewardProgress(saved: number, perDay: number, currency?: string): RewardProgress {
+  const k = currencyScale(currency);
+  const amt = (r: Reward) => r.amount / k;
   let current: Reward | null = null;
   let next: Reward | null = null;
   for (const r of REWARDS) {
-    if (saved >= r.amount) current = r;
+    if (saved >= amt(r)) current = r;
     else { next = r; break; }
   }
-  const base = current?.amount ?? 0;
-  const remaining = next ? Math.max(0, next.amount - saved) : 0;
-  const span = next ? next.amount - base : 1;
+  const base = current ? amt(current) : 0;
+  const remaining = next ? Math.max(0, amt(next) - saved) : 0;
+  const span = next ? amt(next) - base : 1;
   const pct = next ? Math.min(1, Math.max(0, (saved - base) / span)) : 1;
   const daysToNext = next && perDay > 0 ? Math.ceil(remaining / perDay) : null;
   return { current, next, remaining, daysToNext, pct };

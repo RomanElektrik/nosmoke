@@ -43,6 +43,11 @@ export type Profile = {
   goalPhoto?: string;      // optional photo uri for the goal avatar
   language?: 'ru' | 'en';
   onboardingComplete: boolean;
+  // Экран «Твой план готов» подтверждён. Без этого флага человек, у которого iOS
+  // выгрузила приложение между квизом и планом, при следующем запуске попадал
+  // сразу на пейвол: ага-момент с обоснованием ступени и поле «Я становлюсь…»
+  // (заполнить его больше негде) он не видел никогда.
+  planConfirmed?: boolean;
   reasonsSeeded?: boolean;   // причины из мотиваций засеяны один раз (чтобы удалённые не возвращались)
   openrouterKey?: string;
   openrouterModel?: string;

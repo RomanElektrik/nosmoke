@@ -63,7 +63,7 @@ export default function Progress() {
   const healthSecs = Math.max(0, secondsClean(healthStartMs(p), now));
   const saved = moneySaved(p, secs);
   const perDay = pricePerCig(p) * p.cigsPerDay;
-  const rp = rewardProgress(saved, perDay);
+  const rp = rewardProgress(saved, perDay, p.currency);
   const ins = computeInsights(state.cravings);
   const worstDay = worstDayLocalized(state.cravings, ru);
   const worstDayS = worstDayShort(state.cravings, ru);

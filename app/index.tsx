@@ -12,6 +12,12 @@ export default function Index() {
   // paywall (возобновление). Иначе → приложение.
   // Первый запуск: язык не выбран → экран выбора языка, он уводит на welcome.
   if (!state.profile) return <Redirect href={(state.lang ? '/(onboarding)/welcome' : '/(onboarding)/language') as any} />;
+  // Квиз пройден, но план ещё не подтверждён → возвращаем на план, а не на
+  // пейвол: иначе выгрузка приложения между экранами навсегда съедала
+  // ага-момент, поле «Я становлюсь…» и запрос прав на уведомления.
+  if (!state.profile.onboardingComplete && !state.profile.planConfirmed) {
+    return <Redirect href={'/(onboarding)/plan' as any} />;
+  }
   if (!state.profile.onboardingComplete) return <Redirect href={'/paywall?onb=1' as any} />;
   return <Redirect href="/(tabs)" />;
 }

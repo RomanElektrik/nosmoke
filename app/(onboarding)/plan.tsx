@@ -42,6 +42,7 @@ export default function Plan() {
           // /(tabs) до показа оффера. Флаг выставит paywall при выходе (done()).
           currentStep: recommended,
           stepEnteredAt: now,
+          planConfirmed: true,
           identityStatement: identityStatement.trim() || undefined,
           taperWeeks: isTaper ? taperWeeks : undefined,
           taperTargetDate,

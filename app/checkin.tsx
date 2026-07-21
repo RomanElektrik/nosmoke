@@ -196,7 +196,11 @@ export default function CheckIn() {
               await logSmoked();
               const fresh = await loadState();
               const sug = escalationSuggestion(fresh);
-              if (sug.yes) { setEscalationData(sug); setPhase('escalate'); }
+              // Полноэкранное «Поднимаем метод» с препаратом — только когда
+              // сигнал сильный. На один срыв это чрезмерно: человек признался,
+              // что закурил, и тут же получает предложение перейти на таблетки.
+              // Мягкий нудж уже живёт внутри /slip (MethodChangeBlock).
+              if (sug.yes && sug.intensity !== 'soft') { setEscalationData(sug); setPhase('escalate'); }
               else router.replace('/slip');
             }}
               style={{ padding: 18, borderRadius: radius.xl, backgroundColor: '#5AC8FA', alignItems: 'center', marginTop: 4 }}>
