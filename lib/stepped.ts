@@ -156,6 +156,17 @@ export function abstinenceStartMs(p?: Profile | null): number {
   return p?.quitDate ?? 0;
 }
 
+// Начало отсчёта ФИЗИОЛОГИИ — вехи здоровья и пуши о них. В отличие от денег,
+// тут окно протокола игнорировать нельзя: пока человек по схеме курит (цитизин
+// дни 1–4, титрование дни 1–7), угарный газ не выводится и рецепторы вкуса не
+// восстанавливаются. Ставить «Достигнуто» напротив «CO в крови вдвое меньше»
+// сидящему с сигаретой — это утверждение о результате, которого нет. Для
+// wellness-приложения (CLAUDE.md) такие заявления недопустимы.
+export function healthStartMs(p?: Profile | null): number {
+  const q = p?.quitDate ?? 0;
+  return Math.max(q, preQuitGraceEnd(p));
+}
+
 export function nextStep(current: StepLevel): StepLevel | null {
   const s = STEPS.find((x) => x.id === current);
   if (!s) return null;

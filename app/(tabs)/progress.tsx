@@ -15,7 +15,7 @@ import { useAppState, normalizeReasons, symptomTo10 } from '../../lib/storage';
 import { Icon } from '../../components/Icon';
 import { secondsClean, MILESTONES, type Milestone } from '../../lib/health';
 import { moneySaved, cigsAvoided, pricePerCig, formatMoney, formatDuration, formatCigs } from '../../lib/money';
-import { abstinenceStartMs } from '../../lib/stepped';
+import { abstinenceStartMs, healthStartMs } from '../../lib/stepped';
 import { rewardProgress } from '../../lib/rewards';
 import { computeInsights, triggerName, worstDayLocalized } from '../../lib/insights';
 import { plural } from '../../lib/identity';
@@ -37,9 +37,12 @@ export default function Progress() {
   const p = state.profile;
   if (!p) return null;
 
-  // Деньги/сигареты/вехи здоровья считаем от ДНЯ ОТКАЗА: на фарме первые дни
-  // человек курит по схеме, поэтому до дня отказа эти цифры держим на нуле.
+  // Деньги и сигареты — от старта программы: счётчик обязан двигаться с первой
+  // секунды, иначе экран выглядит сломанным.
   const secs = Math.max(0, secondsClean(abstinenceStartMs(p)));
+  // Вехи здоровья — только с дня отказа по протоколу: пока человек курит по
+  // схеме, физиология не восстанавливается (см. healthStartMs).
+  const healthSecs = Math.max(0, secondsClean(healthStartMs(p)));
   const saved = moneySaved(p, secs);
   const perDay = pricePerCig(p) * p.cigsPerDay;
   const rp = rewardProgress(saved, perDay);
@@ -230,7 +233,7 @@ export default function Progress() {
         <Card color="#FF453A" gid="rec">
           <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>{ru ? 'Восстановление' : 'Recovery'}</Text>
           {MILESTONES.map((m) => {
-            const done = secs >= m.at;
+            const done = healthSecs >= m.at;
             const I = Icon[m.icon];
             return (
               <Pressable key={m.id} onPress={() => { Haptics.selectionAsync(); showMilestone(m); }}
@@ -245,7 +248,7 @@ export default function Progress() {
                 <Text style={{ color: done ? t.text : t.textDim, fontSize: 14.5, fontWeight: done ? '600' : '500', flex: 1, lineHeight: 19 }}>{tr(m.titleKey)}</Text>
                 {done
                   ? <Icon.check size={18} color={m.color} />
-                  : <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '600' }}>{ru ? 'через ' : 'in '}{formatDuration(m.at - secs, lang)}</Text>}
+                  : <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '600' }}>{ru ? 'через ' : 'in '}{formatDuration(m.at - healthSecs, lang)}</Text>}
               </Pressable>
             );
           })}
@@ -259,9 +262,9 @@ export default function Progress() {
       <Modal visible={msVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={hideMilestone}>
         {openMilestone && (() => {
           const m = openMilestone;
-          const done = secs >= m.at;
+          const done = healthSecs >= m.at;
           const I = Icon[m.icon];
-          const pct = Math.min(1, secs / m.at);
+          const pct = Math.min(1, healthSecs / m.at);
           return (
             <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
               <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: 16 }}>
@@ -272,7 +275,7 @@ export default function Progress() {
                 <Text style={{ color: t.text, fontSize: 30, fontWeight: '700', letterSpacing: -0.6 }}>{tr(m.titleKey)}</Text>
                 <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: done ? m.color + '24' : t.border }}>
                   <Text style={{ color: done ? m.color : t.textDim, fontSize: 12, fontWeight: '700' }}>
-                    {done ? (ru ? 'Достигнуто' : 'Reached') : `${ru ? 'через' : 'in'} ${formatDuration(m.at - secs, lang)}`}
+                    {done ? (ru ? 'Достигнуто' : 'Reached') : `${ru ? 'через' : 'in'} ${formatDuration(m.at - healthSecs, lang)}`}
                   </Text>
                 </View>
                 {!done && (

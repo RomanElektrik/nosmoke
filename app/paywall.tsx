@@ -25,7 +25,6 @@ import { getStoredAccount } from '../lib/auth';
 
 // Единственный план — разовый «Навсегда».
 const LIFETIME_RU = '490 ₽';
-const LIFETIME_EN = '$6.99';
 
 type Feature = { i: IconKey; c: string; t: string; d: string };
 const FEATURES_RU: Feature[] = [
@@ -66,6 +65,9 @@ export default function Paywall() {
   const [busy, setBusy] = useState(false);
   // Пробный (7 дней бесплатно, без карты) — если не премиум и триал не брался.
   const eligibleForTrial = !premium && !state.trialUsed;
+  // Пожизненный доступ = until далеко в будущем (тот же критерий, что в
+  // profile.tsx и payment-method.tsx). Только у этих людей покупать больше нечего.
+  const lifetimeOwned = !!state.premiumUntil && state.premiumUntil > Date.now() + 40 * 365 * 86400_000;
   const [signedIn, setSignedIn] = useState(false);
   // Оплата существует только на российском рынке (см. isRuMarket): ЮKassa
   // принимает только карты РФ. Остальным пейвол недостижим — сразу наружу
@@ -77,7 +79,10 @@ export default function Paywall() {
     return () => { alive = false; };
   }, []);
 
-  const priceStr = ru ? LIFETIME_RU : LIFETIME_EN;
+  // 🔴 Ценник берём от РЫНКА, а не от языка интерфейса. ЮKassa всегда списывает
+  // 490 ₽ (server/breez-subscribe.js: PAY_PLANS.lifetime), поэтому русский юзер,
+  // переключивший интерфейс на английский, видел «$6.99» и уходил платить 490 ₽.
+  const priceStr = LIFETIME_RU;
 
   // Куда уходить при закрытии/после успеха.
   async function done() {
@@ -131,6 +136,23 @@ export default function Paywall() {
 
   async function purchase() {
     if (busy) return;
+    // Без email не будет ни чека по 54-ФЗ, ни возможности восстановить покупку
+    // после переустановки. Не запрещаем — но человек должен знать, на что идёт.
+    const em = email.trim();
+    if (!em.includes('@')) {
+      const go = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          ru ? 'Оплатить без email?' : 'Pay without an email?',
+          ru ? 'На email приходит чек, и по нему же покупка восстанавливается на новом телефоне. Без него восстановить доступ будет нечем.'
+             : "The receipt goes to your email, and it's also how the purchase is restored on a new phone. Without it there's no way to get access back.",
+          [
+            { text: ru ? 'Впишу email' : 'Add email', style: 'cancel', onPress: () => resolve(false) },
+            { text: ru ? 'Всё равно оплатить' : 'Pay anyway', onPress: () => resolve(true) },
+          ],
+        );
+      });
+      if (!go) return;
+    }
     Haptics.selectionAsync();
     setBusy(true);
     try {
@@ -195,7 +217,7 @@ export default function Paywall() {
   const saved = p ? moneySaved(p, Math.max(0, secondsClean(abstinenceStartMs(p)))) : 0;
   const savedMin = currency === 'RUB' ? 500 : 5;
   const showSaved = saved >= savedMin;
-  const lifetimeAmount = ru ? 490 : 6.99;
+  const lifetimeAmount = 490; // единственный план на сервере — рублёвый lifetime
   const weeks = p ? paybackWeeks(p, lifetimeAmount) : null;
   const paybackWk = weeks && weeks >= 0.5 && weeks <= 52 ? Math.max(1, Math.round(weeks)) : null;
   const wkWord = (n: number) =>
@@ -347,8 +369,14 @@ export default function Paywall() {
           </View>
         )}
 
-        {/* Email — для чека (54-ФЗ) + восстановление по Apple */}
-        {!premium && (
+        {/* Email — для чека (54-ФЗ) + восстановление по Apple.
+            🔴 Условие именно lifetimeOwned, а не !premium. Во время пробного
+            периода premium === true, и весь этот блок исчезал — при этом кнопка
+            покупки внизу оставалась. Купивший из триала (основной путь конверсии:
+            пуш «пробный заканчивается» → пейвол → купить) платил 490 ₽ без email:
+            чек по 54-ФЗ не формировался, а /restore потом не находил покупку —
+            после переустановки доступ терялся навсегда. */}
+        {!lifetimeOwned && (
           <View style={{ gap: 8 }}>
             <TextInput
               value={email} onChangeText={setEmail}

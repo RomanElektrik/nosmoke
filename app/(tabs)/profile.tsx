@@ -179,9 +179,16 @@ function DeleteAccountRow() {
       [
         { text: ru ? 'Отмена' : 'Cancel', style: 'cancel' },
         { text: ru ? 'Удалить навсегда' : 'Delete forever', style: 'destructive', onPress: async () => {
-            await deleteAccount();
-            Alert.alert(ru ? 'Аккаунт удалён' : 'Account deleted',
-              ru ? 'Все данные аккаунта стёрты с сервера.' : 'All account data has been erased from our server.');
+            const okDeleted = await deleteAccount();
+            if (okDeleted) {
+              Alert.alert(ru ? 'Аккаунт удалён' : 'Account deleted',
+                ru ? 'Все данные аккаунта стёрты с сервера.' : 'All account data has been erased from our server.');
+            } else {
+              // Врать об удалении нельзя: юзер решит, что данных больше нет.
+              Alert.alert(ru ? 'Не получилось удалить' : "Couldn't delete",
+                ru ? 'Сервер не ответил. Проверь соединение и попробуй ещё раз — аккаунт остался на месте.'
+                   : "The server didn't respond. Check your connection and try again — your account is still there.");
+            }
           } },
       ],
     );

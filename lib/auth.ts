@@ -64,17 +64,36 @@ export async function signInWithApple(): Promise<AuthStatus> {
 
 // Выйти: отвязать устройство от аккаунта (подписка остаётся на аккаунте).
 // Полное удаление аккаунта на сервере (App Review 5.1.1(v)) + локальный выход.
-export async function deleteAccount(): Promise<void> {
+// 🔴 Возвращает true ТОЛЬКО если сервер подтвердил удаление. Раньше функция
+// глотала любую ошибку и всегда шла дальше, а экран безусловно рапортовал
+// «Аккаунт удалён» — в авиарежиме или при 500 юзер видел успех, а аккаунт был
+// жив. Для App Review 5.1.1(v) это ровно то, чего делать нельзя: обещание
+// удаления должно быть правдой.
+export async function deleteAccount(): Promise<boolean> {
   try {
     const { getDeviceId } = await import('./billing');
     const deviceId = await getDeviceId();
-    await fetch(`${API}/account/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId }),
-    });
-  } catch {}
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 15000); // иначе на залипшей сети кнопка мертва навсегда
+    let r: Response;
+    try {
+      r = await fetch(`${API}/account/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId }),
+        signal: ctl.signal,
+      });
+    } finally { clearTimeout(timer); }
+    if (!r.ok) return false;
+    const j = await r.json().catch(() => null);
+    // Сервер отвечает {ok:true, deleted:false}, когда привязки устройства нет —
+    // это не удаление, а «нечего удалять». Успехом не считаем.
+    if (!j || j.deleted !== true) return false;
+  } catch {
+    return false;
+  }
   await signOutAccount();
+  return true;
 }
 
 export async function signOutAccount(): Promise<void> {

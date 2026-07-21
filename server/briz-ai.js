@@ -83,10 +83,16 @@ module.exports = function attachAi(app) {
       const { messages } = req.body || {};
       if (!Array.isArray(messages) || !messages.length) return res.status(400).json({ error: 'messages required' });
       // Обрезаем то, что явно не наше: длинные хвосты историй и мусорные роли.
-      const clean = messages
-        .filter((m) => m && typeof m.content === 'string' && ['system', 'user', 'assistant'].includes(m.role))
-        .slice(-30)
-        .map((m) => ({ role: m.role, content: m.content.slice(0, 8000) }));
+      //
+      // 🔴 Резать МОЖНО только диалог. Раньше стоял общий .slice(-30), а system
+      // идёт первым — на 30+ сообщениях он вылетал, и вместе с ним ВСЕ правила
+      // безопасности: кризисные телефоны, «препараты только через врача», флаг
+      // беременности. Модель без промпта — обычный чат-бот, который беременной
+      // юзерке может посоветовать варениклин.
+      const ok = messages.filter((m) => m && typeof m.content === 'string' && ['system', 'user', 'assistant'].includes(m.role));
+      const sys = ok.filter((m) => m.role === 'system');
+      const dialog = ok.filter((m) => m.role !== 'system').slice(-30);
+      const clean = [...sys, ...dialog].map((m) => ({ role: m.role, content: m.content.slice(0, 8000) }));
       if (!clean.length) return res.status(400).json({ error: 'bad messages' });
       if (!ROUTES.length) return res.status(500).json({ error: 'no upstream key' });
 

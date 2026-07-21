@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { MILESTONES } from './health';
-import { abstinenceStartMs } from './stepped';
+import { healthStartMs } from './stepped';
 import type { Profile } from './storage';
 
 Notifications.setNotificationHandler({
@@ -273,7 +273,9 @@ export async function scheduleTrialEndReminder(untilMs: number, locale: 'ru' | '
 // удачного fetchSub: рестарт после срыва, смена ступени и офлайн-запуск стирали
 // его (cancelAll) и не возвращали.
 export async function rescheduleAll(p: Profile, locale: 'ru' | 'en', trialUntil?: number) {
-  await scheduleQuitProgram(p.quitDate, locale, 8, p.checkInHour ?? 21, abstinenceStartMs(p));
+  // Пятый аргумент — якорь ВЕХ ЗДОРОВЬЯ. Не quitDate: пуш «CO в крови вдвое
+  // меньше» не должен приходить человеку, который по схеме препарата ещё курит.
+  await scheduleQuitProgram(p.quitDate, locale, 8, p.checkInHour ?? 21, healthStartMs(p));
   if (p.medication && p.medicationStartedAt) {
     await scheduleMedicationDoses(locale, p.medication, p.medicationStartedAt);
   }
