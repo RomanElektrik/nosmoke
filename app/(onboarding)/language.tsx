@@ -26,6 +26,9 @@ export default function LanguagePick() {
       // Рынок фиксируется здесь НАВСЕГДА: дальше смена языка интерфейса в
       // профиле меняет только язык, но не платёжную модель.
       market: marketForLang(l),
+      // Выбор сделан человеком — дальше рынок неизменен (иначе переключение
+      // языка в профиле открывало бы премиум даром).
+      marketLatchedBy: 'user' as const,
       profile: prev.profile ? { ...prev.profile, language: l } : prev.profile,
     }));
     router.replace('/(onboarding)/welcome');
