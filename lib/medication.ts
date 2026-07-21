@@ -233,10 +233,23 @@ export function dosesForDay(med: Medication, dayNumber: number, startHour = 8): 
 }
 
 // Day number on the medication course (1-based) for today.
-export function medCourseDay(state: AppState): number {
+// Календарный день курса: считаем ПОЛУНОЧИ, а не прошедшие сутки.
+//
+// 🔴 Раньше здесь было (Date.now() - startedAt)/86400_000, а планировщик пушей
+// (lib/notifications.ts) считал по полуночам. Препарат почти никогда не
+// активируют ровно в 00:00 — значит числа расходились всегда: дневник показывал
+// «день 4, 5 таблеток», а пуш приходил «день 3, доза 6/6». Разное количество
+// таблеток на один день в фарма-контуре недопустимо. Один источник правды.
+export function medCourseDay(state: AppState, now: number = Date.now()): number {
   const startedAt = state.profile?.medicationStartedAt;
   if (!startedAt) return 1;
-  return Math.floor((Date.now() - startedAt) / 86400_000) + 1;
+  return courseDayForDate(startedAt, now);
+}
+
+export function courseDayForDate(startedAtMs: number, atMs: number): number {
+  const start = new Date(startedAtMs); start.setHours(0, 0, 0, 0);
+  const at = new Date(atMs); at.setHours(0, 0, 0, 0);
+  return Math.floor((at.getTime() - start.getTime()) / 86400_000) + 1;
 }
 
 // Adherence helpers

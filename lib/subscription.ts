@@ -10,8 +10,11 @@ import { currentLang } from './i18n';
 export const FREE_AI_DAILY_LIMIT = 10;
 
 /** First N items from a list are free; the rest are premium-gated. */
+// ⚠️ Здесь id ТЕХНИК (lib/techniques.ts), а не practice-id. Была рассинхронизация:
+// стояло 'halt_check' (это practice), а техника называется 'halt' — то есть HALT
+// молча считалась платной. Держим оба написания, чтобы не переломать ещё раз.
 export const FREE_TECHNIQUE_IDS = new Set([
-  'cyclic_sigh', 'box_breath', 'urge_surf', 'halt_check', 'if_then',
+  'cyclic_sigh', 'box_breath', 'urge_surf', 'halt', 'halt_check', 'if_then',
 ]);
 
 export const FREE_ARTICLE_COUNT = 3;

@@ -1,9 +1,10 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { AppState as RNAppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { loadState, update, useAppState, seedReasonsFromMotivations } from '../lib/storage';
+import { loadState, update, useAppState, seedReasonsFromMotivations, cachedState } from '../lib/storage';
 import { useTheme } from '../lib/theme';
 import { recommendStep } from '../lib/stepped';
 import { computeInsights } from '../lib/insights';
@@ -36,8 +37,16 @@ export default function Root() {
       // Миграция рынка: у стоявших до появления поля market его нет — латчим
       // один раз из уже выбранного языка, дальше он не меняется.
       if (!s.market) {
-        const m = marketForLang(s.lang ?? s.profile?.language ?? currentLang());
-        await update((prev) => (prev.market ? prev : { ...prev, market: m }));
+        // 🔴 У апгрейдящихся с 1.0.5 поля lang нет вовсе — экрана выбора языка
+        // тогда не существовало. Значит все три звена цепочки сводятся к локали
+        // ТЕЛЕФОНА: россиянин с англоязычным айфоном молча уходил в intl-рынок
+        // и навсегда терял платный контур, потому что латч необратим. Помечаем
+        // такой латч как угаданный — его можно пересмотреть при явном выборе.
+        const explicit = s.lang ?? s.profile?.language;
+        const m = marketForLang(explicit ?? currentLang());
+        await update((prev) => (prev.market ? prev : {
+          ...prev, market: m, marketLatchedBy: explicit ? 'user' as const : 'migration' as const,
+        }));
       }
       // Миграция нулей в данных о курении. До квиз-гейта (ca26aac) поля
       // «сигарет в день» и «цена пачки» можно было стереть и пройти дальше —
@@ -139,6 +148,30 @@ export default function Root() {
         } catch {}
       })();
     }).catch(() => setReady(true));
+  }, []);
+
+  // 🔴 Дозовые пуши ставятся только на 4 дня вперёд (лимит iOS в 64 штуки), а
+  // перепланирование жило ТОЛЬКО в boot-эффекте с deps [] — то есть при холодном
+  // старте. У активного юзера, который приложение не выгружает, напоминания о
+  // таблетках просто заканчивались на пятый день. Перепланируем при возврате в
+  // приложение, но не чаще раза в 12 часов.
+  const lastReschedRef = useRef(0);
+  useEffect(() => {
+    const sub = RNAppState.addEventListener('change', (st) => {
+      if (st !== 'active') return;
+      const now = Date.now();
+      if (now - lastReschedRef.current < 12 * 3600_000) return;
+      lastReschedRef.current = now;
+      void (async () => {
+        try {
+          const cur = cachedState();
+          if (!cur?.profile?.onboardingComplete) return;
+          const trialUntil = cur.premiumPlan === 'trial' && (cur.premiumUntil ?? 0) > Date.now() ? cur.premiumUntil : undefined;
+          await rescheduleAll(cur.profile, currentLang(), trialUntil);
+        } catch {}
+      })();
+    });
+    return () => sub.remove();
   }, []);
 
   // Tapping a push routes to the tool it promised (SOS, chat, health) instead

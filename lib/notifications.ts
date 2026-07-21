@@ -170,13 +170,14 @@ export async function scheduleMedicationDoses(
   med: 'cytisine' | 'bupropion' | 'varenicline',
   startedAtMs: number,
 ) {
-  const { dosesForDay } = await import('./medication');
+  const { dosesForDay, courseDayForDate } = await import('./medication');
   const t: T = (ru, en) => (locale === 'ru' ? ru : en);
   const now = Date.now();
-  const startMidnight = new Date(startedAtMs); startMidnight.setHours(0, 0, 0, 0);
   for (let i = 0; i < 4; i++) {
     const date = new Date(); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() + i);
-    const courseDay = Math.floor((date.getTime() - startMidnight.getTime()) / 86400_000) + 1;
+    // Тот же расчёт, что на экранах (lib/medication.ts) — иначе пуш и дневник
+    // показывают разное число таблеток на один день.
+    const courseDay = courseDayForDate(startedAtMs, date.getTime());
     if (courseDay < 1) continue;
     const doses = dosesForDay(med, courseDay);
     const medName = med === 'cytisine' ? t('Цитизин (Табекс)', 'Cytisine (Tabex)')

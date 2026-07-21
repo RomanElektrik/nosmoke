@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, KeyboardAvoidingView, Platform, AppState as RNAppState } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, useAnimatedProps, useDerivedValue, withTiming, withRepeat, withSequence, Easing,
 } from 'react-native-reanimated';
@@ -849,12 +849,26 @@ function Mindfulness({ onDone }: { onDone: () => void }) {
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const ref = useRef<any>(null);
+  // 🔴 Считаем по СТЕННЫМ ЧАСАМ, а не счётчиком тиков. setInterval замирает,
+  // когда экран гаснет или приложение уходит в фон, — а это медитация с
+  // закрытыми глазами, экран гаснет всегда. Практика на 10 минут не
+  // заканчивалась никогда. Остальные практики (BoxBreath, CyclicSigh) уже
+  // считают от Date.now(); приводим эту к тому же виду.
+  const startedAtRef = useRef(0);
+  const accumulatedRef = useRef(0);
 
   useEffect(() => {
-    if (running) {
-      ref.current = setInterval(() => setElapsed((e) => Math.min(TOTAL, e + 1)), 1000);
-      return () => clearInterval(ref.current);
-    }
+    if (!running) return;
+    startedAtRef.current = Date.now();
+    const tick = () => setElapsed(Math.min(TOTAL, accumulatedRef.current + (Date.now() - startedAtRef.current) / 1000));
+    ref.current = setInterval(tick, 1000);
+    // Возврат из фона: досчитываем пропущенное сразу, не дожидаясь тика.
+    const sub = RNAppState.addEventListener('change', (st) => { if (st === 'active') tick(); });
+    return () => {
+      clearInterval(ref.current);
+      sub.remove();
+      accumulatedRef.current = Math.min(TOTAL, accumulatedRef.current + (Date.now() - startedAtRef.current) / 1000);
+    };
   }, [running]);
 
   useEffect(() => {

@@ -29,24 +29,36 @@ function uuidv4(): string {
 // 2) нельзя фармить бесконечные 7-дневные триалы через переустановку.
 // Старый id из AsyncStorage мигрируется, чтобы не разлогинить текущих юзеров.
 let cachedId: string | null = null;
-export async function getDeviceId(): Promise<string> {
-  if (cachedId) return cachedId;
-  const secure = Platform.OS !== 'web';
-  let id: string | null = null;
-  if (secure) {
-    try { id = await SecureStore.getItemAsync(DEVICE_KEY); } catch {}
+// 🔴 Мемоизируем ПРОМИС, а не только результат. Между входом и записью cachedId
+// четыре await'а, и на первом запуске туда влезали параллельные вызовы (проверка
+// подписки и аналитика стартуют одновременно) — каждый делал свой uuidv4().
+// Итог: покупка привязана к одному id, события уходят под другим, а восстановление
+// по устройству не находит оплату. Ровно та же защита, что у loadState.
+let idPromise: Promise<string> | null = null;
+export function getDeviceId(): Promise<string> {
+  if (cachedId) return Promise.resolve(cachedId);
+  if (!idPromise) {
+    idPromise = (async () => {
+      const secure = Platform.OS !== 'web';
+      let id: string | null = null;
+      if (secure) {
+        try { id = await SecureStore.getItemAsync(DEVICE_KEY); } catch {}
+      }
+      if (!id) {
+        // try/catch: единственный незащищённый вызов ронял весь getDeviceId.
+        try { id = await AsyncStorage.getItem(DEVICE_KEY); } catch {} // миграция со старого хранилища
+        if (!id) id = uuidv4();
+        if (secure) {
+          try { await SecureStore.setItemAsync(DEVICE_KEY, id); } catch {}
+        }
+      }
+      // Дублируем в AsyncStorage как fallback (и единственное хранилище на web).
+      try { await AsyncStorage.setItem(DEVICE_KEY, id); } catch {}
+      cachedId = id;
+      return id;
+    })();
   }
-  if (!id) {
-    id = await AsyncStorage.getItem(DEVICE_KEY); // миграция со старого хранилища
-    if (!id) id = uuidv4();
-    if (secure) {
-      try { await SecureStore.setItemAsync(DEVICE_KEY, id); } catch {}
-    }
-  }
-  // Дублируем в AsyncStorage как fallback (и единственное хранилище на web).
-  try { await AsyncStorage.setItem(DEVICE_KEY, id); } catch {}
-  cachedId = id;
-  return id;
+  return idPromise;
 }
 
 // Любой запрос — с таймаутом. Голый fetch без таймаута при зависшем соединении

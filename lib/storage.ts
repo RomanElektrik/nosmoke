@@ -196,6 +196,12 @@ export type AppState = {
   // Раньше рынок выводился из живого currentLang(), и любой русский юзер мог
   // тапнуть «EN» в профиле → usePremium() возвращал true → весь премиум даром.
   market?: 'ru' | 'intl';
+  // Кто залатчил рынок. 'user' — человек явно выбрал язык на первом экране или
+  // в профиле; 'migration' — угадали по локали телефона при апгрейде со старой
+  // версии, где выбора языка не было вовсе. Угаданное значение можно
+  // пересмотреть один раз, выбор человека — уже нет (иначе «переключил язык =
+  // премиум даром»).
+  marketLatchedBy?: 'user' | 'migration';
   premiumUntil?: number;                       // ms — server-validated ЮKassa subscription expiry
   premiumPlan?: string | null;                 // 'trial' | 'monthly' | 'yearly' | 'lifetime' — для отличия триала
   trialUsed?: boolean;                          // пробный период уже брался (кнопку «попробовать» не показываем)
@@ -392,7 +398,7 @@ export async function reset() {
   // локальная защита в дополнение к серверной.
   const prev = cache;
   const next: AppState = prev
-    ? { ...initial, premiumUntil: prev.premiumUntil, premiumPlan: prev.premiumPlan, trialUsed: prev.trialUsed, boundCard: prev.boundCard, lang: prev.lang, market: prev.market }
+    ? { ...initial, premiumUntil: prev.premiumUntil, premiumPlan: prev.premiumPlan, trialUsed: prev.trialUsed, boundCard: prev.boundCard, lang: prev.lang, market: prev.market, marketLatchedBy: prev.marketLatchedBy }
     : initial;
   cache = next;
   loading = null;

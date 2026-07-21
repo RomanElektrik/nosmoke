@@ -5,16 +5,16 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme, spacing, radius } from '../../lib/theme';
 import { useTranslation, setLanguage, currentLang } from '../../lib/i18n';
-import { reset, update, useAppState } from '../../lib/storage';
+import { reset, update, useAppState, cachedState } from '../../lib/storage';
 import { GlassCard } from '../../components/GlassCard';
 import { getStep } from '../../lib/stepped';
 import { Icon } from '../../components/Icon';
 import { SwipeToHome } from '../../components/SwipeToHome';
-import { usePremium, isRuMarket } from '../../lib/subscription';
+import { usePremium, isRuMarket, marketForLang } from '../../lib/subscription';
 import { getDeviceId } from '../../lib/billing';
 import { AppleSignInButton } from '../../components/AppleSignInButton';
 import { getStoredAccount, signOutAccount, deleteAccount, type Account } from '../../lib/auth';
-import { cancelAllNotifications } from '../../lib/notifications';
+import { cancelAllNotifications, rescheduleAll } from '../../lib/notifications';
 
 const PRIVACY_URL = 'https://breezapp.ru/privacy-policy.html';
 const TERMS_URL = 'https://breezapp.ru/terms.html';
@@ -60,9 +60,30 @@ export default function Profile() {
               {(['ru', 'en'] as const).map((l) => (
                 <Pressable key={l} onPress={async () => {
                   setLanguage(l);
-                  // Только язык интерфейса. Рынок (и платная модель) залатчен
-                  // при первом запуске и здесь намеренно не меняется.
-                  await update((st) => ({ ...st, lang: l, profile: st.profile ? { ...st.profile, language: l } : st.profile }));
+                  await update((st) => ({
+                    ...st,
+                    lang: l,
+                    // Рынок, залатченный ЧЕЛОВЕКОМ, здесь не трогаем — иначе
+                    // «переключил язык = премиум даром». Но если он был УГАДАН
+                    // при апгрейде со старой версии (там выбора языка не было),
+                    // явный выбор — единственный шанс это исправить: россиянин
+                    // с англоязычным айфоном иначе навсегда терял платный контур.
+                    ...(st.marketLatchedBy === 'migration'
+                      ? { market: marketForLang(l), marketLatchedBy: 'user' as const }
+                      : {}),
+                    profile: st.profile ? { ...st.profile, language: l } : st.profile,
+                  }));
+                  // Тексты пушей вшиваются в момент планирования: без
+                  // перепланирования напоминания месяцами приходили на старом
+                  // языке (единственное место, где locale перечитывался, — это
+                  // холодный старт).
+                  try {
+                    const st = cachedState();
+                    if (st?.profile?.onboardingComplete) {
+                      const trialUntil = st.premiumPlan === 'trial' && (st.premiumUntil ?? 0) > Date.now() ? st.premiumUntil : undefined;
+                      await rescheduleAll(st.profile, l, trialUntil);
+                    }
+                  } catch {}
                 }}
                   style={{
                     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,

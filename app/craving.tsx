@@ -363,18 +363,32 @@ function WaveTimer({ onDone, onBack, ru, t }: { onDone: () => void; onBack: () =
 
   // Looping ocean-waves ambience — makes the orb genuinely calming to sit with.
   useEffect(() => {
+    // 🔴 Флаг отмены обязателен. Плеер создаётся ПОСЛЕ await ensureSpeaker(),
+    // а cleanup читал локальную `player`, которая на момент быстрого закрытия
+    // экрана ещё null — продолжение промиса спокойно доходило до play() уже
+    // после смерти компонента, и шум океана оставался играть навсегда, поверх
+    // всего остального. Проверяем флаг после КАЖДОГО await.
+    let dead = false;
     let player: any = null;
     (async () => {
       try {
         await ensureSpeaker();
+        if (dead) return;
         player = createAudioPlayer(require('../assets/audio/ocean_waves.mp3'));
+        if (dead) { try { player.remove?.(); } catch {} return; }
         player.loop = true;
         try { player.volume = 0.7; } catch {}
         player.play();
         surf.current = player;
       } catch {}
     })();
-    return () => { try { player?.pause?.(); } catch {} try { player?.remove?.(); } catch {} surf.current = null; };
+    return () => {
+      dead = true;
+      const p = surf.current ?? player;
+      try { p?.pause?.(); } catch {}
+      try { p?.remove?.(); } catch {}
+      surf.current = null;
+    };
   }, []);
 
   function toggleMute() {
