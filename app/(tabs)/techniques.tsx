@@ -76,6 +76,11 @@ export default function Techniques() {
   const audioOn = lang === 'ru';
   const tabs = audioOn ? TABS : TABS.filter((tb) => tb.id !== 'audio');
   const [tab, setTab] = useState<TabId>(audioOn ? 'audio' : 'breath');
+  // Экран живёт в таб-навигаторе и не размонтируется. При смене языка RU→EN
+  // audioOn становится false, а стейт остаётся 'audio' — и обе ветки рендера
+  // не срабатывают: юзер видел заголовок, один чип и пустоту под ним.
+  // Считаем активную вкладку от доступности, а не от голого стейта.
+  const activeTab: TabId = audioOn ? tab : 'breath';
   const premium = usePremium();
   const navLock = useRef(false);
 
@@ -128,7 +133,7 @@ export default function Techniques() {
         {/* Segmented tabs */}
         <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: spacing.lg, marginBottom: 18 }}>
           {tabs.map((tb) => {
-            const on = tab === tb.id;
+            const on = activeTab === tb.id;
             return (
               <Pressable key={tb.id} onPress={() => { Haptics.selectionAsync(); setTab(tb.id); }}
                 style={{ flex: 1, paddingVertical: 11, paddingHorizontal: 4, borderRadius: 14, alignItems: 'center',
@@ -143,12 +148,12 @@ export default function Techniques() {
         {/* No entering animation here: re-animating 13 SVG-heavy cards on every
             tab switch made the list scroll jank. */}
         <View style={{ paddingHorizontal: spacing.lg, gap: 12 }}>
-          {audioOn && tab === 'audio' && audioItems.map((p, i) => (
+          {audioOn && activeTab === 'audio' && audioItems.map((p, i) => (
             <AudioCard key={p.id} p={p} openAudio={openAudio} lang={lang}
               locked={!premium && i >= FREE_PRACTICE_COUNT} />
           ))}
 
-          {tab === 'breath' && breathTech.map((te) => (
+          {activeTab === 'breath' && breathTech.map((te) => (
             <PremiumCard key={te.id} color={te.color} motif="rings" gid={`b_${te.id}`}
               tag={lang === 'ru' ? TECH_TAGS[te.id]?.ru : TECH_TAGS[te.id]?.en}
               title={tr(te.titleKey)} sub={tr(te.summaryKey)} onPress={() => go(te)} />

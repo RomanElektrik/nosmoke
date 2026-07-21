@@ -207,8 +207,22 @@ CONVERSATION & TECHNIQUE RULES (critical):
   return [role, personaBlock, ctx, modeBlock, langFooter].join('\n\n');
 }
 
+// Любой сетевой вызов ИИ обязан иметь потолок по времени: без него на залипшей
+// мобильной сети (LTE→Wi-Fi, метро) спиннер «Думаю…» висит вечно, а набранный
+// текст юзера уже стёрт. 45 с — заведомо больше нормального ответа (1–3 с).
+const AI_TIMEOUT_MS = 45000;
+async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), AI_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: ac.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function callDirect(key: string, messages: ChatMessage[], model: string, maxTokens = 600): Promise<string> {
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const r = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${key}`,
@@ -298,7 +312,7 @@ export function chatStream(
 }
 
 async function callProxy(messages: ChatMessage[], locale: string): Promise<string> {
-  const r = await fetch(PROXY_URL, {
+  const r = await fetchWithTimeout(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(PROXY_KEY ? { 'x-app-key': PROXY_KEY } : {}) },
     body: JSON.stringify({ messages, locale }),
@@ -306,6 +320,19 @@ async function callProxy(messages: ChatMessage[], locale: string): Promise<strin
   if (!r.ok) throw new Error(`proxy ${r.status}`);
   const data = await r.json();
   return data.content ?? data.message ?? '';
+}
+
+// Единый транспорт «прокси первым» для всех НЕ-чатовых вызовов ИИ (опенер,
+// извлечение фактов, сводки тредов). Раньше каждый из них ходил в OpenRouter
+// напрямую и у российских юзеров молча падал в 403 — то есть долгая память и
+// персональные опенеры не работали ни разу в проде.
+export async function askAi(messages: ChatMessage[], locale: 'ru' | 'en', key: string, maxTokens = 400): Promise<string> {
+  if (PROXY_URL) {
+    try { return await callProxy(messages, locale); }
+    catch (e) { if (!key) throw e; }
+  }
+  if (!key) throw new Error('no ai transport');
+  return callDirect(key, messages, ENV_MODEL || DEFAULT_MODEL, maxTokens);
 }
 
 export async function chat(state: AppState, locale: 'ru' | 'en', mode: PromptMode, history: ChatMessage[], personaId?: PersonaId, priorSummary?: string): Promise<string> {
@@ -367,7 +394,7 @@ export async function proactiveOpener(
 ): Promise<string | null> {
   try {
     const key = state.profile?.openrouterKey?.trim() || ENV_KEY;
-    if (!key) return null;
+    if (!key && !PROXY_URL) return null;
     const dir = OPENER_DIRECTIVE[opener] ?? OPENER_DIRECTIVE.generic;
     const sys = buildSystemPrompt(state, locale, 'support', personaId);
     const instruction = `${locale === 'ru' ? dir.ru : dir.en}\nYou are speaking FIRST, the user has not written anything yet. Reply ONLY in ${locale === 'ru' ? 'Russian' : 'English'}, plain text, no markers, no markdown.`;
@@ -375,7 +402,7 @@ export async function proactiveOpener(
       { role: 'system', content: sys },
       { role: 'user', content: `[SYSTEM: ${instruction}]` },
     ];
-    const text = await callDirect(key, messages, ENV_MODEL || DEFAULT_MODEL, 200);
+    const text = await askAi(messages, locale, key, 200);
     const clean = text.trim();
     return clean.length > 4 ? clean : null;
   } catch {

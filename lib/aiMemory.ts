@@ -6,6 +6,10 @@
 
 import type { AppState } from './storage';
 import { update } from './storage';
+// 🔴 Ходим ТЕМ ЖЕ маршрутом, что и чат: прокси-первым. Прямой OpenRouter
+// отдаёт 403 на российские IP, поэтому долгая память и сводки тредов
+// не работали в проде ни разу — и молча, из-за catch {}.
+import { askAi } from './ai';
 
 type ChatMessage = { role: string; content: string };
 
@@ -16,6 +20,7 @@ export const MAX_AI_FACTS = 25;
 export const EXTRACT_EVERY_N_USER_MSGS = 4;
 
 const ENV_KEY = process.env.EXPO_PUBLIC_OPENROUTER_KEY || '';
+const PROXY_URL = process.env.EXPO_PUBLIC_AI_PROXY_URL || '';
 // Cheapest adequate model — extraction & summary are trivial work.
 const EXTRACT_MODEL = 'google/gemini-2.5-flash-lite';
 
@@ -49,27 +54,15 @@ export function factsBlock(state: AppState): string {
 export async function extractFacts(state: AppState, messages: ChatMessage[]): Promise<void> {
   try {
     const key = state.profile?.openrouterKey?.trim() || ENV_KEY;
-    if (!key) return;
+    if (!key && !PROXY_URL) return;
     const tail = messages.slice(-8)
       .map((m) => `${m.role === 'user' ? 'USER' : 'COACH'}: ${m.content}`)
       .join('\n');
     const existing = knownFacts(state).map((f) => f.text).join('\n');
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: EXTRACT_MODEL,
-        temperature: 0,
-        max_tokens: 200,
-        messages: [
-          { role: 'system', content: EXTRACT_PROMPT },
-          { role: 'user', content: `ALREADY KNOWN (do not repeat):\n${existing || '—'}\n\nCHAT:\n${tail}` },
-        ],
-      }),
-    });
-    if (!r.ok) return;
-    const data = await r.json();
-    const raw: string = data?.choices?.[0]?.message?.content ?? '[]';
+    const raw: string = await askAi([
+      { role: 'system', content: EXTRACT_PROMPT },
+      { role: 'user', content: `ALREADY KNOWN (do not repeat):\n${existing || '—'}\n\nCHAT:\n${tail}` },
+    ], 'ru', key, 200);
     const jsonStr = raw.slice(raw.indexOf('['), raw.lastIndexOf(']') + 1);
     const fresh: unknown = JSON.parse(jsonStr);
     if (!Array.isArray(fresh)) return;
@@ -108,7 +101,7 @@ export async function summarizeOlderMessages(
 ): Promise<string | null> {
   try {
     const key = state.profile?.openrouterKey?.trim() || ENV_KEY;
-    if (!key) return null;
+    if (!key && !PROXY_URL) return null;
     // Only the messages between the previous summary's reach and the live tail.
     // Capped so a very long single session can't send a huge block — the prior
     // summary carries everything further back.
@@ -118,22 +111,10 @@ export async function summarizeOlderMessages(
     const block = older
       .map((m) => `${m.role === 'user' ? 'USER' : 'COACH'}: ${m.content}`)
       .join('\n');
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: EXTRACT_MODEL,
-        temperature: 0.2,
-        max_tokens: 220,
-        messages: [
-          { role: 'system', content: SUMMARY_PROMPT },
-          { role: 'user', content: `PREVIOUS SUMMARY:\n${prevSummary || '—'}\n\nNEW MESSAGES:\n${block}` },
-        ],
-      }),
-    });
-    if (!r.ok) return null;
-    const data = await r.json();
-    const text: string = (data?.choices?.[0]?.message?.content ?? '').trim();
+    const text: string = (await askAi([
+      { role: 'system', content: SUMMARY_PROMPT },
+      { role: 'user', content: `PREVIOUS SUMMARY:\n${prevSummary || '—'}\n\nNEW MESSAGES:\n${block}` },
+    ], 'ru', key, 220)).trim();
     return text.length > 10 ? text.slice(0, 600) : null;
   } catch {
     return null;

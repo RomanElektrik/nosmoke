@@ -312,20 +312,47 @@ export function cachedState(): AppState | null { return cache; }
 let loading: Promise<AppState> | null = null;
 const listeners = new Set<(s: AppState) => void>();
 
+// 🔴 «Прочитать не удалось» ≠ «данных нет». Раньше оба случая давали пустой
+// initial, а миграция рынка в app/_layout.tsx на первом же запуске делала
+// update() → saveState() и затирала ещё живые байты. Один сбой чтения (на
+// Android типовой — CursorWindow «Row too big» на разросшемся стейте) стирал
+// человеку весь стаж отказа безвозвратно. Теперь при сбое чтения запись
+// блокируется, а сырое значение откладывается в резервный ключ.
+let loadFailed = false;
+
 export async function loadState(): Promise<AppState> {
   if (cache) return cache;
   // Memoize the in-flight read: _layout and every mounted screen's useAppState
   // race here on cold start — they must all share one AsyncStorage read.
   if (!loading) {
     loading = AsyncStorage.getItem(KEY)
-      .then((raw) => (cache = migrateChats(raw ? { ...initial, ...JSON.parse(raw) } : initial)))
-      .catch(() => (cache = initial));
+      .then((raw) => {
+        if (!raw) return (cache = migrateChats(initial)); // честно пустое хранилище
+        try {
+          return (cache = migrateChats({ ...initial, ...JSON.parse(raw) }));
+        } catch {
+          // Байты есть, но не парсятся: сохраняем их и запрещаем запись.
+          loadFailed = true;
+          AsyncStorage.setItem(`${KEY}:corrupt`, raw).catch(() => {});
+          return (cache = initial);
+        }
+      })
+      .catch(() => {
+        loadFailed = true; // сам getItem упал — под нами могут быть живые данные
+        return (cache = initial);
+      });
   }
   return loading;
 }
 
 export async function saveState(next: AppState) {
   cache = next;
+  if (loadFailed) {
+    // Не перетираем то, что не смогли прочитать. Стейт живёт в памяти до
+    // следующего запуска, где чтение может удаться.
+    listeners.forEach((l) => l(next));
+    return;
+  }
   await AsyncStorage.setItem(KEY, JSON.stringify(next));
   listeners.forEach((l) => l(next));
 }
