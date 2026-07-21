@@ -213,7 +213,10 @@ export function escalationSuggestion(state: AppState): Escalation {
   let target = nextStep(cur);
   if (!target) return { yes: false, intensity: 'none' };
   // Pregnancy: never escalate into pharmacotherapy — keep behavioural.
-  if (pharmaBlocked(state.profile) && target !== 'L1_behavioral') {
+  // 🔴 pharmaOff — явный отказ юзера от препаратов — должен уважаться ТАК ЖЕ.
+  // Раньше эскалация его игнорировала: человеку предлагали цитизин, он
+  // соглашался, а мастер перехода препарат не давал (там отказ учтён). Тупик.
+  if ((pharmaBlocked(state.profile) || !!state.profile?.pharmaOff) && target !== 'L1_behavioral') {
     return { yes: false, intensity: 'none' };
   }
 
@@ -242,10 +245,17 @@ export function escalationSuggestion(state: AppState): Escalation {
   const total = smokedDays.size;
 
   if (total >= 3 || (daysOnStep >= 14 && total >= 2)) {
+    // Не пишем «3+», когда срывов два: вторая ветка срабатывает при 2 срывах на
+    // третьей неделе, и текст противоречил тому, что человек видел в дневнике.
+    const many = total >= 3;
     return {
       yes: true, intensity: 'auto', toStep: target,
-      reasonRu: '3+ срыва за неделю — текущий метод не держит. Поднимаем сильнее.',
-      reasonEn: '3+ slips this week — current method isn’t enough. Stepping up.',
+      reasonRu: many
+        ? '3+ срыва за неделю — текущий метод не держит. Поднимаем сильнее.'
+        : `${total} срыва на третьей неделе — метод не удерживает. Поднимаем сильнее.`,
+      reasonEn: many
+        ? '3+ slips this week — current method isn’t enough. Stepping up.'
+        : `${total} slips in week three — this method isn’t holding. Stepping up.`,
     };
   }
   if (total >= 2) {

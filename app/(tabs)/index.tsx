@@ -37,6 +37,7 @@ export default function Home() {
   // to re-check the pending-method auto-activation below.
   const [now, setNow] = useState(Date.now());
   const [unlockQueue, setUnlockQueue] = useState<string[]>([]);
+  const homePremium = usePremium(); // для плитки «Книга»: без премиума ведём во вступление
   const tour = useTour();
 
   useEffect(() => {
@@ -141,7 +142,7 @@ export default function Home() {
             <SquareCard
               color="#64D2FF" icon={<Icon.book size={32} color="#64D2FF" />}
               title={lang === 'ru' ? 'Книга' : 'Book'}
-              onPress={() => router.push(('/chapter/' + continueChapterId(state.bookProgress)) as any)} />
+              onPress={() => router.push(('/chapter/' + continueChapterId(state.bookProgress, homePremium)) as any)} />
           </View>
         </View>
         </TourAnchor>
@@ -247,7 +248,7 @@ export default function Home() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: newStep.color, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>
-                      {lang === 'ru' ? `Старт через ${daysLeft} ${daysLeft === 1 ? 'день' : 'дн.'}` : `Starts in ${daysLeft} day(s)`}
+                      {lang === 'ru' ? `Старт через ${daysLeft} ${daysLeft === 1 ? 'день' : 'дн.'}` : `Starts in ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}`}
                     </Text>
                     <Text style={{ color: t.text, fontSize: 16, fontWeight: '700', marginTop: 2 }} numberOfLines={1}>
                       {lang === 'ru' ? newStep.titleRu : newStep.titleEn}
@@ -753,7 +754,12 @@ function RelapseCard() {
   const p = state.profile;
   if (!p) return null;
   const rs = relapseStatus(state);
-  if (!rs.activelySmoking || dismissed) return null;
+  // Дизмисс держится 3 дня и переживает перезапуск. Новый день курения после
+  // дизмисса возвращает карточку — предупреждение не должно теряться навсегда.
+  const dismissedAt = p.relapseDismissedAt ?? 0;
+  const hushed = Date.now() - dismissedAt < 3 * 86400_000
+    && !(rs.lastSmokeTs != null && rs.lastSmokeTs > dismissedAt);
+  if (!rs.activelySmoking || dismissed || hushed) return null;
 
   async function restart() {
     track('restart_after_slip');
@@ -789,7 +795,11 @@ function RelapseCard() {
           : "And that's part of the journey, not a failure — it happens to most. We don't count a single slip. But if you smoke most days, an honest fresh start motivates more than a counter that lies."}
       </Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Pressable onPress={() => { Haptics.selectionAsync(); setDismissed(true); }}
+        <Pressable onPress={async () => {
+            Haptics.selectionAsync();
+            setDismissed(true);
+            try { await update((s) => ({ ...s, profile: s.profile ? { ...s.profile, relapseDismissedAt: Date.now() } : s.profile })); } catch {}
+          }}
           style={({ pressed }) => ({ flex: 1, paddingVertical: 12, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, alignItems: 'center', opacity: pressed ? 0.7 : 1 })}>
           <Text style={{ color: t.textDim, fontWeight: '700', fontSize: 13.5 }}>{lang === 'ru' ? 'Я держусь' : "I'm holding"}</Text>
         </Pressable>

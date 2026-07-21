@@ -18,7 +18,7 @@ import { secondsClean, MILESTONES, type Milestone } from '../../lib/health';
 import { moneySaved, cigsAvoided, pricePerCig, formatMoney, formatDuration, formatCigs } from '../../lib/money';
 import { abstinenceStartMs, healthStartMs } from '../../lib/stepped';
 import { rewardProgress } from '../../lib/rewards';
-import { computeInsights, triggerName, worstDayLocalized } from '../../lib/insights';
+import { computeInsights, triggerName, worstDayLocalized, worstDayShort } from '../../lib/insights';
 import { plural } from '../../lib/identity';
 
 // Минутный тикер + мгновенное обновление при возврате на экран (из фона или
@@ -66,6 +66,7 @@ export default function Progress() {
   const rp = rewardProgress(saved, perDay);
   const ins = computeInsights(state.cravings);
   const worstDay = worstDayLocalized(state.cravings, ru);
+  const worstDayS = worstDayShort(state.cravings, ru);
   const reasons = normalizeReasons(p.reasons ?? (p.whyQuit ? [p.whyQuit] : []));
   const go = (href: string) => { Haptics.selectionAsync(); router.push(href as any); };
 
@@ -207,7 +208,7 @@ export default function Progress() {
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <Stat t={t} color={t.accent} value={`${Math.round(ins.resistRate * 100)}%`} label={ru ? 'держишься' : 'you hold'} />
                 {ins.peakHourLabel && <Stat t={t} color={t.warn} value={ins.peakHourLabel.split('–')[0]} label={ru ? 'пик тяги' : 'peak'} />}
-                {worstDay && <Stat t={t} color="#FF2D78" value={worstDay.slice(0, 2)} label={ru ? 'сложный день' : 'hard day'} />}
+                {worstDayS && <Stat t={t} color="#FF2D78" value={worstDayS} label={ru ? 'сложный день' : 'hard day'} />}
               </View>
               {ins.topTriggers.length > 0 && (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>

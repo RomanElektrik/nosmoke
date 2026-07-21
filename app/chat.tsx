@@ -228,11 +228,13 @@ export default function ChatScreen() {
 
   async function clearChat() {
     const id = threadId;
+    // Сводку стираем вместе с перепиской: иначе коуч продолжал ссылаться на
+    // разговор, который юзер только что удалил.
     setHistory([{ role: 'assistant', content: tr('coach.first_msg') }]);
     if (!id) return;
     await update((s) => ({
       ...s,
-      chats: (s.chats ?? []).map((c) => c.id !== id ? c : { ...c, messages: [], title: undefined, updatedAt: Date.now() }),
+      chats: (s.chats ?? []).map((c) => c.id !== id ? c : { ...c, messages: [], title: undefined, summary: undefined, updatedAt: Date.now() }),
     }));
   }
 

@@ -100,12 +100,17 @@ module.exports = function attachAi(app) {
       let content = null, last = null;
       for (const route of ROUTES) {
         for (const model of [MODEL, FALLBACK]) {
-          try { content = await ask(clean, model, route); break; }
-          catch (e) { last = e; console.error(`[briz-ai] ${route.name}/${model}: ${e.message}`); }
+          try {
+            const out = await ask(clean, model, route);
+            // Пустой ответ апстрима — это НЕ успех. Раньше он отдавался как 200,
+            // и в историю навсегда сохранялось сообщение коуча из одного «…».
+            if (out && out.trim()) { content = out; break; }
+            last = new Error('empty content');
+          } catch (e) { last = e; console.error(`[briz-ai] ${route.name}/${model}: ${e.message}`); }
         }
         if (content) break;
       }
-      if (content == null) throw last || new Error('all routes failed');
+      if (!content) throw last || new Error('all routes failed');
       res.json({ content });
     } catch (e) {
       console.error('[briz-ai] error:', e.message);

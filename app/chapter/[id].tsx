@@ -113,8 +113,16 @@ export default function ReaderScreen() {
 
   // Функциональный апдейт от СВЕЖЕГО состояния: со снапшотом prefs два быстрых
   // тапа «А+» до ре-рендера давали +1 вместо +2.
-  const setPref = (p: Partial<ReaderPrefs>) =>
-    setState((s) => ({ ...s, readerPrefs: { ...DEFAULT_READER_PREFS, ...s.readerPrefs, ...p } }));
+  //
+  // 🔴 Одного функционального setState мало: дельту считал ВЫЗЫВАЮЩИЙ, из
+  // устаревшего снапшота prefs (`prefs.fontSize + 1`), поэтому оба тапа давали
+  // одно и то же значение. Принимаем ещё и функцию от текущих настроек.
+  const setPref = (p: Partial<ReaderPrefs> | ((cur: ReaderPrefs) => Partial<ReaderPrefs>)) =>
+    setState((s) => {
+      const cur = { ...DEFAULT_READER_PREFS, ...s.readerPrefs } as ReaderPrefs;
+      const patch = typeof p === 'function' ? p(cur) : p;
+      return { ...s, readerPrefs: { ...cur, ...patch } };
+    });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: RT.bg }} edges={['top']}>
@@ -273,7 +281,7 @@ function TOCModal({ visible, onClose, onPick, page, premium, progress, bookmarks
 // ── Настройки чтения (модалка снизу) ───────────────────────────────────────
 function SettingsModal({ visible, onClose, prefs, setPref, fontsLoaded, ru, t }: {
   visible: boolean; onClose: () => void; prefs: ReaderPrefs;
-  setPref: (p: Partial<ReaderPrefs>) => void; fontsLoaded: boolean; ru: boolean; t: ReturnType<typeof useTheme>;
+  setPref: (p: Partial<ReaderPrefs> | ((cur: ReaderPrefs) => Partial<ReaderPrefs>)) => void; fontsLoaded: boolean; ru: boolean; t: ReturnType<typeof useTheme>;
 }) {
   const FONTS: { key: ReaderPrefs['font']; label: string }[] = [
     { key: 'system', label: ru ? 'Системный' : 'System' },
@@ -299,8 +307,8 @@ function SettingsModal({ visible, onClose, prefs, setPref, fontsLoaded, ru, t }:
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>{ru ? 'РАЗМЕР' : 'SIZE'}</Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
-              <Btn label="А−" onPress={() => setPref({ fontSize: clamp(prefs.fontSize - 1, 16, 26) })} />
-              <Btn label="А+" onPress={() => setPref({ fontSize: clamp(prefs.fontSize + 1, 16, 26) })} />
+              <Btn label="А−" onPress={() => setPref((c) => ({ fontSize: clamp(c.fontSize - 1, 16, 26) }))} />
+              <Btn label="А+" onPress={() => setPref((c) => ({ fontSize: clamp(c.fontSize + 1, 16, 26) }))} />
             </View>
           </View>
 
@@ -308,8 +316,8 @@ function SettingsModal({ visible, onClose, prefs, setPref, fontsLoaded, ru, t }:
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>{ru ? 'МЕЖСТРОЧЬЕ' : 'SPACING'}</Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
-              <Btn label="−" onPress={() => setPref({ lineHeight: Math.round(clamp(prefs.lineHeight - 0.1, 1.4, 1.95) * 100) / 100 })} />
-              <Btn label="+" onPress={() => setPref({ lineHeight: Math.round(clamp(prefs.lineHeight + 0.1, 1.4, 1.95) * 100) / 100 })} />
+              <Btn label="−" onPress={() => setPref((c) => ({ lineHeight: Math.round(clamp(c.lineHeight - 0.1, 1.4, 1.95) * 100) / 100 }))} />
+              <Btn label="+" onPress={() => setPref((c) => ({ lineHeight: Math.round(clamp(c.lineHeight + 0.1, 1.4, 1.95) * 100) / 100 }))} />
             </View>
           </View>
 

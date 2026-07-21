@@ -31,6 +31,20 @@ export function triggerName(t: Trigger, ru: boolean): string {
 
 const DOW_RU = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 const DOW_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+// Короткие формы задаём явно. UI резал полное название через slice(0,2) и
+// получал «Че», «Пя», «Су», «Во», «По» — по-русски так дни не сокращают.
+const DOW_SHORT_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+const DOW_SHORT_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+export function worstDayShort(cravings: CravingLog[], ru: boolean): string | null {
+  const dow = [0, 0, 0, 0, 0, 0, 0];
+  let any = false;
+  for (const c of cravings) if (c.outcome === 'smoked') { dow[new Date(c.ts).getDay()]++; any = true; }
+  if (!any) return null;
+  const max = Math.max(...dow);
+  if (max < 2) return null;
+  return (ru ? DOW_SHORT_RU : DOW_SHORT_EN)[dow.indexOf(max)];
+}
 
 export function computeInsights(cravings: CravingLog[]): Insights {
   const total = cravings.length;

@@ -241,9 +241,15 @@ export const BOOK_PARTS: string[] = CHAPTERS.reduce<string[]>((acc, c) => {
   return acc;
 }, []);
 
-/** Глава, с которой продолжить: первая непрочитанная (или первая в книге). */
-export function continueChapterId(progress: Record<string, number> | undefined): string {
+/** Глава, с которой продолжить: первая непрочитанная ИЗ ДОСТУПНЫХ.
+ *
+ * 🔴 Доступ учитывать обязательно. Без премиума открыто только вступление;
+ * раньше функция про это не знала, и после первого прочтения плитка «Книга» на
+ * главной вела в главу 1 — то есть в премиум-заглушку. Бесплатное вступление со
+ * входа становилось недостижимым: человек больше никогда не попадал в книгу. */
+export function continueChapterId(progress: Record<string, number> | undefined, premium = true): string {
   const p = progress ?? {};
-  const firstUnread = CHAPTERS.find((c) => !p[c.id]);
-  return (firstUnread ?? CHAPTERS[0]).id;
+  const available = premium ? CHAPTERS : CHAPTERS.filter((c) => c.free);
+  const firstUnread = available.find((c) => !p[c.id]);
+  return (firstUnread ?? available[0] ?? CHAPTERS[0]).id;
 }

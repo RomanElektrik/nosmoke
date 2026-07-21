@@ -281,9 +281,9 @@ export default function Slip() {
               {lang === 'ru' ? 'Триггер' : 'Trigger'}
             </Text>
             <Text style={{ color: t.text, fontSize: 16, marginTop: 4 }}>
-              {trigger ? (lang === 'ru'
-                ? ({stress:'Стресс',coffee:'Кофе/еда',alcohol:'Алкоголь',social:'Компания',boredom:'Скука',driving:'За рулём',after_meal:'После еды'} as any)[trigger]
-                : trigger.replace('_', ' ')) : '—'}
+              {/* Раньше на EN печатался сырой ключ («after meal»). Берём подпись
+                  из локали — она уже есть в onb.trig_*. */}
+              {trigger ? tr(`onb.trig_${trigger}`) : '—'}
             </Text>
           </View>
           <View>

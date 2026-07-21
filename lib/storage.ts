@@ -95,6 +95,10 @@ export type Profile = {
   // Gentle in-app honesty check ("holding / smoked?") — last time we asked, so
   // we ask at most once every few days instead of nagging daily.
   lastStatusCheckAt?: number;
+  // «Я держусь» в карточке рецидива. Локального useState не хватало: при каждом
+  // холодном запуске карточка возвращалась, пока человек продолжал отмечать
+  // курение, — то есть неделями. Персистим, как lastStatusCheckAt.
+  relapseDismissedAt?: number;
   // Long-term coach memory: durable facts distilled from chats (lib/aiMemory).
   aiFacts?: { text: string; ts: number }[];
   // «Письмо себе» — a time capsule written on a strong day, shown back in SOS

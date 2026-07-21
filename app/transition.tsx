@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useTheme, spacing, radius } from '../lib/theme';
+import { plural } from '../lib/identity';
 import { useTranslation, currentLang } from '../lib/i18n';
 import { useAppState, update } from '../lib/storage';
 import type { StepLevel } from '../lib/storage';
@@ -313,7 +314,7 @@ export default function Transition() {
       <Wrap onClose={close}>
         <Header step={5} total={6} title={tt('До даты старта', 'Until quit date')} />
         <Text style={{ color: t.text, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 }}>
-          {tt(`Что будет в эти ${daysOffset} ${daysOffset === 1 ? 'день' : 'дня/дней'}?`, `What about these ${daysOffset} day(s)?`)}
+          {tt(`Что будет в эти ${daysOffset} ${plural(daysOffset, ['день', 'дня', 'дней'])}?`, `What about these ${daysOffset} ${daysOffset === 1 ? 'day' : 'days'}?`)}
         </Text>
         <Text style={{ color: t.textDim, fontSize: 14, lineHeight: 20 }}>
           {tt('Никакой иллюзии. Скажи как будет на самом деле.', 'No illusions. Say what will really happen.')}
