@@ -143,7 +143,20 @@ export default function Quiz() {
               <Head title={tr('onb.q_pack_price')} sub={tt(META.pack.subRu, META.pack.subEn)} />
               <Field label={tr('onb.q_pack_price')} value={packPrice} onChange={setPackPrice} />
               <Field label={tr('onb.q_pack_size')} value={packSize} onChange={setPackSize} />
-              <Field label={tr('onb.q_currency')} value={currency} onChange={setCurrency} keyboard="default" />
+              {/* Валюта — выбор, а не свободный текст: стёртое или произвольное
+                  значение («руб», пусто) ломало Intl.NumberFormat и деньги во
+                  ВСЁМ приложении рисовались без символа и без разрядов. */}
+              <View>
+                <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '600', marginBottom: 6 }}>{tr('onb.q_currency')}</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {(['RUB', 'USD', 'EUR', 'KZT', 'BYN', 'UAH'] as const).map((c) => (
+                    <Pressable key={c} onPress={() => { Haptics.selectionAsync(); setCurrency(c); }}
+                      style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: currency === c ? meta.color + '33' : t.border }}>
+                      <Text style={{ color: t.text, fontWeight: '700', fontSize: 13.5 }}>{c}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
             </View>
           )}
           {kind === 'health' && (

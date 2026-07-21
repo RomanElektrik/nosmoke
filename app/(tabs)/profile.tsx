@@ -47,6 +47,9 @@ export default function Profile() {
             onPress={() => router.push('/payment-method' as any)} />
         )}
 
+        <LinkRow icon="flame" label={lang === 'ru' ? 'Мои данные о курении' : 'My smoking data'}
+          onPress={() => router.push('/smoking-data' as any)} />
+
         <MethodCard />
 
         <GlassCard>

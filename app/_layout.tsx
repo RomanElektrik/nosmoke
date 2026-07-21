@@ -39,6 +39,23 @@ export default function Root() {
         const m = marketForLang(s.lang ?? s.profile?.language ?? currentLang());
         await update((prev) => (prev.market ? prev : { ...prev, market: m }));
       }
+      // Миграция нулей в данных о курении. До квиз-гейта (ca26aac) поля
+      // «сигарет в день» и «цена пачки» можно было стереть и пройти дальше —
+      // в профиль уходил 0, и «сэкономлено / не выкурено» показывали ноль
+      // НАВСЕГДА, независимо от ступени. Чинить это юзеру было нечем: экрана
+      // редактирования не существовало. Подставляем те же значения, что стоят
+      // в квизе по умолчанию, — их можно поправить в «Мои данные о курении».
+      if (s.profile && (!(s.profile.cigsPerDay > 0) || !(s.profile.packPrice > 0) || !(s.profile.cigsInPack > 0))) {
+        await update((prev) => ({
+          ...prev,
+          profile: prev.profile ? {
+            ...prev.profile,
+            cigsPerDay: prev.profile.cigsPerDay > 0 ? prev.profile.cigsPerDay : 15,
+            packPrice: prev.profile.packPrice > 0 ? prev.profile.packPrice : 220,
+            cigsInPack: prev.profile.cigsInPack > 0 ? prev.profile.cigsInPack : 20,
+          } : prev.profile,
+        }));
+      }
       // Migration: legacy profile without currentStep → auto-recommend.
       if (s.profile && !s.profile.currentStep) {
         const recommended = recommendStep(s.profile);
