@@ -17,6 +17,7 @@ export type StepSpec = {
   whyEn: string;
   durationDays: number;
   evidenceRu: string;
+  evidenceEn: string;
   color: string;
 };
 
@@ -31,6 +32,7 @@ export const STEPS: StepSpec[] = [
     whyEn: 'Low dependence (Fagerström 0–2). Start gentle: breathing, urge surfing, journal. No meds.',
     durationDays: 28,
     evidenceRu: 'Cochrane Whittaker 2024 (mHealth RR 1.54)',
+    evidenceEn: 'Cochrane Whittaker 2024 (mHealth RR 1.54)',
     color: '#5AC8FA',
   },
   {
@@ -43,6 +45,7 @@ export const STEPS: StepSpec[] = [
     whyEn: 'Moderate dependence (Fagerström 3–4) or first failure. Cytisine (Tabex) — plant-derived. 25-day course. Cochrane-backed efficacy, much cheaper than varenicline.',
     durationDays: 25,
     evidenceRu: 'Cochrane 2023 — RR 1.30 vs плацебо',
+    evidenceEn: 'Cochrane 2023 — RR 1.30 vs placebo',
     color: '#30D158',
   },
   {
@@ -55,6 +58,7 @@ export const STEPS: StepSpec[] = [
     whyEn: 'Heavy dependence (Fagerström 5–6) or 2+ failures. Bupropion SR — antidepressant lowering craving. Prescription. 8 weeks. Best when depression coexists.',
     durationDays: 56,
     evidenceRu: 'Cochrane Howes 2020 — RR 1.64 vs плацебо',
+    evidenceEn: 'Cochrane Howes 2020 — RR 1.64 vs placebo',
     color: '#FF9500',
   },
   {
@@ -67,6 +71,7 @@ export const STEPS: StepSpec[] = [
     whyEn: 'Very heavy dependence (Fagerström 7+) or failed cytisine/bupropion. Varenicline — most effective drug. Prescription. 12 weeks. Vivid dreams and nausea possible — usually subside.',
     durationDays: 84,
     evidenceRu: 'EAGLES NEJM 2016; Cochrane 2023 — RR 2.32 vs плацебо',
+    evidenceEn: 'EAGLES NEJM 2016; Cochrane 2023 — RR 2.32 vs placebo',
     color: '#FF453A',
   },
   {
@@ -79,6 +84,7 @@ export const STEPS: StepSpec[] = [
     whyEn: 'If nothing else worked. Extended varenicline (24 weeks) + therapist work. Through a clinician only.',
     durationDays: 168,
     evidenceRu: 'Tonstad JAMA 2006 — extended varenicline снижает релапс ~25%',
+    evidenceEn: 'Tonstad JAMA 2006 — extended varenicline cuts relapse by ~25%',
     color: '#BF5AF2',
   },
 ];
@@ -132,9 +138,19 @@ export function methodQuitDay(step?: StepLevel): number {
 }
 
 // End of the pre-quit window (ms). Before this moment smoking is per-protocol.
+//
+// 🔴 Окно открывает ФАКТ ПРИЁМА препарата, а не номер ступени. Раньше хватало
+// сменить ступень на «Варениклин» одним тапом — и приложение семь дней говорило
+// «Это не срыв, ты идёшь по плану · Препарат уже работает», хотя человек не
+// выпил ни одной таблетки, а med-gate с рецептом и противопоказаниями даже не
+// открывался. Это и медицинское утверждение о несуществующем препарате, и
+// отключённая на неделю детекция срыва.
 export function preQuitGraceEnd(p?: Profile | null): number {
   if (!p?.currentStep) return 0;
-  const start = p.stepEnteredAt ?? p.quitDate ?? 0;
+  // Ступень предполагает препарат, но курс не активирован — значит человек ни на
+  // чём, и никакого протокольного окна у него нет.
+  if (expectedMedForStep(p.currentStep) && !p.medication) return 0;
+  const start = p.medicationStartedAt ?? p.stepEnteredAt ?? p.quitDate ?? 0;
   return start + (methodQuitDay(p.currentStep) - 1) * 86400_000;
 }
 

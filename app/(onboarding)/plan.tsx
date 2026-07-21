@@ -48,8 +48,17 @@ export default function Plan() {
         } : s.profile,
       }));
     } catch {}
-    requestPermissions().catch(() => {});                 // fire-and-forget, не блокирует
-    scheduleQuitProgram(now, lang, 8, p.checkInHour ?? 21).catch(() => {});
+    // 🔴 Порядок обязателен: сначала РАЗРЕШЕНИЕ, потом планирование. Раньше оба
+    // вызова уходили параллельно — планировщик успевал отработать, пока человек
+    // читал системный алерт, и на iOS ~30 пушей молча не регистрировались. То
+    // есть свежая установка не получала НИ ОДНОГО уведомления до следующего
+    // холодного старта: ни вехи «20 минут», ни пиков дня 3, ни вечерних
+    // чек-инов первой недели — самой важной для удержания.
+    // Цепочка фоновая: переход на пейвол её не ждёт (иначе кнопка «залипает»).
+    void (async () => {
+      try { await requestPermissions(); } catch {}
+      try { await scheduleQuitProgram(now, lang, 8, p.checkInHour ?? 21); } catch {}
+    })();
     // Ага-момент показан → оффер. onb=1 переводит paywall в режим воронки:
     // закрытие/триал/оплата ведут вперёд в приложение, а не назад на план.
     router.replace('/paywall?onb=1' as any);
@@ -83,7 +92,7 @@ export default function Plan() {
           <Text style={{ color: t.text, fontSize: 14, marginTop: 6, lineHeight: 20 }}>
             {lang === 'ru' ? step.whyRu : step.whyEn}
           </Text>
-          <Text style={{ color: t.textDim, fontSize: 11, marginTop: 8 }}>{step.evidenceRu}</Text>
+          <Text style={{ color: t.textDim, fontSize: 11, marginTop: 8 }}>{lang === 'ru' ? step.evidenceRu : step.evidenceEn}</Text>
         </View>
 
         {/* Identity — who you're becoming (replaces the old scare-stat). */}

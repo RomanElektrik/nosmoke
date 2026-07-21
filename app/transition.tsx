@@ -237,7 +237,7 @@ export default function Transition() {
                   <Text style={{ color: t.text, fontSize: 13, lineHeight: 19 }}>
                     {lang === 'ru' ? s.whyRu : s.whyEn}
                   </Text>
-                  <Text style={{ color: t.textDim, fontSize: 11 }}>{s.evidenceRu}</Text>
+                  <Text style={{ color: t.textDim, fontSize: 11 }}>{lang === 'ru' ? s.evidenceRu : s.evidenceEn}</Text>
                 </View>
               </TouchableOpacity>
             );

@@ -51,7 +51,7 @@ export default function ProgramScreen() {
                 </Text>
               )}
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, gap: 10 }}>
-                <Text style={{ color: t.textDim, fontSize: 11, flex: 1 }} numberOfLines={2}>{step.evidenceRu}</Text>
+                <Text style={{ color: t.textDim, fontSize: 11, flex: 1 }} numberOfLines={2}>{currentLang() === 'ru' ? step.evidenceRu : step.evidenceEn}</Text>
                 <Text style={{ color: step.color, fontSize: 13, fontWeight: '700' }}>
                   {lang === 'ru' ? 'Сменить →' : 'Change →'}
                 </Text>

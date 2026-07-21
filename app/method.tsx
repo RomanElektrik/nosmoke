@@ -13,6 +13,7 @@ import { useAppState, update } from '../lib/storage';
 import type { StepLevel } from '../lib/storage';
 import { STEPS, recommendStep, getStep, pharmaBlocked } from '../lib/stepped';
 import { Icon } from '../components/Icon';
+import { expectedMedForStep } from '../lib/medication';
 
 export default function MethodScreen() {
   const t = useTheme();
@@ -57,7 +58,12 @@ export default function MethodScreen() {
               profile: s.profile ? { ...s.profile, currentStep: id, stepEnteredAt: Date.now() } : s.profile,
             }));
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            router.back();
+            // Ступень с препаратом — только через гейт рецепта и противопоказаний
+            // (CLAUDE.md: фарма никогда не активируется одним тапом). Быстрый
+            // переход менял ступень молча, минуя med-gate.
+            const med = expectedMedForStep(id);
+            if (med) router.replace({ pathname: '/med-gate', params: { med } } as any);
+            else router.back();
           },
         },
       ],
@@ -135,7 +141,7 @@ export default function MethodScreen() {
                   {lang === 'ru' ? s.whyRu : s.whyEn}
                 </Text>
                 <Text style={{ color: t.textDim, fontSize: 11, marginTop: 4 }}>
-                  {s.evidenceRu} · {lang === 'ru' ? `${s.durationDays} дней` : `${s.durationDays} days`}
+                  {lang === 'ru' ? s.evidenceRu : s.evidenceEn} · {lang === 'ru' ? `${s.durationDays} дней` : `${s.durationDays} days`}
                 </Text>
               </View>
             </Pressable>
