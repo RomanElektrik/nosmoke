@@ -10,8 +10,8 @@ export default function Index() {
   const [state] = useAppState();
   // Нет профиля → онбординг. Профиль есть, но онбординг не закрыт → воронка на
   // paywall (возобновление). Иначе → приложение.
-  // Первый запуск: язык не выбран → экран выбора языка, он уводит на welcome.
-  if (!state.profile) return <Redirect href={(state.lang ? '/(onboarding)/welcome' : '/(onboarding)/language') as any} />;
+  // Приложение только русское — экрана выбора языка больше нет, сразу welcome.
+  if (!state.profile) return <Redirect href={'/(onboarding)/welcome' as any} />;
   // Квиз пройден, но план ещё не подтверждён → возвращаем на план, а не на
   // пейвол: иначе выгрузка приложения между экранами навсегда съедала
   // ага-момент, поле «Я становлюсь…» и запрос прав на уведомления.

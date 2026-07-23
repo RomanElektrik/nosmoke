@@ -13,7 +13,6 @@
 // Интро бесплатно, остальные главы — Премиум. EN — следующим заходом (фолбэк на RU).
 
 import type { IconKey } from '../components/Icon';
-import { BOOK_EN } from './book-en';
 
 export type BookBlock = { type: 'h' | 'p'; text: string };
 
@@ -220,17 +219,6 @@ export function nextChapter(id: string): BookChapter | null {
 export function readCount(progress: Record<string, number> | undefined): number {
   if (!progress) return 0;
   return CHAPTERS.filter((c) => c.number > 0 && progress[c.id]).length;
-}
-
-// Вливаем английские тексты из lib/book-en.ts. Раньше bodyEn не было вовсе, и
-// англоязычный покупатель Премиума получал 20 глав кириллицей.
-for (const ch of CHAPTERS) {
-  const en = BOOK_EN[ch.id];
-  if (!en) continue;
-  ch.titleEn = en.titleEn;
-  ch.leadEn = en.leadEn;
-  ch.bodyEn = en.bodyEn;
-  ch.takeawayEn = en.takeawayEn;
 }
 
 export const TOTAL_CHAPTERS = CHAPTERS.filter((c) => c.number > 0).length; // главы без интро

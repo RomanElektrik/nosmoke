@@ -53,48 +53,7 @@ export default function Profile() {
 
         <MethodCard />
 
-        <GlassCard>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>{tr('profile.language')}</Text>
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              {(['ru', 'en'] as const).map((l) => (
-                <Pressable key={l} onPress={async () => {
-                  setLanguage(l);
-                  await update((st) => ({
-                    ...st,
-                    lang: l,
-                    // Рынок, залатченный ЧЕЛОВЕКОМ, здесь не трогаем — иначе
-                    // «переключил язык = премиум даром». Но если он был УГАДАН
-                    // при апгрейде со старой версии (там выбора языка не было),
-                    // явный выбор — единственный шанс это исправить: россиянин
-                    // с англоязычным айфоном иначе навсегда терял платный контур.
-                    ...(st.marketLatchedBy === 'migration'
-                      ? { market: marketForLang(l), marketLatchedBy: 'user' as const }
-                      : {}),
-                    profile: st.profile ? { ...st.profile, language: l } : st.profile,
-                  }));
-                  // Тексты пушей вшиваются в момент планирования: без
-                  // перепланирования напоминания месяцами приходили на старом
-                  // языке (единственное место, где locale перечитывался, — это
-                  // холодный старт).
-                  try {
-                    const st = cachedState();
-                    if (st?.profile?.onboardingComplete) {
-                      const trialUntil = st.premiumPlan === 'trial' && (st.premiumUntil ?? 0) > Date.now() ? st.premiumUntil : undefined;
-                      await rescheduleAll(st.profile, l, trialUntil);
-                    }
-                  } catch {}
-                }}
-                  style={{
-                    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-                    backgroundColor: lang === l ? t.accentSoft : t.border,
-                  }}>
-                  <Text style={{ color: t.text, fontWeight: '600' }}>{l.toUpperCase()}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        </GlassCard>
+        {/* Переключатель языка убран: приложение только русское. */}
 
         <LinkRow icon="compass" label={lang === 'ru' ? 'Гид по приложению' : 'App tour'}
           onPress={async () => {

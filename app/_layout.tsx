@@ -242,8 +242,8 @@ export default function Root() {
     // с них на главную — иначе тап по «Узнай тип зависимости» просто мигает домой.
     const reusable = segments[1] === 'personality' || segments[1] === 'depth';
     if (!startedProfile && !inOnb) {
-      // Язык ещё не выбран → сначала экран выбора языка, потом welcome.
-      router.replace(state.lang ? '/(onboarding)/welcome' : ('/(onboarding)/language' as any));
+      // Приложение только русское — экрана выбора языка нет, сразу welcome.
+      router.replace('/(onboarding)/welcome' as any);
     } else if (startedProfile && !completed && !inOnb && !onPaywall) {
       // Профиль собран, но онбординг не закрыт (оффер не пройден) — возобновляем
       // воронку на paywall. Покрывает выгрузку приложения прямо на оффере.

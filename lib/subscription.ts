@@ -74,19 +74,18 @@ export function usePremium(): boolean {
  *  App Store не «RU» (США/Казахстан — иначе часть приложений не поставить).
  *  Требование region === 'RU' отрезало таким людям оплату: пейвол открывался
  *  и тут же закрывался, а приложение считало их «бесплатным рынком». */
+// 🔴 Приложение доступно ТОЛЬКО в России (требование entitlement внешней
+// оплаты). Рынок всегда российский: оплата показывается всем, платная модель
+// действует для всех. Прежняя логика intl-рынка (бесплатно вне РФ) больше не
+// нужна и удалена — вне РФ приложения просто нет.
 export function isRuMarket(): boolean {
-  try {
-    const latched = cachedState()?.market;
-    if (latched) return latched === 'ru';
-    // Миграция: у тех, кто ставил приложение до появления поля, рынок ещё не
-    // залатчен — выводим из выбранного языка (и он залатчится на старте).
-    return marketForLang(cachedState()?.lang ?? cachedState()?.profile?.language ?? currentLang()) === 'ru';
-  } catch { return false; }
+  return true;
 }
 
 /** Язык → рынок. Единственное место, где делается это сопоставление. */
-export function marketForLang(lang: string | undefined | null): 'ru' | 'intl' {
-  return lang === 'ru' ? 'ru' : 'intl';
+// Приложение только для РФ — рынок всегда российский, язык роли не играет.
+export function marketForLang(_lang?: string | null): 'ru' | 'intl' {
+  return 'ru';
 }
 
 /** AI usage helpers — count messages sent today (free tier). */
